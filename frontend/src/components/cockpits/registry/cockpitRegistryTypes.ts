@@ -115,6 +115,7 @@ export type CockpitBlockedCapability = {
 export type CockpitToolActionBinding = {
   cardId: string;
   actionId: CockpitUiActionId;
+  promptTemplateId?: string;
 };
 
 export type CockpitHomeCard = {

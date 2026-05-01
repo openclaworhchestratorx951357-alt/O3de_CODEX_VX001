@@ -420,8 +420,11 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
+    const createGameTitles = await screen.findAllByText("Create Game Cockpit");
+    expect(createGameTitles.length).toBeGreaterThan(0);
+    const createGameWorkspaceSection = createGameTitles[0]?.closest("section");
+    expect(createGameWorkspaceSection).toBeTruthy();
+    fireEvent.click(within(createGameWorkspaceSection as HTMLElement).getAllByRole("button", { name: "Open Asset Forge" })[0]);
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
   });
 

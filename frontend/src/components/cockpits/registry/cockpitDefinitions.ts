@@ -111,6 +111,7 @@ export const cockpitDefinitions: readonly CockpitDefinition[] = [
         label: "Inspect Project",
         actionId: "launch-inspect-template",
         truthState: "read-only",
+        promptTemplateId: "inspect-project",
       },
       {
         id: "open-prompt-studio",
@@ -138,11 +139,11 @@ export const cockpitDefinitions: readonly CockpitDefinition[] = [
       },
     ],
     toolActionBindings: [
-      { cardId: "inspect-project", actionId: "launch-inspect-template" },
+      { cardId: "inspect-project", actionId: "launch-inspect-template", promptTemplateId: "inspect-project" },
       { cardId: "open-editor-session", actionId: "open-prompt-studio" },
       { cardId: "open-level", actionId: "open-prompt-studio" },
-      { cardId: "create-safe-entity", actionId: "launch-create-entity-template" },
-      { cardId: "add-component", actionId: "launch-add-mesh-template" },
+      { cardId: "create-safe-entity", actionId: "launch-create-entity-template", promptTemplateId: "create-safe-entity" },
+      { cardId: "add-component", actionId: "launch-add-mesh-template", promptTemplateId: "add-allowlisted-mesh" },
       { cardId: "open-asset-forge", actionId: "open-asset-forge" },
       { cardId: "review-run", actionId: "open-records" },
       { cardId: "open-prompt", actionId: "open-prompt-studio" },
@@ -216,6 +217,7 @@ export const cockpitDefinitions: readonly CockpitDefinition[] = [
         label: "Inspect Cinematic Target",
         actionId: "launch-inspect-template",
         truthState: "read-only",
+        promptTemplateId: "inspect-cinematic-target",
       },
       {
         id: "open-prompt-studio",
@@ -244,9 +246,17 @@ export const cockpitDefinitions: readonly CockpitDefinition[] = [
     ],
     toolActionBindings: [
       { cardId: "inspect-cinematic-target", actionId: "launch-inspect-template" },
-      { cardId: "camera-placeholder", actionId: "launch-camera-template" },
+      {
+        cardId: "camera-placeholder",
+        actionId: "launch-camera-template",
+        promptTemplateId: "create-cinematic-camera-placeholder",
+      },
       { cardId: "plan-scene-prop", actionId: "open-asset-forge" },
-      { cardId: "placement-proof-only", actionId: "launch-placement-proof-template" },
+      {
+        cardId: "placement-proof-only",
+        actionId: "launch-placement-proof-template",
+        promptTemplateId: "cinematic-placement-proof-only",
+      },
       { cardId: "review-latest", actionId: "open-records" },
       { cardId: "open-prompt", actionId: "open-prompt-studio" },
       { cardId: "open-records", actionId: "open-records" },
@@ -320,6 +330,7 @@ export const cockpitDefinitions: readonly CockpitDefinition[] = [
         label: "Inspect Project",
         actionId: "launch-inspect-template",
         truthState: "read-only",
+        promptTemplateId: "inspect-project-target",
       },
       {
         id: "refresh-target-status",
@@ -353,7 +364,7 @@ export const cockpitDefinitions: readonly CockpitDefinition[] = [
       },
     ],
     toolActionBindings: [
-      { cardId: "inspect-project", actionId: "launch-inspect-template" },
+      { cardId: "inspect-project", actionId: "launch-inspect-template", promptTemplateId: "inspect-project-target" },
       { cardId: "refresh-target", actionId: "refresh-target-status" },
       { cardId: "open-prompt", actionId: "open-prompt-studio" },
       { cardId: "open-runtime", actionId: "open-runtime" },

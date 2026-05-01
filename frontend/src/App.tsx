@@ -23,6 +23,7 @@ import {
   getAllCockpitDefinitions,
   getCockpitDefinition,
   getCockpitNavSections,
+  getCockpitPromptTemplateIdForAction,
   isRegisteredCockpitId,
 } from "./components/cockpits/registry/cockpitRegistry";
 import type { CockpitId, CockpitPromptDraftId, CockpitUiActionId } from "./components/cockpits/registry/cockpitRegistryTypes";
@@ -329,13 +330,6 @@ type PromptTemplateChooserContext = {
   nextSafeAction: string;
 };
 
-type PromptTemplateChooserWorkspaceId =
-  | "home"
-  | "create-game"
-  | "create-movie"
-  | "load-project"
-  | "asset-forge";
-
 type PromptTemplateChooserDescriptor = {
   sourceSurfaceLabel: string;
   title: string;
@@ -343,7 +337,7 @@ type PromptTemplateChooserDescriptor = {
   nextSafeAction: string;
 };
 
-const promptTemplateChooserDescriptors = {
+const promptTemplateChooserDescriptors: Partial<Record<CockpitId, PromptTemplateChooserDescriptor>> = {
   home: {
     sourceSurfaceLabel: "Home cockpit start-here rail / open prompt studio",
     title: "Home template quick-load",
@@ -374,7 +368,7 @@ const promptTemplateChooserDescriptors = {
     subtitle: "Select an Asset Forge prompt template for review-first execution planning.",
     nextSafeAction: "Use proof-only review paths for placement; execution and placement writes remain non-admitted.",
   },
-} satisfies Record<PromptTemplateChooserWorkspaceId, PromptTemplateChooserDescriptor>;
+};
 
 const missionPromptDraftByRegistryId: Record<CockpitPromptDraftId, MissionPromptDraft> = {
   "inspect-project": inspectProjectMissionPromptDraft,
@@ -386,6 +380,20 @@ const missionPromptDraftByRegistryId: Record<CockpitPromptDraftId, MissionPrompt
   "inspect-load-project": inspectLoadProjectMissionPromptDraft,
   "placement-proof-only": placementProofOnlyMissionPromptDraft,
 };
+
+function getPromptTemplateChooserDescriptor(sourceWorkspaceId: CockpitId): PromptTemplateChooserDescriptor {
+  const fromRegistry = promptTemplateChooserDescriptors[sourceWorkspaceId];
+  if (fromRegistry) {
+    return fromRegistry;
+  }
+  const workspaceTitle = getCockpitDefinition(sourceWorkspaceId)?.title ?? sourceWorkspaceId;
+  return {
+    sourceSurfaceLabel: `${workspaceTitle} cockpit / open prompt studio`,
+    title: `${workspaceTitle} template quick-load`,
+    subtitle: "Select a template to prefill Prompt Studio. This remains prefill-only and does not auto-execute.",
+    nextSafeAction: "Choose one template, preview the plan, and execute only inside admitted boundaries.",
+  };
+}
 
 type PromptReturnResumeChecklist = {
   id: string;
@@ -5164,7 +5172,7 @@ export default function App() {
   }
 
   function buildPromptTemplateChooserEntriesFromRegistry(
-    sourceWorkspaceId: PromptTemplateChooserWorkspaceId,
+    sourceWorkspaceId: CockpitId,
   ): Array<Omit<PromptTemplateChooserEntry, "id">> {
     const definition = getCockpitDefinition(sourceWorkspaceId);
     if (!definition) {
@@ -5190,10 +5198,8 @@ export default function App() {
     });
   }
 
-  function openPromptStudioFromCockpitTemplateRegistry(
-    sourceWorkspaceId: PromptTemplateChooserWorkspaceId,
-  ): void {
-    const descriptor = promptTemplateChooserDescriptors[sourceWorkspaceId];
+  function openPromptStudioFromCockpitTemplateRegistry(sourceWorkspaceId: CockpitId): void {
+    const descriptor = getPromptTemplateChooserDescriptor(sourceWorkspaceId);
     const templates = buildPromptTemplateChooserEntriesFromRegistry(sourceWorkspaceId);
     if (templates.length === 0) {
       openPromptStudio();
@@ -5210,7 +5216,7 @@ export default function App() {
   }
 
   function openPromptStudioWithRegistryTemplate(
-    sourceWorkspaceId: PromptTemplateChooserWorkspaceId,
+    sourceWorkspaceId: CockpitId,
     templateId: string,
   ): void {
     const template = getCockpitDefinition(sourceWorkspaceId)?.promptTemplates.find((entry) => entry.id === templateId);
@@ -5303,86 +5309,58 @@ export default function App() {
   function resolveCockpitUiActionHandler(
     cockpitId: CockpitId,
     actionId: CockpitUiActionId | undefined,
+    promptTemplateId?: string,
   ): (() => void) | undefined {
     if (!actionId) {
       return undefined;
     }
-    if (cockpitId === "create-game") {
-      switch (actionId) {
-        case "open-prompt-studio":
-          return openPromptStudioFromCreateGameCockpit;
-        case "launch-inspect-template":
-          return openPromptStudioWithInspectProjectTemplateFromCreateGame;
-        case "launch-create-entity-template":
-          return openPromptStudioWithCreateGameEntityTemplate;
-        case "launch-add-mesh-template":
-          return openPromptStudioWithAddAllowlistedMeshTemplate;
-        case "open-asset-forge":
-          return () => setActiveWorkspaceId("asset-forge");
-        case "open-runtime":
-          return openRuntimeOverview;
-        case "open-records":
-          return openRecordsRuns;
-        default:
-          return undefined;
-      }
+    const templateAction = actionId === "launch-inspect-template"
+      || actionId === "launch-create-entity-template"
+      || actionId === "launch-add-mesh-template"
+      || actionId === "launch-camera-template"
+      || actionId === "launch-placement-proof-template";
+
+    if (actionId === "open-prompt-studio") {
+      return () => openPromptStudioFromCockpitTemplateRegistry(cockpitId);
     }
-    if (cockpitId === "create-movie") {
-      switch (actionId) {
-        case "open-prompt-studio":
-          return openPromptStudioFromCreateMovieCockpit;
-        case "launch-inspect-template":
-          return openPromptStudioWithInspectCinematicTargetTemplate;
-        case "launch-camera-template":
-          return openPromptStudioWithCreateCinematicCameraTemplate;
-        case "launch-placement-proof-template":
-          return openPromptStudioWithCinematicPlacementProofTemplate;
-        case "open-asset-forge":
-          return () => setActiveWorkspaceId("asset-forge");
-        case "open-runtime":
-          return openRuntimeOverview;
-        case "open-records":
-          return openRecordsRuns;
-        default:
-          return undefined;
-      }
+    if (templateAction) {
+      const resolvedTemplateId = promptTemplateId
+        ?? getCockpitPromptTemplateIdForAction(cockpitId, actionId);
+      return resolvedTemplateId
+        ? () => openPromptStudioWithRegistryTemplate(cockpitId, resolvedTemplateId)
+        : () => openPromptStudioFromCockpitTemplateRegistry(cockpitId);
     }
-    if (cockpitId === "load-project") {
-      switch (actionId) {
-        case "open-prompt-studio":
-          return openPromptStudioFromLoadProjectCockpit;
-        case "launch-inspect-template":
-          return openPromptStudioWithInspectLoadProjectTemplate;
-        case "refresh-target-status":
-          return openRuntimeOverview;
-        case "open-runtime":
-          return openRuntimeOverview;
-        case "open-records":
-          return openRecordsRuns;
-        case "open-settings":
-          return undefined;
-        default:
-          return undefined;
-      }
+    if (actionId === "open-asset-forge") {
+      return () => setActiveWorkspaceId("asset-forge");
+    }
+    if (actionId === "open-runtime" || actionId === "refresh-target-status") {
+      return openRuntimeOverview;
+    }
+    if (actionId === "open-records") {
+      return openRecordsRuns;
     }
     return undefined;
   }
 
   function buildCockpitCommandActions(
-    cockpitId: "create-game" | "create-movie" | "load-project",
+    cockpitId: CockpitId,
   ): Array<{ label: string; onClick?: () => void }> {
     return (getCockpitDefinition(cockpitId)?.commandBar ?? []).map((command) => ({
       label: command.label,
-      onClick: resolveCockpitUiActionHandler(cockpitId, command.actionId),
+      onClick: resolveCockpitUiActionHandler(cockpitId, command.actionId, command.promptTemplateId),
     }));
   }
 
   function buildCockpitToolActionHandlers(
-    cockpitId: "create-game" | "create-movie" | "load-project",
+    cockpitId: CockpitId,
   ): Partial<Record<string, (() => void) | undefined>> {
     const handlers: Partial<Record<string, (() => void) | undefined>> = {};
     for (const binding of getCockpitDefinition(cockpitId)?.toolActionBindings ?? []) {
-      handlers[binding.cardId] = resolveCockpitUiActionHandler(cockpitId, binding.actionId);
+      handlers[binding.cardId] = resolveCockpitUiActionHandler(
+        cockpitId,
+        binding.actionId,
+        binding.promptTemplateId,
+      );
     }
     return handlers;
   }

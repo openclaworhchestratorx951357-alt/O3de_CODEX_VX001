@@ -5,6 +5,7 @@ import type {
   CockpitNavSectionDefinition,
   CockpitCategory,
   CockpitPromptTemplate,
+  CockpitUiActionId,
 } from "./cockpitRegistryTypes";
 
 const navSections: readonly CockpitNavSectionDefinition[] = [
@@ -41,6 +42,14 @@ function buildDefinitionMap(definitions: readonly CockpitDefinition[]): Map<Cock
 
 const definitionMap = buildDefinitionMap(cockpitDefinitions);
 
+const promptLaunchActionIds = new Set<CockpitUiActionId>([
+  "launch-inspect-template",
+  "launch-create-entity-template",
+  "launch-add-mesh-template",
+  "launch-camera-template",
+  "launch-placement-proof-template",
+]);
+
 export function isRegisteredCockpitId(id: string): id is CockpitId {
   return definitionMap.has(id as CockpitId);
 }
@@ -51,6 +60,7 @@ export function getRegisteredCockpitIds(): CockpitId[] {
 
 export function validateCockpitDefinition(definition: CockpitDefinition): string[] {
   const issues: string[] = [];
+  const templateIds = new Set(definition.promptTemplates.map((template) => template.id));
 
   if (!definition.id?.trim()) {
     issues.push("missing id");
@@ -74,6 +84,31 @@ export function validateCockpitDefinition(definition: CockpitDefinition): string
     }
     if (!command.actionId?.trim()) {
       issues.push(`${definition.id}: command ${command.id} missing actionId`);
+    }
+    if (command.promptTemplateId && !templateIds.has(command.promptTemplateId)) {
+      issues.push(
+        `${definition.id}: command ${command.id} references missing prompt template ${command.promptTemplateId}`,
+      );
+    }
+    if (command.actionId && promptLaunchActionIds.has(command.actionId) && !command.promptTemplateId) {
+      issues.push(`${definition.id}: command ${command.id} launch action missing promptTemplateId`);
+    }
+  }
+  for (const binding of definition.toolActionBindings) {
+    if (binding.promptTemplateId && !templateIds.has(binding.promptTemplateId)) {
+      issues.push(
+        `${definition.id}: tool card ${binding.cardId} references missing prompt template ${binding.promptTemplateId}`,
+      );
+    }
+    if (promptLaunchActionIds.has(binding.actionId)) {
+      const commandTemplateId = definition.commandBar.find(
+        (command) => command.actionId === binding.actionId,
+      )?.promptTemplateId;
+      if (!binding.promptTemplateId && !commandTemplateId) {
+        issues.push(
+          `${definition.id}: tool card ${binding.cardId} launch action missing promptTemplateId`,
+        );
+      }
     }
   }
   for (const template of definition.promptTemplates) {
@@ -144,6 +179,16 @@ export function getHomeLaunchCockpits(): readonly CockpitDefinition[] {
 
 export function getCockpitPromptTemplates(id: CockpitId): readonly CockpitPromptTemplate[] {
   return getCockpitDefinition(id)?.promptTemplates ?? [];
+}
+
+export function getCockpitPromptTemplateIdForAction(
+  cockpitId: CockpitId,
+  actionId: CockpitUiActionId | undefined,
+): string | undefined {
+  if (!actionId) {
+    return undefined;
+  }
+  return getCockpitDefinition(cockpitId)?.commandBar.find((command) => command.actionId === actionId)?.promptTemplateId;
 }
 
 export function getCockpitNavSections(): Array<CockpitNavSectionDefinition & { items: CockpitDefinition[] }> {

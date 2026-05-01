@@ -4,6 +4,7 @@ import {
   getAllCockpitDefinitions,
   getCockpitDefinition,
   getCockpitNavSections,
+  getCockpitPromptTemplateIdForAction,
   getCockpitPromptTemplates,
   getCockpitRegistryValidationIssues,
   getCockpitsByCategory,
@@ -98,6 +99,16 @@ describe("cockpitRegistry", () => {
       "refresh-target",
       "open-settings",
     ]));
+
+    expect(
+      createGame?.toolActionBindings.find((binding) => binding.cardId === "create-safe-entity")?.promptTemplateId,
+    ).toBe("create-safe-entity");
+    expect(
+      createMovie?.toolActionBindings.find((binding) => binding.cardId === "camera-placeholder")?.promptTemplateId,
+    ).toBe("create-cinematic-camera-placeholder");
+    expect(
+      loadProject?.toolActionBindings.find((binding) => binding.cardId === "inspect-project")?.promptTemplateId,
+    ).toBe("inspect-project-target");
   });
 
   it("returns create category cockpits for the create section", () => {
@@ -164,5 +175,12 @@ describe("cockpitRegistry", () => {
         "placement-proof-only",
       ]));
     expect(getCockpitPromptTemplates("prompt")).toEqual([]);
+  });
+
+  it("resolves launch actions to cockpit template ids", () => {
+    expect(getCockpitPromptTemplateIdForAction("create-game", "launch-inspect-template")).toBe("inspect-project");
+    expect(getCockpitPromptTemplateIdForAction("create-movie", "launch-inspect-template")).toBe("inspect-cinematic-target");
+    expect(getCockpitPromptTemplateIdForAction("load-project", "launch-inspect-template")).toBe("inspect-project-target");
+    expect(getCockpitPromptTemplateIdForAction("asset-forge", "launch-inspect-template")).toBeUndefined();
   });
 });
