@@ -173,7 +173,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       collapsible: true,
       scrollMode: "content",
       priority: "status",
-      minWidth: 280,
+      minWidth: 260,
       minHeight: 260,
       defaultHeight: 300,
       render: () => (
@@ -216,7 +216,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       collapsible: true,
       scrollMode: "content",
       priority: "status",
-      minWidth: 280,
+      minWidth: 260,
       minHeight: 210,
       defaultHeight: 250,
       render: () => (

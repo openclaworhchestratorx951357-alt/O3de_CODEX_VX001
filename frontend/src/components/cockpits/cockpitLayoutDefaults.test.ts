@@ -74,7 +74,7 @@ describe("cockpitLayoutDefaults", () => {
     ];
 
     for (const cockpitId of cockpitIds) {
-      expect(getCockpitLayoutVersion(cockpitId)).toBe(7);
+      expect(getCockpitLayoutVersion(cockpitId)).toBe(8);
     }
   });
 
