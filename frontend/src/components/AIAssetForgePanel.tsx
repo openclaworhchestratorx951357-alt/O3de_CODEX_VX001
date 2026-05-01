@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
 import AssetForgeBlenderCockpit from "./assetForge/AssetForgeBlenderCockpit";
+import MovieStudioPanel from "./movieStudio/MovieStudioPanel";
 import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import {
   fetchAssetForgeBlenderStatus,
@@ -60,7 +61,19 @@ type AIAssetForgePanelProps = {
   onOpenRecords?: () => void;
 };
 
+type WorkspaceMode = "asset_forge" | "movie_studio";
+const WORKSPACE_MODE_SESSION_KEY = "ai-asset-forge-workspace-mode-v1";
+
+function loadWorkspaceMode(): WorkspaceMode {
+  if (typeof window === "undefined") {
+    return "asset_forge";
+  }
+  const saved = window.sessionStorage.getItem(WORKSPACE_MODE_SESSION_KEY);
+  return saved === "movie_studio" ? "movie_studio" : "asset_forge";
+}
+
 export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(loadWorkspaceMode);
   const [taskModel, setTaskModel] = useState<AssetForgeTaskRecord | null>(null);
   const [providerStatus, setProviderStatus] = useState<AssetForgeProviderStatusRecord | null>(null);
   const [blenderStatus, setBlenderStatus] = useState<AssetForgeBlenderStatusRecord | null>(null);
@@ -140,46 +153,100 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.sessionStorage.setItem(WORKSPACE_MODE_SESSION_KEY, workspaceMode);
+  }, [workspaceMode]);
+
   return (
     <section aria-label="AI Asset Forge" style={panelStyle}>
-      <AssetForgeBlenderCockpit
-        projectProfile={props.projectProfile}
-        taskModel={taskModel}
-        providerStatus={providerStatus}
-        blenderStatus={blenderStatus}
-        editorModel={editorModel}
-        editorModelError={editorModelError}
-        bridgeStatus={props.bridgeStatus}
-        adapters={props.adapters}
-        readiness={props.readiness}
-        latestRunId={props.latestRunId}
-        latestExecutionId={props.latestExecutionId}
-        latestArtifactId={props.latestArtifactId}
-        latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview}
-        onOpenCreateGame={props.onOpenCreateGame}
-        onOpenCreateMovie={props.onOpenCreateMovie}
-        onOpenLoadProject={props.onOpenLoadProject}
-        onOpenPromptStudio={props.onOpenPromptStudio}
-        onLaunchInspectTemplate={props.onLaunchInspectTemplate}
-        onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
-        onLaunchPromptTemplate={props.onLaunchPromptTemplate}
-        onOpenRecords={props.onOpenRecords}
-        onOpenRuntimeOverview={props.onOpenRuntimeOverview}
-        onOpenBuilder={props.onOpenBuilder}
-        onOpenOperations={props.onOpenOperations}
-        onViewLatestRun={props.onViewLatestRun}
-        onViewExecution={props.onViewExecution}
-        onViewArtifact={props.onViewArtifact}
-        onViewEvidence={props.onViewEvidence}
-      />
+      <div style={workspaceToggleRowStyle} aria-label="Asset Forge workspace mode switcher">
+        <button
+          type="button"
+          aria-pressed={workspaceMode === "asset_forge"}
+          onClick={() => setWorkspaceMode("asset_forge")}
+          style={workspaceMode === "asset_forge" ? activeToggleButtonStyle : toggleButtonStyle}
+        >
+          Asset Forge Studio
+        </button>
+        <button
+          type="button"
+          aria-pressed={workspaceMode === "movie_studio"}
+          onClick={() => setWorkspaceMode("movie_studio")}
+          style={workspaceMode === "movie_studio" ? activeToggleButtonStyle : toggleButtonStyle}
+        >
+          Movie Studio Timeline
+        </button>
+      </div>
+      {workspaceMode === "asset_forge" ? (
+        <AssetForgeBlenderCockpit
+          projectProfile={props.projectProfile}
+          taskModel={taskModel}
+          providerStatus={providerStatus}
+          blenderStatus={blenderStatus}
+          editorModel={editorModel}
+          editorModelError={editorModelError}
+          bridgeStatus={props.bridgeStatus}
+          adapters={props.adapters}
+          readiness={props.readiness}
+          latestRunId={props.latestRunId}
+          latestExecutionId={props.latestExecutionId}
+          latestArtifactId={props.latestArtifactId}
+          latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview}
+          onOpenCreateGame={props.onOpenCreateGame}
+          onOpenCreateMovie={props.onOpenCreateMovie}
+          onOpenLoadProject={props.onOpenLoadProject}
+          onOpenPromptStudio={props.onOpenPromptStudio}
+          onLaunchInspectTemplate={props.onLaunchInspectTemplate}
+          onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+          onLaunchPromptTemplate={props.onLaunchPromptTemplate}
+          onOpenRecords={props.onOpenRecords}
+          onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+          onOpenBuilder={props.onOpenBuilder}
+          onOpenOperations={props.onOpenOperations}
+          onViewLatestRun={props.onViewLatestRun}
+          onViewExecution={props.onViewExecution}
+          onViewArtifact={props.onViewArtifact}
+          onViewEvidence={props.onViewEvidence}
+        />
+      ) : (
+        <MovieStudioPanel />
+      )}
     </section>
   );
 }
 
 const panelStyle = {
   display: "grid",
+  gap: 8,
   minWidth: 0,
   minHeight: 0,
   height: "100%",
   overflow: "hidden",
+} satisfies CSSProperties;
+
+const workspaceToggleRowStyle = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "center",
+} satisfies CSSProperties;
+
+const toggleButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 999,
+  padding: "5px 10px",
+  background: "rgba(18, 26, 36, 0.7)",
+  color: "var(--app-text-primary)",
+  cursor: "pointer",
+  fontSize: 12,
+} satisfies CSSProperties;
+
+const activeToggleButtonStyle = {
+  ...toggleButtonStyle,
+  border: "1px solid rgba(111, 190, 248, 0.95)",
+  boxShadow: "0 0 0 1px rgba(111, 190, 248, 0.3)",
+  background: "rgba(31, 72, 108, 0.6)",
 } satisfies CSSProperties;
