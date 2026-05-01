@@ -959,9 +959,10 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     const homeHandoffCard = screen.getByLabelText("Prompt handoff context card");
     fireEvent.click(
-      within(homeHandoffCard).getByRole("button", { name: "Open Home cockpit (Inspect mission stage)" }),
+      within(homeHandoffCard).getByRole("button", { name: "Open Asset Forge cockpit (Inspect mission stage)" }),
     );
-    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    expect(await screen.findByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(screen.getByLabelText("AI Asset Forge")).toBeInTheDocument();
   });
 
   it("loads Home and Asset Forge contextual templates into Prompt Studio as prefilled mission drafts", async () => {

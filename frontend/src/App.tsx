@@ -9125,10 +9125,11 @@ function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
   function getPromptHandoffSourceQuickAction(
     draftRequest: PromptLaunchDraftRequest,
   ): { label: string; detail: string; run: () => void } | null {
-    const sourceWorkspaceId = draftRequest.sourceWorkspaceId ?? null;
-    if (!sourceWorkspaceId) {
+    const sourceWorkspaceIdRaw = draftRequest.sourceWorkspaceId ?? null;
+    if (!sourceWorkspaceIdRaw) {
       return null;
     }
+    const sourceWorkspaceId = resolveLegacySourceWorkspaceId(sourceWorkspaceIdRaw);
     const draftId = draftRequest.draft.id;
     const sourceSurfaceLabel = draftRequest.sourceSurfaceLabel?.trim() || "unknown source surface";
 
@@ -9211,13 +9212,13 @@ function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
         "Returns to Asset Forge so you can continue placement proof-only review and evidence checks.",
       );
     }
-    if (sourceWorkspaceId === "home" && draftId === "inspect-project-read-only") {
+    if (sourceWorkspaceIdRaw === "home" && draftId === "inspect-project-read-only") {
       return createStageFocusAction(
-        "home",
-        "Inspect mission",
-        "Continue read-only mission orientation and choose the next safe step.",
-        "Open Home cockpit (Inspect mission stage)",
-        "Returns to Home so you can continue read-only mission orientation and choose the next safe step.",
+        "asset-forge",
+        "Inspect / Preflight",
+        "Continue read-only mission orientation inside Asset Forge, then choose the next safe step.",
+        "Open Asset Forge cockpit (Inspect mission stage)",
+        "Returns to Asset Forge so you can continue read-only mission orientation and choose the next safe step.",
       );
     }
 
