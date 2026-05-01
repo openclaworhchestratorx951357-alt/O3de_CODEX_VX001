@@ -112,6 +112,15 @@ function parseTimecodeToFrames(timecode: string): number {
   return hours * FRAMES_PER_HOUR + minutes * FRAMES_PER_MINUTE + seconds * FRAMES_PER_SECOND + frames;
 }
 
+function isValidTimecode(value: string): boolean {
+  const match = value.match(/^(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return false;
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+  const frames = Number(match[4]);
+  return minutes < 60 && seconds < 60 && frames < FRAMES_PER_SECOND;
+}
+
 function formatFramesToTimecode(totalFrames: number): string {
   const clamped = Math.max(0, totalFrames);
   const hours = Math.floor(clamped / FRAMES_PER_HOUR);
@@ -288,6 +297,7 @@ export default function MovieStudioPanel() {
       trackFilter,
     ],
   );
+  const playheadValid = isValidTimecode(playhead);
 
   const snapshotCurrent = useCallback(
     (): TimelineHistorySnapshot => ({
@@ -462,6 +472,10 @@ export default function MovieStudioPanel() {
   }
 
   function addMarker() {
+    if (!playheadValid) {
+      setHandoffStatus("Playhead timecode is invalid");
+      return;
+    }
     pushHistory("Add marker");
     setMarkers((current) => {
       const next = Array.from(new Set([...current, playhead])).sort();
@@ -481,6 +495,10 @@ export default function MovieStudioPanel() {
   }
 
   async function copyHandoffSummary() {
+    if (!playheadValid) {
+      setHandoffStatus("Playhead timecode is invalid");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(handoffSummary);
       setHandoffStatus("Copied to clipboard");
@@ -490,6 +508,10 @@ export default function MovieStudioPanel() {
   }
 
   function downloadHandoffSummary() {
+    if (!playheadValid) {
+      setHandoffStatus("Playhead timecode is invalid");
+      return;
+    }
     const blob = new Blob([handoffSummary], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -503,6 +525,10 @@ export default function MovieStudioPanel() {
   }
 
   function downloadHandoffJson() {
+    if (!playheadValid) {
+      setHandoffStatus("Playhead timecode is invalid");
+      return;
+    }
     const blob = new Blob([handoffJson], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -516,6 +542,10 @@ export default function MovieStudioPanel() {
   }
 
   async function copyHandoffJson() {
+    if (!playheadValid) {
+      setHandoffStatus("Playhead timecode is invalid");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(handoffJson);
       setHandoffStatus("Copied JSON packet");
@@ -602,7 +632,7 @@ export default function MovieStudioPanel() {
                 type="text"
                 value={playhead}
                 onChange={(event) => setPlayhead(event.target.value)}
-                style={s.playheadInput}
+                style={playheadValid ? s.playheadInput : s.playheadInputInvalid}
               />
             </label>
             <label style={s.inputLabel}>
@@ -744,6 +774,7 @@ export default function MovieStudioPanel() {
                 </button>
               ))}
             </div>
+            {!playheadValid ? <p style={s.validationText}>Playhead must be HH:MM:SS:FF at 24fps.</p> : null}
           </div>
           <div style={s.trackStack}>
             {visibleTracks.map((track) => (
@@ -1104,6 +1135,14 @@ const s = {
     padding: "6px 8px",
     fontSize: 12,
   },
+  playheadInputInvalid: {
+    border: "1px solid rgba(243, 127, 150, 0.9)",
+    background: "rgba(48, 15, 21, 0.75)",
+    color: "#ffd8e1",
+    borderRadius: 8,
+    padding: "6px 8px",
+    fontSize: 12,
+  },
   selectInput: {
     border: "1px solid var(--app-panel-border)",
     background: "rgba(12, 17, 24, 0.8)",
@@ -1143,6 +1182,11 @@ const s = {
     display: "flex",
     gap: 6,
     flexWrap: "wrap",
+  },
+  validationText: {
+    margin: "2px 0 0",
+    fontSize: 11,
+    color: "#ffb0ba",
   },
   markerPill: {
     fontSize: 11,
