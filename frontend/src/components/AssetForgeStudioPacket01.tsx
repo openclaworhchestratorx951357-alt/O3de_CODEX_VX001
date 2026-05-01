@@ -2821,7 +2821,17 @@ export default function AssetForgeStudioPacket01({
                 <li>Read-only: {reviewPacketReport.read_only ? "yes" : "no"}</li>
                 <li>Mutation occurred: {reviewPacketReport.mutation_occurred ? "yes" : "no"}</li>
                 <li>License name: {String(reviewPacketReport.provenance["license_name"] ?? "unknown")}</li>
+                <li>Provenance contract keys: {contractSummaryKeyCount(reviewPacketReport.provenance)}</li>
+                <li>Provenance contract preview: {contractSummaryKeyPreview(reviewPacketReport.provenance)}</li>
+                <li>O3DE source contract keys: {contractSummaryKeyCount(reviewPacketReport.o3de_source)}</li>
+                <li>O3DE source contract preview: {contractSummaryKeyPreview(reviewPacketReport.o3de_source)}</li>
+                <li>Asset processor contract keys: {contractSummaryKeyCount(reviewPacketReport.asset_processor)}</li>
+                <li>Asset processor contract preview: {contractSummaryKeyPreview(reviewPacketReport.asset_processor)}</li>
+                <li>Phase9 readback contract keys: {contractSummaryKeyCount(reviewPacketReport.phase9_readback)}</li>
+                <li>Phase9 readback contract preview: {contractSummaryKeyPreview(reviewPacketReport.phase9_readback)}</li>
                 <li>Mesh quality review: {String(reviewPacketReport.quality_review["mesh_quality_review"] ?? "unknown")}</li>
+                <li>Quality review contract keys: {contractSummaryKeyCount(reviewPacketReport.quality_review)}</li>
+                <li>Quality review contract preview: {contractSummaryKeyPreview(reviewPacketReport.quality_review)}</li>
                 <li>Next safest step: {reviewPacketReport.next_safest_step}</li>
                 <li>Blocked reason: {reviewPacketReport.blocked_reason ?? "none"}</li>
               </ul>
