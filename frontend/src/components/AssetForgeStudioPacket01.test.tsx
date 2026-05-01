@@ -1422,10 +1422,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Read-only: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Mutation occurred: no/i)).toBeInTheDocument();
     expect(screen.getByText(/License name: CC-BY-4\.0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Commercial use allowed: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Provenance contract keys: 2/i)).toBeInTheDocument();
     expect(screen.getByText(/Provenance contract preview: license_name, commercial_use_allowed/i)).toBeInTheDocument();
     expect(screen.getByText(/O3DE source contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/O3DE source contract preview: project_root/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor completed: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Asset processor contract keys: 2/i)).toBeInTheDocument();
     expect(screen.getByText(/Asset processor contract preview: asset_processor_completed, asset_processor_warnings/i)).toBeInTheDocument();
     expect(screen.getByText(/Phase9 readback contract keys: 2/i)).toBeInTheDocument();

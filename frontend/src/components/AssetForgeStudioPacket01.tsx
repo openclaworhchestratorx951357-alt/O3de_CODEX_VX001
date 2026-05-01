@@ -2821,10 +2821,12 @@ export default function AssetForgeStudioPacket01({
                 <li>Read-only: {reviewPacketReport.read_only ? "yes" : "no"}</li>
                 <li>Mutation occurred: {reviewPacketReport.mutation_occurred ? "yes" : "no"}</li>
                 <li>License name: {String(reviewPacketReport.provenance["license_name"] ?? "unknown")}</li>
+                <li>Commercial use allowed: {contractSummaryBooleanLabel(reviewPacketReport.provenance, "commercial_use_allowed")}</li>
                 <li>Provenance contract keys: {contractSummaryKeyCount(reviewPacketReport.provenance)}</li>
                 <li>Provenance contract preview: {contractSummaryKeyPreview(reviewPacketReport.provenance)}</li>
                 <li>O3DE source contract keys: {contractSummaryKeyCount(reviewPacketReport.o3de_source)}</li>
                 <li>O3DE source contract preview: {contractSummaryKeyPreview(reviewPacketReport.o3de_source)}</li>
+                <li>Asset processor completed: {contractSummaryBooleanLabel(reviewPacketReport.asset_processor, "asset_processor_completed")}</li>
                 <li>Asset processor contract keys: {contractSummaryKeyCount(reviewPacketReport.asset_processor)}</li>
                 <li>Asset processor contract preview: {contractSummaryKeyPreview(reviewPacketReport.asset_processor)}</li>
                 <li>Phase9 readback contract keys: {contractSummaryKeyCount(reviewPacketReport.phase9_readback)}</li>
