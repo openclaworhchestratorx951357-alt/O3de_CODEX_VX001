@@ -5002,7 +5002,6 @@ export default function App() {
   const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
   const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
   const cockpitRegistryByWorkspaceId = buildCockpitAppRegistryByWorkspaceId(cockpitRegistrations);
-  const homeWorkspaceGuide = getShellWorkspaceGuide("home");
   const promptWorkspaceGuide = getShellWorkspaceGuide("prompt");
   const builderWorkspaceGuide = getShellWorkspaceGuide("builder");
   const operationsWorkspaceGuide = getShellWorkspaceGuide("operations");
@@ -5014,8 +5013,8 @@ export default function App() {
   const runsQuickStatGuide = getShellQuickStatGuide("runs");
   const workspaceMeta: Record<DesktopWorkspaceId, { title: string; subtitle: string }> = {
     home: {
-      title: homeWorkspaceGuide.workspaceTitle,
-      subtitle: homeWorkspaceGuide.workspaceSubtitle,
+      title: "Legacy Mission Desk",
+      subtitle: "Compatibility workspace preserved for legacy handoff continuity inside the Asset Forge shell.",
     },
     "create-game": {
       title: cockpitRegistryByWorkspaceId["create-game"].workspaceTitle,
@@ -5460,37 +5459,37 @@ export default function App() {
   function openPromptStudioFromHomeCockpit(): void {
     openPromptStudioWithTemplateChooserContext(
       "home",
-      "Home cockpit start-here rail / open prompt studio",
-      "Home template quick-load",
-      "Choose a mission-first template to prefill Prompt Studio. This stays prefill-only and does not auto-execute.",
+      "Legacy Mission Desk / open prompt studio",
+      "Legacy mission template quick-load",
+      "Choose a compatibility mission template to prefill Prompt Studio. This stays prefill-only and does not auto-execute.",
       [
         {
           label: "Inspect project evidence prompt",
           detail: "Read-only orientation before admitted or proof-only steps.",
           truthState: "read-only / non-mutating",
           draft: inspectProjectMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / inspect project template",
+          sourceSurfaceLabel: "Legacy mission workflow / inspect project template",
         },
         {
           label: "Create safe game entity prompt",
           detail: "Narrow admitted-real root-level entity request.",
           truthState: "admitted-real narrow",
           draft: createGameEntityMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / create entity template",
+          sourceSurfaceLabel: "Legacy mission workflow / create entity template",
         },
         {
           label: "Add allowlisted Mesh component prompt",
           detail: "Allowlisted component lane with readback evidence expectation.",
           truthState: "admitted-real allowlisted",
           draft: addAllowlistedMeshMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / add allowlisted component template",
+          sourceSurfaceLabel: "Legacy mission workflow / add allowlisted component template",
         },
         {
           label: "Placement proof-only candidate prompt",
           detail: "Fail-closed placement proof candidate with non-admitted execution/write flags.",
           truthState: "proof-only / fail-closed / non-mutating",
           draft: placementProofOnlyMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / placement proof-only template",
+          sourceSurfaceLabel: "Legacy mission workflow / placement proof-only template",
         },
       ],
       "Pick one template, preview the plan, then execute only inside admitted or proof-only boundaries.",
@@ -5522,7 +5521,7 @@ export default function App() {
   function openPromptStudioWithPlacementProofTemplateFromHome(): void {
     openPromptStudioWithMissionDraft(
       placementProofOnlyMissionPromptDraft,
-      "Home mission workflow / placement proof-only template",
+      "Legacy mission workflow / placement proof-only template",
       "home",
     );
   }
@@ -5546,7 +5545,7 @@ export default function App() {
   function openPromptStudioWithInspectProjectTemplateFromHome(): void {
     openPromptStudioWithMissionDraft(
       inspectProjectMissionPromptDraft,
-      "Home mission workflow / inspect project template",
+      "Legacy mission workflow / inspect project template",
       "home",
     );
   }
@@ -5643,7 +5642,7 @@ export default function App() {
 function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
     switch (workspaceId) {
       case "home":
-        return "Resume from Home mission cards, then preview the loaded prompt plan before any execution.";
+        return "Resume from the Legacy Mission Desk compatibility lane, then preview the loaded prompt plan before any execution.";
       case "create-game":
         return "Continue the Create Game pipeline stage you launched from, then preview the loaded prompt plan.";
       case "create-movie":
@@ -8788,9 +8787,9 @@ function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
     }> = [
       {
         workspaceId: "home",
-        label: "Home",
-        detail: "Inspect, safe entity, allowlisted component, and placement proof-only templates.",
-        truthState: "mission-first prefill-only",
+        label: "Legacy Mission Desk",
+        detail: "Compatibility template lane for inspect, safe entity, allowlisted component, and placement proof-only prompts.",
+        truthState: "legacy compatibility / prefill-only",
       },
       {
         workspaceId: "create-game",

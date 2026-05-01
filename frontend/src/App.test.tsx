@@ -588,8 +588,8 @@ describe("App desktop smoke", () => {
     expect(homeWorkspace).not.toBeNull();
     fireEvent.click(within(homeWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     const homeChooser = await screen.findByLabelText("Prompt template chooser context");
-    expect(homeChooser).toHaveTextContent("Home template quick-load");
-    expect(homeChooser).toHaveTextContent("Source workspace: Home");
+    expect(homeChooser).toHaveTextContent("Legacy mission template quick-load");
+    expect(homeChooser).toHaveTextContent("Source workspace: Legacy Mission Desk");
     expect(homeChooser).toHaveTextContent(
       "No preview, execute, placement, or mutation runs automatically.",
     );
@@ -672,12 +672,12 @@ describe("App desktop smoke", () => {
     );
 
     fireEvent.click(
-      within(laneSwitcher).getByRole("button", { name: "Open template lane: Home" }),
+      within(laneSwitcher).getByRole("button", { name: "Open template lane: Legacy Mission Desk" }),
     );
 
     const homeChooser = await screen.findByLabelText("Prompt template chooser context");
-    expect(homeChooser).toHaveTextContent("Home template quick-load");
-    expect(homeChooser).toHaveTextContent("Source workspace: Home");
+    expect(homeChooser).toHaveTextContent("Legacy mission template quick-load");
+    expect(homeChooser).toHaveTextContent("Source workspace: Legacy Mission Desk");
     fireEvent.click(
       within(homeChooser).getByRole("button", { name: "Load template: Inspect project evidence prompt" }),
     );
@@ -981,7 +981,7 @@ describe("App desktop smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getAllByText("Loaded mission draft: Inspect project evidence prompt").length).toBeGreaterThan(0);
-    expect(screen.getByText("Loaded source: Home mission workflow / inspect project template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source: Legacy mission workflow / inspect project template")).toBeInTheDocument();
     expect(screen.getByText("Loaded source workspace: home")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
