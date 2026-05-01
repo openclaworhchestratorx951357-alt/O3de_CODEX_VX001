@@ -3,43 +3,31 @@ import { describe, expect, it, vi } from "vitest";
 
 import AIAssetForgePanel from "./AIAssetForgePanel";
 
-vi.mock("../lib/api", () => ({
-  fetchAssetForgeStudioStatus: vi.fn(async () => null),
-  fetchAssetForgeTask: vi.fn(async () => null),
-  fetchAssetForgeProviderStatus: vi.fn(async () => null),
-  fetchAssetForgeBlenderStatus: vi.fn(async () => null),
-}));
-
 describe("AIAssetForgePanel", () => {
-  it("renders Asset Forge with the organized default cockpit layout and supports menu zone moves", () => {
-    render(<AIAssetForgePanel />);
+  it("renders the standalone Asset Forge shell and keeps template launch controls wired", () => {
+    const onOpenPromptStudio = vi.fn();
+    const onLaunchInspectTemplate = vi.fn();
+    const onLaunchPlacementProofTemplate = vi.fn();
 
-    expect(screen.getByLabelText("AI Asset Forge")).toBeInTheDocument();
-    expect(screen.getByTestId("dockable-layout-asset-forge")).toBeInTheDocument();
-    expect(screen.getByLabelText("Asset Forge studio header")).toBeInTheDocument();
+    render(
+      <AIAssetForgePanel
+        onOpenPromptStudio={onOpenPromptStudio}
+        onLaunchInspectTemplate={onLaunchInspectTemplate}
+        onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
+      />,
+    );
 
-    const topZone = screen.getByTestId("asset-forge-top-zone");
-    const leftZone = screen.getByTestId("asset-forge-left-zone");
-    const centerZone = screen.getByTestId("asset-forge-center-zone");
-    const rightZone = screen.getByTestId("asset-forge-right-zone");
-    const bottomZone = screen.getByTestId("asset-forge-bottom-zone");
+    const panel = screen.getByLabelText("AI Asset Forge");
+    expect(within(panel).queryByTestId("dockable-layout-asset-forge")).not.toBeInTheDocument();
+    expect(within(panel).getByLabelText("Asset Forge Studio Shell")).toBeInTheDocument();
+    expect(within(panel).getByLabelText("Asset Forge prompt launch strip")).toBeInTheDocument();
 
-    expect(within(topZone).getByLabelText("Asset Forge command strip panel")).toBeInTheDocument();
-    const toolsPanel = within(leftZone).getByLabelText("Tools, candidates, and outliner panel");
-    expect(toolsPanel).toBeInTheDocument();
-    expect(within(centerZone).getByLabelText("Asset Forge studio panel")).toBeInTheDocument();
-    expect(within(rightZone).getByLabelText("Mission truth rail panel")).toBeInTheDocument();
-    expect(within(bottomZone).getByLabelText("Evidence, prompts, and logs drawer panel")).toBeInTheDocument();
-    expect(within(bottomZone).getByLabelText("Asset Forge guided pipeline")).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole("button", { name: "Load inspect template in Prompt Studio" }));
+    fireEvent.click(within(panel).getByRole("button", { name: "Load placement proof-only template in Prompt Studio" }));
+    fireEvent.click(within(panel).getByRole("button", { name: "Open Prompt Studio draft" }));
 
-    const moveSummary = toolsPanel.querySelector("summary");
-    expect(moveSummary).toBeTruthy();
-    fireEvent.click(moveSummary as HTMLElement);
-    fireEvent.click(within(toolsPanel).getByRole("button", { name: "Move Tools, candidates, and outliner panel to right" }));
-
-    expect(within(rightZone).getByLabelText("Tools, candidates, and outliner panel")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
-    expect(within(leftZone).getByLabelText("Tools, candidates, and outliner panel")).toBeInTheDocument();
+    expect(onLaunchInspectTemplate).toHaveBeenCalledTimes(1);
+    expect(onLaunchPlacementProofTemplate).toHaveBeenCalledTimes(1);
+    expect(onOpenPromptStudio).toHaveBeenCalledTimes(1);
   });
 });
