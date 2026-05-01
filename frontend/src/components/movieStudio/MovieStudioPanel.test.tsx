@@ -45,6 +45,16 @@ describe("MovieStudioPanel", () => {
     expect(screen.getAllByText("00:00:20:00").length).toBeGreaterThan(1);
   });
 
+  it("allows keyboard selection of clips with Enter", () => {
+    render(<MovieStudioPanel />);
+
+    const clipCard = screen.getByRole("button", { name: "Clip Cam B Alt" });
+    fireEvent.keyDown(clipCard, { key: "Enter" });
+    expect(
+      screen.getAllByText((_, element) => element?.textContent?.includes("Name: Cam B Alt") ?? false).length,
+    ).toBeGreaterThan(0);
+  });
+
   it("shows validation and blocks marker/handoff actions for invalid playhead", () => {
     render(<MovieStudioPanel />);
 

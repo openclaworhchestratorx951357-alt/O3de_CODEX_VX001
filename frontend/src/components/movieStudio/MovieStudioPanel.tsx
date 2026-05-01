@@ -830,6 +830,16 @@ export default function MovieStudioPanel() {
                         pushHistory("Select clip");
                         setSelectedClipId(clip.id);
                       }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          pushHistory("Select clip");
+                          setSelectedClipId(clip.id);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={selectedClipId === clip.id}
                       aria-label={`Clip ${clip.label}`}
                     >
                       <span style={s.trimHandle} aria-hidden>
