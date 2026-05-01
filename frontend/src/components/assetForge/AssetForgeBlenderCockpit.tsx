@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type { CockpitAppRegistration } from "../../lib/cockpitAppRegistry";
+import { useSettings } from "../../lib/settings/hooks";
 import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
@@ -210,6 +211,14 @@ const fallbackMaterialRows: DisplayPropertyRow[] = [
   { label: "Transparency", value: "not admitted", tone: "blocked" },
 ];
 
+const DEFAULT_TOOL_ID = "transform";
+const DEFAULT_OUTLINER_NODE_ID = "asset-root";
+const DEFAULT_VIEWPORT_MODE = "Solid";
+const DEFAULT_PROPERTIES_TAB: PropertiesTab = "Transform";
+const DEFAULT_MATERIAL_TAB = "Surface";
+const DEFAULT_BOTTOM_TAB = "Timeline";
+const DEFAULT_PROMPT_TEMPLATE_ID = "inspect-candidate";
+
 const fallbackPromptTemplates: PromptTemplate[] = [
   {
     id: "inspect-candidate",
@@ -256,7 +265,7 @@ const menuGroups: MenuGroup[] = [
     label: "Edit",
     items: [
       { id: "edit-reset-transform", label: "Reset transform draft", tone: "demo", action: "reset-transform", status: "Transform draft reset locally; no project mutation occurred." },
-      { id: "edit-reset-layout", label: "Reset layout", tone: "blocked", action: "blocked", status: "Layout reset is not wired for this cockpit packet." },
+      { id: "edit-reset-layout", label: "Reset layout", tone: "read-only", action: "reset-layout", status: "Editor layout reset locally. UI-only state restored; no backend mutation." },
       { id: "edit-duplicate", label: "Duplicate candidate", tone: "blocked", action: "select-tool-duplicate", status: "Duplicate candidate is blocked; asset mutation is not admitted." },
       { id: "edit-delete", label: "Delete candidate", tone: "blocked", action: "select-tool-delete", status: "Delete candidate is blocked; asset deletion is not admitted." },
     ],
@@ -1214,6 +1223,8 @@ export default function AssetForgeBlenderCockpit({
   onViewArtifact,
   onViewEvidence,
 }: Props) {
+  const { settings, saveSettings, themeTokens } = useSettings();
+  const resolvedThemeMode = themeTokens.resolvedThemeMode;
   const candidate = getCandidate(taskModel);
   const tools = getTools(editorModel);
   const outliner = getOutliner(editorModel);
@@ -1234,6 +1245,15 @@ export default function AssetForgeBlenderCockpit({
   const initialTransformDraft = useMemo(() => getTransformDraft(editorModel), [editorModel]);
   const materialRows = useMemo(() => getMaterialRows(editorModel), [editorModel]);
   const safetyRows = useMemo(() => getSafetyRows(editorModel), [editorModel]);
+  const defaultToolId = tools.find((tool) => tool.id === DEFAULT_TOOL_ID)?.id ?? tools[0]?.id ?? DEFAULT_TOOL_ID;
+  const defaultOutlinerNodeId = outliner.find((node) => node.id === DEFAULT_OUTLINER_NODE_ID)?.id ?? outliner[0]?.id ?? DEFAULT_OUTLINER_NODE_ID;
+  const defaultViewportMode = editorModel?.viewport?.active_shading_mode ?? DEFAULT_VIEWPORT_MODE;
+  const defaultPropertiesTab = DEFAULT_PROPERTIES_TAB;
+  const defaultMaterialSubTab = materialTabs.find((tab) => tab === DEFAULT_MATERIAL_TAB) ?? materialTabs[0] ?? DEFAULT_MATERIAL_TAB;
+  const defaultBottomTab = DEFAULT_BOTTOM_TAB;
+  const defaultPromptTemplateId = promptTemplates.find((template) => template.id === DEFAULT_PROMPT_TEMPLATE_ID)?.id
+    ?? promptTemplates[0]?.id
+    ?? DEFAULT_PROMPT_TEMPLATE_ID;
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -1243,14 +1263,14 @@ export default function AssetForgeBlenderCockpit({
     readiness,
     candidate,
   });
-  const [selectedToolId, setSelectedToolId] = useState("transform");
-  const [selectedOutlinerNodeId, setSelectedOutlinerNodeId] = useState("asset-root");
-  const [selectedViewportMode, setSelectedViewportMode] = useState(editorModel?.viewport?.active_shading_mode ?? "Solid");
+  const [selectedToolId, setSelectedToolId] = useState(defaultToolId);
+  const [selectedOutlinerNodeId, setSelectedOutlinerNodeId] = useState(defaultOutlinerNodeId);
+  const [selectedViewportMode, setSelectedViewportMode] = useState(defaultViewportMode);
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
-  const [selectedPropertiesTab, setSelectedPropertiesTab] = useState<PropertiesTab>("Transform");
-  const [selectedMaterialSubTab, setSelectedMaterialSubTab] = useState<MaterialSubTab>("Surface");
-  const [selectedBottomTab, setSelectedBottomTab] = useState<BottomTab>("Timeline");
-  const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState("inspect-candidate");
+  const [selectedPropertiesTab, setSelectedPropertiesTab] = useState<PropertiesTab>(defaultPropertiesTab);
+  const [selectedMaterialSubTab, setSelectedMaterialSubTab] = useState<MaterialSubTab>(defaultMaterialSubTab);
+  const [selectedBottomTab, setSelectedBottomTab] = useState<BottomTab>(defaultBottomTab);
+  const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState(defaultPromptTemplateId);
   const [transformDraft, setTransformDraft] = useState<TransformDraft>(initialTransformDraft);
   const [transformDirty, setTransformDirty] = useState(false);
   const [gridVisible, setGridVisible] = useState(editorModel?.viewport?.grid_visible ?? true);
@@ -1279,6 +1299,37 @@ export default function AssetForgeBlenderCockpit({
       setTransformDraft(initialTransformDraft);
     }
   }, [initialTransformDraft, transformDirty]);
+
+  function resetLayoutState() {
+    setSelectedMenuId(null);
+    setSelectedToolId(defaultToolId);
+    setSelectedOutlinerNodeId(defaultOutlinerNodeId);
+    setSelectedViewportMode(defaultViewportMode);
+    setSelectedPropertiesTab(defaultPropertiesTab);
+    setSelectedMaterialSubTab(defaultMaterialSubTab);
+    setSelectedBottomTab(defaultBottomTab);
+    setSelectedPromptTemplateId(defaultPromptTemplateId);
+    setGridVisible(editorModel?.viewport?.grid_visible ?? true);
+    setTransformDraft(initialTransformDraft);
+    setTransformDirty(false);
+    setStatusMessage("Editor layout reset locally. UI-only state restored; no backend mutation.");
+  }
+
+  function setThemeMode(mode: "light" | "dark") {
+    if (settings.appearance.themeMode === mode) {
+      setStatusMessage(`${mode === "dark" ? "Dark" : "Light"} theme already selected.`);
+      return;
+    }
+
+    saveSettings({
+      ...settings,
+      appearance: {
+        ...settings.appearance,
+        themeMode: mode,
+      },
+    });
+    setStatusMessage(`${mode === "dark" ? "Dark" : "Light"} theme applied from Asset Forge.`);
+  }
 
   function resetTransformDraft() {
     setTransformDraft(initialTransformDraft);
@@ -1391,6 +1442,8 @@ export default function AssetForgeBlenderCockpit({
       selectPromptTemplate(item.action.replace("select-template-", ""));
     } else if (item.action === "reset-transform") {
       resetTransformDraft();
+    } else if (item.action === "reset-layout") {
+      resetLayoutState();
     } else if (item.action === "toggle-grid") {
       setGridVisible((current) => !current);
       setStatusMessage(item.status);
@@ -1754,6 +1807,30 @@ export default function AssetForgeBlenderCockpit({
         <div style={styles.menuRight}>
           <span>{projectProfile?.name ?? "McpSandbox"}</span>
           <span>{editorModel ? "backend model" : "frontend fallback"}</span>
+          <div style={styles.themeToggleGroup} aria-label="Asset Forge theme mode toggle">
+            <button
+              type="button"
+              onClick={() => setThemeMode("light")}
+              aria-pressed={resolvedThemeMode === "light"}
+              style={{
+                ...styles.themeToggleButton,
+                ...(resolvedThemeMode === "light" ? styles.activeThemeToggleButton : {}),
+              }}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              onClick={() => setThemeMode("dark")}
+              aria-pressed={resolvedThemeMode === "dark"}
+              style={{
+                ...styles.themeToggleButton,
+                ...(resolvedThemeMode === "dark" ? styles.activeThemeToggleButton : {}),
+              }}
+            >
+              Dark
+            </button>
+          </div>
           <Badge tone="blocked" />
         </div>
       </header>
@@ -1768,6 +1845,7 @@ export default function AssetForgeBlenderCockpit({
           ) : null}
         </div>
         <div style={styles.contextActions}>
+          <button type="button" onClick={resetLayoutState} style={styles.smallButton}>Reset Layout</button>
           <button type="button" onClick={onLaunchInspectTemplate} style={styles.smallButton}>Inspect / Preflight</button>
           <button type="button" onClick={onLaunchPlacementProofTemplate} style={styles.primaryButton}>Load proof-only template</button>
           <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Prompt Studio</button>
@@ -1836,75 +1914,77 @@ export default function AssetForgeBlenderCockpit({
           </header>
 
           <div style={styles.viewportCanvas}>
-            {gridVisible ? <div style={styles.gridLayer} /> : null}
-            <div style={styles.meshPreview} aria-label="demo wireframe asset preview">
-              <div style={styles.selectionOutline} />
-              <div style={styles.headShape} />
-              <div style={styles.neckShape} />
-              <div style={styles.torsoShape} />
-              {Array.from({ length: 14 }).map((_, index) => (
-                <span
-                  key={`hair-top-${index}`}
-                  style={{
-                    ...styles.hairStroke,
-                    top: `${6 + index * 1.5}%`,
-                    left: `${25 + index * 3.3}%`,
-                    width: `${58 + (index % 4) * 14}px`,
-                    transform: `rotate(${index % 2 === 0 ? -24 + index : 18 - index}deg)`,
-                  }}
-                />
-              ))}
-              {Array.from({ length: 8 }).map((_, index) => (
-                <span
-                  key={`hair-side-${index}`}
-                  style={{
-                    ...styles.hairStroke,
-                    top: `${21 + index * 4.1}%`,
-                    left: index < 4 ? "20%" : "69%",
-                    width: `${40 + (index % 3) * 18}px`,
-                    transform: `rotate(${index < 4 ? -38 + index * 6 : 34 - index * 4}deg)`,
-                  }}
-                />
-              ))}
-              {Array.from({ length: 24 }).map((_, index) => (
-                <span
-                  key={`wire-h-${index}`}
-                  style={{
-                    ...styles.wireLine,
-                    ...(selectedViewportMode === "Wireframe" ? styles.activeWireLine : {}),
-                    top: `${7 + index * 3.6}%`,
-                    left: "14%",
-                    width: "72%",
-                    transform: `rotate(${index % 2 === 0 ? 2 : -2}deg)`,
-                  }}
-                />
-              ))}
-              {Array.from({ length: 22 }).map((_, index) => (
-                <span
-                  key={`wire-v-${index}`}
-                  style={{
-                    ...styles.wireLineVertical,
-                    ...(selectedViewportMode === "Wireframe" ? styles.activeWireLineVertical : {}),
-                    left: `${15 + index * 3.25}%`,
-                    top: "7%",
-                    height: "76%",
-                    transform: `rotate(${index % 2 === 0 ? 7 : -7}deg)`,
-                  }}
-                />
-              ))}
-            </div>
-            <div style={styles.overlayTopLeft}>{editorModel?.viewport?.label ?? "Front Ortho"}</div>
-            <div style={styles.overlayTopRight}>{editorModel?.viewport?.mode ?? "Object Mode"}</div>
-            <ul style={styles.overlayList}>
-              <li>Active tool: {selectedTool?.label ?? "Transform"}</li>
-              <li>Selected object: {selectedObjectLabel}</li>
-              <li>Viewport mode: {selectedViewportMode}</li>
-              {overlays.map((overlay) => (
-                <li key={overlay}>{overlay}</li>
-              ))}
-            </ul>
-            <div style={styles.overlayBottom}>
-              {editorModel?.viewport?.preview_status ?? "demo_no_real_model_loaded"} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
+            <div style={styles.viewportSceneFrame}>
+              {gridVisible ? <div style={styles.gridLayer} /> : null}
+              <div style={styles.meshPreview} aria-label="demo wireframe asset preview">
+                <div style={styles.selectionOutline} />
+                <div style={styles.headShape} />
+                <div style={styles.neckShape} />
+                <div style={styles.torsoShape} />
+                {Array.from({ length: 14 }).map((_, index) => (
+                  <span
+                    key={`hair-top-${index}`}
+                    style={{
+                      ...styles.hairStroke,
+                      top: `${6 + index * 1.5}%`,
+                      left: `${25 + index * 3.3}%`,
+                      width: `${58 + (index % 4) * 14}px`,
+                      transform: `rotate(${index % 2 === 0 ? -24 + index : 18 - index}deg)`,
+                    }}
+                  />
+                ))}
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <span
+                    key={`hair-side-${index}`}
+                    style={{
+                      ...styles.hairStroke,
+                      top: `${21 + index * 4.1}%`,
+                      left: index < 4 ? "20%" : "69%",
+                      width: `${40 + (index % 3) * 18}px`,
+                      transform: `rotate(${index < 4 ? -38 + index * 6 : 34 - index * 4}deg)`,
+                    }}
+                  />
+                ))}
+                {Array.from({ length: 24 }).map((_, index) => (
+                  <span
+                    key={`wire-h-${index}`}
+                    style={{
+                      ...styles.wireLine,
+                      ...(selectedViewportMode === "Wireframe" ? styles.activeWireLine : {}),
+                      top: `${7 + index * 3.6}%`,
+                      left: "14%",
+                      width: "72%",
+                      transform: `rotate(${index % 2 === 0 ? 2 : -2}deg)`,
+                    }}
+                  />
+                ))}
+                {Array.from({ length: 22 }).map((_, index) => (
+                  <span
+                    key={`wire-v-${index}`}
+                    style={{
+                      ...styles.wireLineVertical,
+                      ...(selectedViewportMode === "Wireframe" ? styles.activeWireLineVertical : {}),
+                      left: `${15 + index * 3.25}%`,
+                      top: "7%",
+                      height: "76%",
+                      transform: `rotate(${index % 2 === 0 ? 7 : -7}deg)`,
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={styles.overlayTopLeft}>{editorModel?.viewport?.label ?? "Front Ortho"}</div>
+              <div style={styles.overlayTopRight}>{editorModel?.viewport?.mode ?? "Object Mode"}</div>
+              <ul style={styles.overlayList}>
+                <li>Active tool: {selectedTool?.label ?? "Transform"}</li>
+                <li>Selected object: {selectedObjectLabel}</li>
+                <li>Viewport mode: {selectedViewportMode}</li>
+                {overlays.map((overlay) => (
+                  <li key={overlay}>{overlay}</li>
+                ))}
+              </ul>
+              <div style={styles.overlayBottom}>
+                {editorModel?.viewport?.preview_status ?? "demo_no_real_model_loaded"} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
+              </div>
             </div>
           </div>
 
@@ -2007,8 +2087,8 @@ export default function AssetForgeBlenderCockpit({
   );
 }
 
-const border = "1px solid #6f747b";
-const panelHeaderBg = "#a8adb3";
+const border = "1px solid var(--app-panel-border-strong)";
+const panelHeaderBg = "var(--app-panel-bg-muted)";
 
 const styles = {
   app: {
@@ -2018,10 +2098,10 @@ const styles = {
     width: "100%",
     minWidth: 0,
     display: "grid",
-    gridTemplateRows: "22px 26px 28px minmax(0, 1fr) 42px",
+    gridTemplateRows: "20px 23px 22px minmax(0, 1fr) 38px",
     overflow: "hidden",
-    background: "#7a7f86",
-    color: "#101820",
+    background: "var(--app-panel-bg-alt)",
+    color: "var(--app-text-color)",
     fontFamily: "Arial, Helvetica, sans-serif",
     border,
   },
@@ -2031,7 +2111,7 @@ const styles = {
     justifyContent: "space-between",
     gap: 8,
     padding: "0 8px",
-    background: "#c4c8cd",
+    background: "var(--app-panel-bg-muted)",
     borderBottom: border,
     fontSize: 11,
     minWidth: 0,
@@ -2051,6 +2131,32 @@ const styles = {
     whiteSpace: "nowrap",
     fontSize: 11,
   },
+  themeToggleGroup: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2,
+    border: "1px solid var(--app-panel-border-strong)",
+    borderRadius: 3,
+    padding: "1px",
+    background: "var(--app-panel-bg)",
+  },
+  themeToggleButton: {
+    border: "1px solid transparent",
+    borderRadius: 2,
+    minHeight: 16,
+    padding: "0 5px",
+    background: "transparent",
+    color: "var(--app-text-color)",
+    cursor: "pointer",
+    fontSize: 10,
+    lineHeight: 1.1,
+  },
+  activeThemeToggleButton: {
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-info-text)",
+    fontWeight: 700,
+  },
   brand: {
     fontWeight: 800,
   },
@@ -2065,13 +2171,13 @@ const styles = {
     borderRadius: 2,
     padding: "0 5px",
     background: "transparent",
-    color: "#101820",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 11,
   },
   selectedMenuButton: {
-    border: "1px solid #646a71",
-    background: "#d7dbe0",
+    border: "1px solid var(--app-panel-border-strong)",
+    background: "var(--app-panel-bg)",
   },
   menuDropdown: {
     position: "absolute",
@@ -2083,7 +2189,7 @@ const styles = {
     gap: 1,
     padding: 3,
     border: border,
-    background: "#23272d",
+    background: "var(--app-panel-bg-alt)",
     boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
   },
   menuItem: {
@@ -2092,9 +2198,9 @@ const styles = {
     alignItems: "center",
     gap: 8,
     minHeight: 22,
-    border: "1px solid transparent",
-    background: "#d3d7dc",
-    color: "#101820",
+    border: "1px solid var(--app-panel-border)",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 11,
     padding: "2px 5px",
@@ -2111,7 +2217,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
     padding: "0 8px",
-    background: "#b4b9bf",
+    background: "var(--app-panel-bg-muted)",
     borderBottom: border,
     minWidth: 0,
     fontSize: 11,
@@ -2130,33 +2236,33 @@ const styles = {
     whiteSpace: "nowrap",
   },
   modePill: {
-    border: "1px solid #6f747b",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: 3,
     padding: "1px 6px",
-    background: "#e1e4e8",
+    background: "var(--app-panel-bg)",
     fontWeight: 700,
   },
   warningText: {
-    color: "#c2410c",
+    color: "var(--app-danger-text)",
     fontWeight: 700,
   },
   stageBar: {
     display: "flex",
     alignItems: "center",
     gap: 3,
-    padding: "3px 5px",
+    padding: "1px 5px",
     overflowX: "auto",
-    background: "#9ea4ac",
+    background: "var(--app-panel-bg-muted)",
     borderBottom: border,
   },
   stageTab: {
     display: "inline-flex",
     alignItems: "center",
     gap: 4,
-    border: "1px solid #717780",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: 2,
-    background: "#d5d9de",
-    padding: "1px 5px",
+    background: "var(--app-panel-bg-alt)",
+    padding: "0 4px",
     fontSize: 10,
     whiteSpace: "nowrap",
   },
@@ -2169,14 +2275,14 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "112px minmax(640px, 1fr) 324px",
     overflow: "hidden",
-    background: "#6f747b",
+    background: "var(--app-panel-bg)",
   },
   toolShelf: {
     minWidth: 0,
     minHeight: 0,
     display: "grid",
     gridTemplateRows: "22px minmax(0, 1fr)",
-    background: "#8d9298",
+    background: "var(--app-panel-bg-muted)",
     borderRight: border,
     overflow: "hidden",
   },
@@ -2206,24 +2312,24 @@ const styles = {
     minWidth: 0,
     minHeight: 22,
     padding: "2px 3px",
-    border: "1px solid #646a71",
+    border: "1px solid var(--app-input-border)",
     borderRadius: 2,
-    background: "#c9cdd2",
-    color: "#101820",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     fontSize: 10,
     cursor: "pointer",
   },
   selectedToolButton: {
-    border: "1px solid #2f80ed",
-    background: "#dbeafe",
-    boxShadow: "inset 3px 0 0 #2f80ed",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    boxShadow: "inset 3px 0 0 var(--app-info-border)",
   },
   toolShortcut: {
     display: "grid",
     placeItems: "center",
     height: 16,
-    border: "1px solid #7b8087",
-    background: "#eef0f3",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-panel-bg-muted)",
     fontWeight: 800,
     fontSize: 9,
   },
@@ -2239,7 +2345,7 @@ const styles = {
     display: "grid",
     gridTemplateRows: "22px minmax(0, 1fr) 22px",
     overflow: "hidden",
-    background: "#30353b",
+    background: "var(--app-panel-bg-alt)",
   },
   viewportHeader: {
     display: "flex",
@@ -2247,7 +2353,7 @@ const styles = {
     gap: 8,
     alignItems: "center",
     padding: "0 5px",
-    background: "#aab0b6",
+    background: "var(--app-panel-bg-muted)",
     borderBottom: border,
     fontSize: 11,
     minWidth: 0,
@@ -2265,22 +2371,35 @@ const styles = {
     whiteSpace: "nowrap",
   },
   viewportModeButton: {
-    border: "1px solid #646a71",
+    border: "1px solid var(--app-input-border)",
     borderRadius: 3,
-    background: "#d7dbe0",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     padding: "1px 5px",
     minHeight: 18,
     fontSize: 10,
   },
   selectedViewportModeButton: {
-    border: "1px solid #2f80ed",
-    background: "#dbeafe",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
     fontWeight: 800,
   },
   viewportCanvas: {
     position: "relative",
     minHeight: 0,
     minWidth: 0,
+    overflow: "hidden",
+    background: "#2f343b",
+    display: "grid",
+    placeItems: "center",
+  },
+  viewportSceneFrame: {
+    position: "relative",
+    width: "min(calc(100% - 10px), 82vh)",
+    maxWidth: "calc(100% - 10px)",
+    aspectRatio: "1 / 1",
+    border: "1px solid var(--app-panel-border-strong)",
+    borderRadius: 8,
     overflow: "hidden",
     background: "#2f343b",
   },
@@ -2295,8 +2414,8 @@ const styles = {
     position: "absolute",
     left: "50%",
     top: "50%",
-    width: "min(64vw, 620px)",
-    height: "min(70vh, 620px)",
+    width: "88%",
+    height: "88%",
     transform: "translate(-50%, -50%)",
   },
   selectionOutline: {
@@ -2413,7 +2532,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
     padding: "0 6px",
-    background: "#aab0b6",
+    background: "var(--app-panel-bg-muted)",
     borderTop: border,
     fontSize: 10,
     overflow: "hidden",
@@ -2424,7 +2543,7 @@ const styles = {
     minWidth: 0,
     display: "grid",
     gridTemplateRows: "210px minmax(0, 1fr)",
-    background: "#8d9298",
+    background: "var(--app-panel-bg-muted)",
     borderLeft: border,
     overflow: "hidden",
   },
@@ -2439,14 +2558,15 @@ const styles = {
     display: "flex",
     alignItems: "center",
     padding: "0 6px",
-    background: "#c0c5cb",
+    background: "var(--app-panel-bg-alt)",
     borderBottom: border,
+    color: "var(--app-text-color)",
     fontSize: 10,
   },
   outlinerList: {
     minHeight: 0,
     overflow: "auto",
-    background: "#d3d7dc",
+    background: "var(--app-panel-bg)",
     fontSize: 11,
   },
   outlinerRow: {
@@ -2455,20 +2575,20 @@ const styles = {
     gap: 4,
     alignItems: "center",
     minHeight: 20,
-    borderBottom: "1px solid #b3b8bf",
+    borderBottom: "1px solid var(--app-panel-border)",
     paddingTop: 1,
     paddingBottom: 1,
     paddingRight: 4,
     minWidth: 0,
     fontSize: 11,
     background: "transparent",
-    color: "#101820",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     textAlign: "left",
   },
   selectedOutlinerRow: {
-    background: "#dbeafe",
-    boxShadow: "inset 3px 0 0 #2f80ed",
+    background: "var(--app-info-bg)",
+    boxShadow: "inset 3px 0 0 var(--app-info-border)",
   },
   outlinerTwist: {
     color: "#334155",
@@ -2489,22 +2609,22 @@ const styles = {
     alignItems: "center",
     gap: 3,
     padding: "0 5px",
-    background: "#bfc4ca",
+    background: "var(--app-panel-bg-alt)",
     borderBottom: border,
     fontSize: 10,
   },
   propertiesTabButton: {
-    border: "1px solid #9aa0a8",
+    border: "1px solid var(--app-input-border)",
     borderRadius: 2,
-    background: "#d7dbe0",
-    color: "#101820",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 10,
     padding: "1px 4px",
   },
   selectedPropertiesTabButton: {
-    border: "1px solid #2f80ed",
-    background: "#dbeafe",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
     fontWeight: 800,
   },
   previewChecker: {
@@ -2530,14 +2650,14 @@ const styles = {
     alignContent: "start",
     gap: 3,
     padding: 4,
-    background: "#c9cdd2",
+    background: "var(--app-panel-bg)",
   },
   statusNotice: {
     minWidth: 0,
     padding: "3px 4px",
-    border: "1px solid #9aa0a8",
-    background: "#f8fafc",
-    color: "#172033",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-panel-bg-alt)",
+    color: "var(--app-text-color)",
     fontSize: 10,
     overflowWrap: "anywhere",
   },
@@ -2548,13 +2668,13 @@ const styles = {
     alignItems: "center",
     minHeight: 22,
     padding: "2px 4px",
-    border: "1px solid #9aa0a8",
-    background: "#e2e5e9",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-panel-bg-alt)",
     fontSize: 11,
   },
   transformGroupLabel: {
     fontWeight: 800,
-    color: "#334155",
+    color: "var(--app-subtle-color)",
   },
   axisInputLabel: {
     display: "grid",
@@ -2566,14 +2686,14 @@ const styles = {
   axisText: {
     fontSize: 9,
     fontWeight: 800,
-    color: "#334155",
+    color: "var(--app-subtle-color)",
   },
   axisInput: {
     minWidth: 0,
     height: 17,
-    border: "1px solid #9aa0a8",
-    background: "#f8fafc",
-    color: "#101820",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     fontSize: 10,
     padding: "0 2px",
   },
@@ -2585,19 +2705,20 @@ const styles = {
     minWidth: 0,
     minHeight: 20,
     padding: "2px 4px",
-    border: "1px solid #9aa0a8",
-    background: "#e2e5e9",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-panel-bg-alt)",
     fontSize: 11,
   },
   propertyLabel: {
     fontWeight: 800,
-    color: "#334155",
+    color: "var(--app-subtle-color)",
   },
   propertyValue: {
     display: "block",
     minWidth: 0,
-    background: "#f3f4f6",
-    border: "1px solid #b8bec5",
+    background: "var(--app-input-bg)",
+    border: "1px solid var(--app-input-border)",
+    color: "var(--app-text-color)",
     padding: "1px 3px",
     overflowWrap: "anywhere",
   },
@@ -2608,17 +2729,17 @@ const styles = {
     alignItems: "center",
     minWidth: 0,
     padding: "2px 4px",
-    border: "1px solid #9aa0a8",
-    background: "#e2e5e9",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-panel-bg-alt)",
     fontSize: 11,
   },
   blockedButton: {
-    border: "1px solid #9aa0a8",
+    border: "1px solid var(--app-input-border)",
     borderRadius: 2,
     padding: "2px 6px",
     minHeight: 20,
-    background: "#d7dbe0",
-    color: "#64748b",
+    background: "var(--app-panel-bg-muted)",
+    color: "var(--app-muted-color)",
     cursor: "not-allowed",
     fontSize: 10,
     whiteSpace: "nowrap",
@@ -2629,34 +2750,34 @@ const styles = {
     minWidth: 0,
   },
   materialSubTab: {
-    border: "1px solid #9aa0a8",
+    border: "1px solid var(--app-input-border)",
     borderRadius: 2,
-    background: "#d7dbe0",
-    color: "#101820",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 10,
     padding: "1px 4px",
   },
   selectedSubTab: {
-    border: "1px solid #2f80ed",
-    background: "#dbeafe",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
     fontWeight: 800,
   },
   selectInput: {
     minWidth: 0,
     height: 20,
-    border: "1px solid #9aa0a8",
-    background: "#f8fafc",
-    color: "#101820",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     fontSize: 10,
   },
   promptPreview: {
     minHeight: 42,
     maxHeight: 84,
     overflow: "auto",
-    border: "1px solid #9aa0a8",
-    background: "#f8fafc",
-    color: "#101820",
+    border: "1px solid var(--app-input-border)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     padding: 4,
     fontSize: 10,
     lineHeight: 1.35,
@@ -2666,9 +2787,9 @@ const styles = {
     gap: 3,
     minWidth: 0,
     padding: "4px",
-    border: "1px solid #9aa0a8",
-    background: "#fff7ed",
-    color: "#172033",
+    border: "1px solid var(--app-warning-border)",
+    background: "var(--app-warning-bg)",
+    color: "var(--app-warning-text)",
     fontSize: 10,
     lineHeight: 1.35,
     overflowWrap: "anywhere",
@@ -2682,10 +2803,10 @@ const styles = {
   promptTemplateSafetyLabel: {
     display: "inline-flex",
     alignItems: "center",
-    border: "1px solid #d6a536",
+    border: "1px solid var(--app-warning-border)",
     borderRadius: 3,
-    background: "#fff4cc",
-    color: "#3b2f0a",
+    background: "var(--app-warning-bg)",
+    color: "var(--app-warning-text)",
     padding: "1px 4px",
     fontSize: 9,
     fontWeight: 800,
@@ -2694,17 +2815,17 @@ const styles = {
     minWidth: 0,
     minHeight: 0,
     display: "grid",
-    gridTemplateRows: "18px 24px",
-    background: "#9ea4ac",
+    gridTemplateRows: "16px 22px",
+    background: "var(--app-panel-bg-muted)",
     borderTop: border,
     overflow: "hidden",
   },
   timelineTabs: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     padding: "0 6px",
-    background: "#b9bec5",
+    background: "var(--app-panel-bg-alt)",
     borderBottom: border,
     fontSize: 10,
   },
@@ -2712,14 +2833,14 @@ const styles = {
     border: "1px solid transparent",
     borderRadius: 2,
     background: "transparent",
-    color: "#101820",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 10,
     padding: "1px 4px",
   },
   selectedBottomTabButton: {
-    border: "1px solid #646a71",
-    background: "#d7dbe0",
+    border: "1px solid var(--app-panel-border-strong)",
+    background: "var(--app-panel-bg)",
     fontWeight: 800,
   },
   timelineBody: {
@@ -2752,17 +2873,18 @@ const styles = {
     height: 15,
     display: "grid",
     gridTemplateColumns: "repeat(30, minmax(8px, 1fr))",
-    border: "1px solid #777",
-    background: "#d5d8dc",
+    border: "1px solid var(--app-panel-border-strong)",
+    background: "var(--app-panel-bg-alt)",
     overflow: "hidden",
   },
   tick: {
-    borderRight: "1px solid #aaa",
+    borderRight: "1px solid var(--app-panel-border)",
     textAlign: "center",
     fontSize: 8,
-    color: "#333",
+    color: "var(--app-subtle-color)",
   },
   statusText: {
+    color: "var(--app-text-color)",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -2789,23 +2911,23 @@ const styles = {
     justifySelf: "center",
   },
   smallButton: {
-    border: "1px solid #777",
+    border: "1px solid var(--app-input-border)",
     borderRadius: 3,
     padding: "2px 6px",
     minHeight: 20,
-    background: "#d6d9dd",
-    color: "#111827",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 11,
     whiteSpace: "nowrap",
   },
   primaryButton: {
-    border: "1px solid #2563eb",
+    border: "1px solid var(--app-accent-strong)",
     borderRadius: 3,
     padding: "2px 6px",
     minHeight: 20,
-    background: "#dbeafe",
-    color: "#0f172a",
+    background: "var(--app-accent-soft)",
+    color: "var(--app-text-color)",
     cursor: "pointer",
     fontSize: 11,
     fontWeight: 800,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { fetchO3deBridge, fetchO3deTarget } from "../../lib/api";
+import { useSettings } from "../../lib/settings/hooks";
 import {
   clipWidthForZoom,
   INITIAL_MARKERS,
@@ -150,6 +151,8 @@ function loadMovieStudioSessionState(): MovieStudioSessionState | null {
 }
 
 export default function MovieStudioPanel() {
+  const { settings, saveSettings, themeTokens } = useSettings();
+  const resolvedThemeMode = themeTokens.resolvedThemeMode;
   const sessionState = loadMovieStudioSessionState();
   const [activePage, setActivePage] = useState<StudioPageId>("timeline");
   const [selectedClipId, setSelectedClipId] = useState<string>("v1a");
@@ -173,6 +176,8 @@ export default function MovieStudioPanel() {
   const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
   const [o3deFailureCount, setO3deFailureCount] = useState<number>(0);
   const [o3deStatusLog, setO3deStatusLog] = useState<string[]>([]);
+  const [localThemeMode, setLocalThemeMode] = useState<"light" | "dark">(resolvedThemeMode);
+  const [themeStatus, setThemeStatus] = useState<string>(`Theme: ${resolvedThemeMode}`);
 
   const trackCount = TRACKS.length;
   const clipCount = useMemo(
@@ -436,6 +441,28 @@ export default function MovieStudioPanel() {
     return () => window.clearInterval(refreshTimer);
   }, []);
 
+  useEffect(() => {
+    setLocalThemeMode(resolvedThemeMode);
+    setThemeStatus(`Theme: ${resolvedThemeMode}`);
+  }, [resolvedThemeMode]);
+
+  function applyThemeMode(mode: "light" | "dark") {
+    if (localThemeMode === mode && settings.appearance.themeMode === mode) {
+      setThemeStatus(`Theme already set to ${mode}`);
+      return;
+    }
+
+    setLocalThemeMode(mode);
+    saveSettings({
+      ...settings,
+      appearance: {
+        ...settings.appearance,
+        themeMode: mode,
+      },
+    });
+    setThemeStatus(`Theme set to ${mode}`);
+  }
+
   function nudgePlayhead(frameDelta: number) {
     pushHistory(frameDelta > 0 ? "Nudge +1 frame" : "Nudge -1 frame");
     setPlayhead((current) => formatFramesToTimecode(parseTimecodeToFrames(current) + frameDelta));
@@ -514,10 +541,37 @@ export default function MovieStudioPanel() {
           <h2 style={s.title}>Movie Studio</h2>
           <p style={s.subtitle}>Timeline-first cinematic workspace with pro editorial controls.</p>
         </div>
-        <div style={s.statGrid}>
-          <Stat label="Tracks" value={String(trackCount)} />
-          <Stat label="Clips" value={String(clipCount)} />
-          <Stat label="Mode" value="Preview / Non-destructive" />
+        <div style={s.headerRight}>
+          <div style={s.themeToggleGroup} aria-label="Movie Studio theme mode toggle">
+            <button
+              type="button"
+              onClick={() => applyThemeMode("light")}
+              aria-pressed={localThemeMode === "light"}
+              style={{
+                ...s.themeToggleButton,
+                ...(localThemeMode === "light" ? s.themeToggleButtonActive : {}),
+              }}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              onClick={() => applyThemeMode("dark")}
+              aria-pressed={localThemeMode === "dark"}
+              style={{
+                ...s.themeToggleButton,
+                ...(localThemeMode === "dark" ? s.themeToggleButtonActive : {}),
+              }}
+            >
+              Dark
+            </button>
+          </div>
+          <span style={s.themeStatusText}>{themeStatus}</span>
+          <div style={s.statGrid}>
+            <Stat label="Tracks" value={String(trackCount)} />
+            <Stat label="Clips" value={String(clipCount)} />
+            <Stat label="Mode" value="Preview / Non-destructive" />
+          </div>
         </div>
       </header>
 
@@ -551,54 +605,151 @@ export default function MovieStudioPanel() {
       </section>
 
       <main style={s.main}>
-        <aside style={s.toolsPanel}>
-          <h3 style={s.panelTitle}>Editorial Tool Rack</h3>
-          <ul style={s.toolList}>
-            {TOOLSETS.map((tool) => (
-              <li key={tool} style={s.toolItem}>
-                {tool}
-              </li>
-            ))}
-          </ul>
-          <div style={s.binPanel}>
-            <h4 style={s.binTitle}>Scene Bins</h4>
-            <ul style={s.binList}>
-              {SCENE_BINS.map((bin) => (
-                <li key={bin} style={s.binItem}>
-                  {bin}
+        <section style={s.topDock}>
+          <aside style={s.sourcePane}>
+            <h3 style={s.panelTitle}>Source / Effect Controls</h3>
+            <p style={s.timelineMeta}>
+              Active page: <strong>{STUDIO_PAGES.find((page) => page.id === activePage)?.label}</strong>
+            </p>
+            <ul style={s.toolList}>
+              {TOOLSETS.map((tool) => (
+                <li key={tool} style={s.toolItem}>
+                  {tool}
                 </li>
               ))}
             </ul>
-          </div>
-        </aside>
-
-        <section style={s.timelinePanel} aria-label="Timeline surface">
-          <h3 style={s.panelTitle}>Master Timeline</h3>
-          <p style={s.timelineMeta}>
-            Active page: <strong>{STUDIO_PAGES.find((page) => page.id === activePage)?.label}</strong>
-          </p>
-          <section aria-label="Program viewer" style={s.viewerShell}>
-            <header style={s.viewerHeader}>
-              <h4 style={s.viewerTitle}>Program Viewer</h4>
-              <span style={s.viewerBadge}>{isPlaying ? "Live Playback" : "Paused Frame"}</span>
-            </header>
-            <div style={s.viewerStage}>
-              <div style={s.viewerOverlayTop}>
-                <strong>{selectedClip.label}</strong>
-                <span>
-                  {selectedClip.start} - {selectedClip.end}
-                </span>
-              </div>
-              <div style={s.viewerCenterMark}>FRAME PREVIEW</div>
-              <div style={s.viewerOverlayBottom}>
-                <span>Playhead {playhead}</span>
-                <span>{rangePresetLabel(timelineRange)}</span>
-                <span>{timelineZoom}x</span>
-                <span>{playbackRate}</span>
-              </div>
+            <div style={s.binPanel}>
+              <h4 style={s.binTitle}>Track Status</h4>
+              <ul style={s.binList}>
+                {visibleTracks.map((track) => (
+                  <li key={`${track.id}-status`} style={s.binItem}>
+                    {track.name}: {trackState[track.id].mute ? "M " : ""}{trackState[track.id].solo ? "S " : ""}{trackState[track.id].lock ? "L" : "Ready"}
+                  </li>
+                ))}
+              </ul>
             </div>
+          </aside>
+
+          <section style={s.programPane} aria-label="Timeline surface">
+            <section aria-label="Program viewer" style={s.viewerShell}>
+              <header style={s.viewerHeader}>
+                <h4 style={s.viewerTitle}>Program Viewer</h4>
+                <span style={s.viewerBadge}>{isPlaying ? "Live Playback" : "Paused Frame"}</span>
+              </header>
+              <div style={s.viewerStage}>
+                <div style={s.viewerOverlayTop}>
+                  <strong>{selectedClip.label}</strong>
+                  <span>
+                    {selectedClip.start} - {selectedClip.end}
+                  </span>
+                </div>
+                <div style={s.viewerCenterMark}>FRAME PREVIEW</div>
+                <div style={s.viewerOverlayBottom}>
+                  <span>Playhead {playhead}</span>
+                  <span>{rangePresetLabel(timelineRange)}</span>
+                  <span>{timelineZoom}x</span>
+                  <span>{playbackRate}</span>
+                </div>
+              </div>
+            </section>
           </section>
-          <div style={s.timelineToolbar}>
+
+          <aside style={s.inspector}>
+            <h4 style={s.inspectorTitle}>Clip Inspector</h4>
+            <p style={s.inspectorLine}>
+              <strong>Name:</strong> {selectedClip.label}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>In:</strong> {selectedClip.start}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Out:</strong> {selectedClip.end}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Playhead:</strong> {playhead}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Range:</strong> {rangePresetLabel(timelineRange)}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Zoom:</strong> {timelineZoom}x
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Transport:</strong> {isPlaying ? "Playing" : "Paused"} at {playbackRate}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Selected marker:</strong> {selectedMarker ?? "None"}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Snap:</strong> {snapMode}
+            </p>
+            <p style={s.inspectorLine}>
+              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next
+            </p>
+            <div style={s.historyBox}>
+              <strong style={s.historyTitle}>Timeline History</strong>
+              <ul style={s.historyList}>
+                {historyLog.length === 0 ? <li style={s.historyItem}>No actions yet</li> : null}
+                {historyLog.map((entry, index) => (
+                  <li key={`${entry}-${index}`} style={s.historyItem}>
+                    {entry}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div style={s.handoffBox}>
+              <strong style={s.historyTitle}>Handoff Packet</strong>
+              <p style={s.handoffMeta}>
+                Snapshot summary for cross-thread review and PR notes.
+              </p>
+              <div style={s.handoffActions}>
+                <button type="button" onClick={() => void copyHandoffSummary()} style={s.toolbarButton}>
+                  Copy Packet
+                </button>
+                <button type="button" onClick={downloadHandoffSummary} style={s.toolbarButton}>
+                  Download .txt
+                </button>
+                <button type="button" onClick={downloadHandoffJson} style={s.toolbarButton}>
+                  Download .json
+                </button>
+                <span style={s.handoffStatus}>{handoffStatus}</span>
+              </div>
+              <textarea
+                aria-label="Handoff summary"
+                readOnly
+                value={handoffSummary}
+                style={s.handoffTextarea}
+              />
+            </div>
+          </aside>
+        </section>
+
+        <section style={s.bottomDock}>
+          <aside style={s.projectPane}>
+            <h3 style={s.panelTitle}>Project / Media Browser</h3>
+            <div style={s.binPanel}>
+              <h4 style={s.binTitle}>Scene Bins</h4>
+              <ul style={s.binList}>
+                {SCENE_BINS.map((bin) => (
+                  <li key={bin} style={s.binItem}>
+                    {bin}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div style={s.binPanel}>
+              <h4 style={s.binTitle}>Selected Clip</h4>
+              <ul style={s.binList}>
+                <li style={s.binItem}>{selectedClip.label}</li>
+                <li style={s.binItem}>{selectedClip.start} - {selectedClip.end}</li>
+              </ul>
+            </div>
+          </aside>
+
+          <section style={s.timelinePanel} aria-label="Timeline surface">
+            <h3 style={s.panelTitle}>Master Timeline</h3>
+            <div style={s.timelineWorkspace}>
+              <div style={s.timelineToolbar}>
             <label style={s.inputLabel}>
               Playhead
               <input
@@ -747,133 +898,86 @@ export default function MovieStudioPanel() {
                 </button>
               ))}
             </div>
-          </div>
-          <div style={s.trackStack}>
-            {visibleTracks.map((track) => (
-              <div key={track.id} style={s.trackRow}>
-                <div style={s.trackLabel}>
-                  <strong>{track.name}</strong>
-                  <span>{track.type.toUpperCase()}</span>
-                  <div style={s.trackControlRow}>
-                    <button
-                      type="button"
-                      onClick={() => toggleTrackState(track.id, "mute")}
-                      style={trackState[track.id].mute ? s.trackControlActive : s.trackControl}
-                    >
-                      M
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleTrackState(track.id, "solo")}
-                      style={trackState[track.id].solo ? s.trackControlActive : s.trackControl}
-                    >
-                      S
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleTrackState(track.id, "lock")}
-                      style={trackState[track.id].lock ? s.trackControlActive : s.trackControl}
-                    >
-                      L
-                    </button>
-                  </div>
-                </div>
-                <div style={s.clipLane}>
-                  {track.clips.map((clip) => (
-                    <article
-                      key={clip.id}
-                      style={{
-                        ...(selectedClipId === clip.id ? s.clipCardActive : s.clipCard),
-                        minWidth: clipWidthForZoom(timelineZoom),
-                      }}
-                      onClick={() => {
-                        pushHistory("Select clip");
-                        setSelectedClipId(clip.id);
-                      }}
-                      aria-label={`Clip ${clip.label}`}
-                    >
-                      <span style={s.trimHandle} aria-hidden>
-                        {"<"}
-                      </span>
-                      <strong>{clip.label}</strong>
-                      <span>
-                        {clip.start} - {clip.end}
-                      </span>
-                      <span style={s.trimHandleRight} aria-hidden>
-                        {">"}
-                      </span>
-                    </article>
+              </div>
+              <div style={s.timelineGrid}>
+                <aside style={s.timelineToolRail}>
+                  <button type="button" style={s.toolRailButton} title="Selection tool">V</button>
+                  <button type="button" style={s.toolRailButton} title="Razor tool">C</button>
+                  <button type="button" style={s.toolRailButton} title="Slip tool">Y</button>
+                  <button type="button" style={s.toolRailButton} title="Pen tool">P</button>
+                  <button type="button" style={s.toolRailButton} title="Hand tool">H</button>
+                </aside>
+                <div style={s.trackStack}>
+                  {visibleTracks.map((track) => (
+                    <div key={track.id} style={s.trackRow}>
+                      <div style={s.trackLabel}>
+                        <strong>{track.name}</strong>
+                        <span>{track.type.toUpperCase()}</span>
+                        <div style={s.trackControlRow}>
+                          <button
+                            type="button"
+                            onClick={() => toggleTrackState(track.id, "mute")}
+                            style={trackState[track.id].mute ? s.trackControlActive : s.trackControl}
+                          >
+                            M
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleTrackState(track.id, "solo")}
+                            style={trackState[track.id].solo ? s.trackControlActive : s.trackControl}
+                          >
+                            S
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleTrackState(track.id, "lock")}
+                            style={trackState[track.id].lock ? s.trackControlActive : s.trackControl}
+                          >
+                            L
+                          </button>
+                        </div>
+                      </div>
+                      <div style={s.clipLane}>
+                        {track.clips.map((clip) => (
+                          <article
+                            key={clip.id}
+                            style={{
+                              ...(selectedClipId === clip.id ? s.clipCardActive : s.clipCard),
+                              minWidth: clipWidthForZoom(timelineZoom),
+                            }}
+                            onClick={() => {
+                              pushHistory("Select clip");
+                              setSelectedClipId(clip.id);
+                            }}
+                            aria-label={`Clip ${clip.label}`}
+                          >
+                            <span style={s.trimHandle} aria-hidden>
+                              {"<"}
+                            </span>
+                            <strong>{clip.label}</strong>
+                            <span>
+                              {clip.start} - {clip.end}
+                            </span>
+                            <span style={s.trimHandleRight} aria-hidden>
+                              {">"}
+                            </span>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-          <aside style={s.inspector}>
-            <h4 style={s.inspectorTitle}>Clip Inspector</h4>
-            <p style={s.inspectorLine}>
-              <strong>Name:</strong> {selectedClip.label}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>In:</strong> {selectedClip.start}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Out:</strong> {selectedClip.end}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Playhead:</strong> {playhead}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Range:</strong> {rangePresetLabel(timelineRange)}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Zoom:</strong> {timelineZoom}x
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Transport:</strong> {isPlaying ? "Playing" : "Paused"} at {playbackRate}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Selected marker:</strong> {selectedMarker ?? "None"}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Snap:</strong> {snapMode}
-            </p>
-            <p style={s.inspectorLine}>
-              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next
-            </p>
-            <div style={s.historyBox}>
-              <strong style={s.historyTitle}>Timeline History</strong>
-              <ul style={s.historyList}>
-                {historyLog.length === 0 ? <li style={s.historyItem}>No actions yet</li> : null}
-                {historyLog.map((entry, index) => (
-                  <li key={`${entry}-${index}`} style={s.historyItem}>
-                    {entry}
-                  </li>
-                ))}
-              </ul>
             </div>
-            <div style={s.handoffBox}>
-              <strong style={s.historyTitle}>Handoff Packet</strong>
-              <p style={s.handoffMeta}>
-                Snapshot summary for cross-thread review and PR notes.
-              </p>
-              <div style={s.handoffActions}>
-                <button type="button" onClick={() => void copyHandoffSummary()} style={s.toolbarButton}>
-                  Copy Packet
-                </button>
-                <button type="button" onClick={downloadHandoffSummary} style={s.toolbarButton}>
-                  Download .txt
-                </button>
-                <button type="button" onClick={downloadHandoffJson} style={s.toolbarButton}>
-                  Download .json
-                </button>
-                <span style={s.handoffStatus}>{handoffStatus}</span>
-              </div>
-              <textarea
-                aria-label="Handoff summary"
-                readOnly
-                value={handoffSummary}
-                style={s.handoffTextarea}
-              />
+          </section>
+
+          <aside style={s.audioMetersPane}>
+            <h4 style={s.binTitle}>Audio Meters</h4>
+            <div style={s.meterColumn}>
+              <div style={{ ...s.meterBar, height: "72%" }} />
+              <div style={{ ...s.meterBar, height: "58%" }} />
+              <div style={{ ...s.meterBar, height: "66%" }} />
+              <div style={{ ...s.meterBar, height: "44%" }} />
             </div>
           </aside>
         </section>
@@ -896,16 +1000,48 @@ const s = {
     display: "grid",
     gap: 16,
     padding: 14,
-    border: "1px solid var(--app-panel-border)",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: 12,
-    background: "linear-gradient(145deg, rgba(14, 20, 29, 0.94), rgba(20, 28, 39, 0.94))",
-    color: "var(--app-text-primary)",
+    background: "var(--app-panel-elevated)",
+    color: "var(--app-text-color)",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     gap: 12,
     flexWrap: "wrap",
+  },
+  headerRight: {
+    display: "grid",
+    justifyItems: "end",
+    gap: 8,
+  },
+  themeToggleGroup: {
+    display: "inline-flex",
+    gap: 3,
+    padding: 2,
+    border: "1px solid var(--app-panel-border-strong)",
+    borderRadius: 6,
+    background: "var(--app-panel-bg)",
+  },
+  themeToggleButton: {
+    border: "1px solid transparent",
+    borderRadius: 4,
+    background: "transparent",
+    color: "var(--app-text-color)",
+    padding: "3px 9px",
+    fontSize: 11,
+    cursor: "pointer",
+  },
+  themeToggleButtonActive: {
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-info-text)",
+    fontWeight: 700,
+  },
+  themeStatusText: {
+    fontSize: 11,
+    color: "var(--app-subtle-color)",
   },
   kicker: {
     margin: 0,
@@ -931,7 +1067,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
     padding: "8px 10px",
-    background: "rgba(8, 12, 18, 0.42)",
+    background: "var(--app-panel-bg)",
     display: "grid",
     gap: 4,
   },
@@ -952,7 +1088,7 @@ const s = {
   o3deStrip: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
-    background: "rgba(12, 17, 24, 0.68)",
+    background: "var(--app-panel-bg)",
     padding: "8px 10px",
     display: "flex",
     justifyContent: "space-between",
@@ -973,26 +1109,26 @@ const s = {
   o3deHealthGood: {
     margin: 0,
     fontSize: 11,
-    color: "#9af2c0",
+    color: "var(--app-success-text)",
     fontWeight: 700,
   },
   o3deHealthWarn: {
     margin: 0,
     fontSize: 11,
-    color: "#ffe4a3",
+    color: "var(--app-warning-text)",
     fontWeight: 700,
   },
   o3deHealthBad: {
     margin: 0,
     fontSize: 11,
-    color: "#ffb0ba",
+    color: "var(--app-danger-text)",
     fontWeight: 700,
   },
   pageTab: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
-    background: "rgba(12, 17, 24, 0.55)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     padding: "10px 12px",
     textAlign: "left",
     display: "grid",
@@ -1000,10 +1136,10 @@ const s = {
     cursor: "pointer",
   },
   pageTabActive: {
-    border: "1px solid rgba(116, 199, 255, 0.8)",
+    border: "1px solid var(--app-info-border)",
     borderRadius: 10,
-    background: "rgba(24, 60, 92, 0.55)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-text-color)",
     padding: "10px 12px",
     textAlign: "left",
     display: "grid",
@@ -1020,14 +1156,51 @@ const s = {
   },
   main: {
     display: "grid",
-    gridTemplateColumns: "240px minmax(0, 1fr)",
-    gap: 12,
+    gridTemplateRows: "minmax(250px, 40vh) minmax(320px, 1fr)",
+    gap: 10,
+    minHeight: 0,
+  },
+  topDock: {
+    display: "grid",
+    gridTemplateColumns: "260px minmax(0, 1fr) 320px",
+    gap: 8,
+    minHeight: 0,
+  },
+  sourcePane: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 8,
+    background: "var(--app-panel-bg)",
+    padding: 8,
+    minHeight: 0,
+    overflow: "auto",
+  },
+  programPane: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 8,
+    background: "var(--app-panel-bg)",
+    padding: 8,
+    minHeight: 0,
+    overflow: "hidden",
+  },
+  bottomDock: {
+    display: "grid",
+    gridTemplateColumns: "260px minmax(0, 1fr) 54px",
+    gap: 8,
+    minHeight: 0,
+  },
+  projectPane: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 8,
+    background: "var(--app-panel-bg)",
+    padding: 8,
+    minHeight: 0,
+    overflow: "auto",
   },
   toolsPanel: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
     padding: 10,
-    background: "rgba(8, 12, 18, 0.4)",
+    background: "var(--app-panel-bg)",
   },
   panelTitle: {
     margin: "0 0 10px",
@@ -1045,7 +1218,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
     padding: "6px 8px",
-    background: "rgba(14, 20, 29, 0.7)",
+    background: "var(--app-panel-bg-alt)",
   },
   binPanel: {
     marginTop: 12,
@@ -1069,10 +1242,45 @@ const s = {
   },
   timelinePanel: {
     border: "1px solid var(--app-panel-border)",
-    borderRadius: 10,
-    padding: 10,
-    background: "rgba(8, 12, 18, 0.4)",
+    borderRadius: 8,
+    padding: 8,
+    background: "var(--app-panel-bg)",
     minWidth: 0,
+    minHeight: 0,
+    display: "grid",
+    gridTemplateRows: "auto minmax(0, 1fr)",
+    overflow: "hidden",
+  },
+  timelineWorkspace: {
+    minHeight: 0,
+    display: "grid",
+    gridTemplateRows: "auto minmax(0, 1fr)",
+    gap: 6,
+  },
+  timelineGrid: {
+    display: "grid",
+    gridTemplateColumns: "30px minmax(0, 1fr)",
+    gap: 6,
+    minHeight: 0,
+    overflow: "hidden",
+  },
+  timelineToolRail: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 6,
+    background: "var(--app-panel-bg-alt)",
+    display: "grid",
+    alignContent: "start",
+    gap: 4,
+    padding: "6px 4px",
+  },
+  toolRailButton: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 4,
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
+    fontSize: 10,
+    padding: "4px 0",
+    cursor: "pointer",
   },
   timelineMeta: {
     margin: "0 0 10px",
@@ -1082,7 +1290,7 @@ const s = {
   viewerShell: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
-    background: "rgba(9, 13, 20, 0.76)",
+    background: "var(--app-panel-bg-alt)",
     padding: 8,
     marginBottom: 10,
     display: "grid",
@@ -1108,10 +1316,10 @@ const s = {
   },
   viewerStage: {
     minHeight: 260,
-    border: "1px solid rgba(120, 190, 255, 0.35)",
+    border: "1px solid var(--app-info-border)",
     borderRadius: 8,
     background:
-      "radial-gradient(circle at 50% 35%, rgba(75, 116, 173, 0.24), rgba(14, 20, 30, 0.92) 58%), linear-gradient(135deg, rgba(19, 29, 45, 0.95), rgba(8, 12, 20, 0.98))",
+      "radial-gradient(circle at 50% 35%, rgba(75, 116, 173, 0.24), rgba(14, 20, 30, 0.72) 58%), linear-gradient(135deg, var(--app-panel-bg-alt), var(--app-panel-bg))",
     display: "grid",
     gridTemplateRows: "auto 1fr auto",
     overflow: "hidden",
@@ -1122,13 +1330,13 @@ const s = {
     gap: 8,
     padding: "8px 10px",
     fontSize: 11,
-    color: "#e4efff",
+    color: "var(--app-text-color)",
     background: "linear-gradient(180deg, rgba(4, 7, 12, 0.75), rgba(4, 7, 12, 0.05))",
   },
   viewerCenterMark: {
     alignSelf: "center",
     justifySelf: "center",
-    color: "rgba(226, 238, 255, 0.72)",
+    color: "var(--app-text-color)",
     fontSize: 12,
     letterSpacing: "0.12em",
     border: "1px dashed rgba(170, 214, 255, 0.45)",
@@ -1142,16 +1350,17 @@ const s = {
     flexWrap: "wrap",
     padding: "8px 10px",
     fontSize: 11,
-    color: "#dce9ff",
+    color: "var(--app-text-color)",
     background: "linear-gradient(0deg, rgba(4, 7, 12, 0.75), rgba(4, 7, 12, 0.08))",
   },
   timelineToolbar: {
     display: "grid",
     gridTemplateColumns:
-      "minmax(140px, 180px) minmax(150px, 180px) auto auto auto auto minmax(110px, 130px) minmax(110px, 130px) minmax(110px, 130px) minmax(110px, 130px) minmax(220px, 1fr)",
-    gap: 8,
+      "minmax(130px, 170px) minmax(150px, 190px) repeat(9, auto) minmax(120px, 150px) minmax(100px, 130px) minmax(90px, 110px) minmax(90px, 110px) minmax(90px, 110px) minmax(220px, 1fr)",
+    gap: 6,
     alignItems: "center",
-    marginBottom: 10,
+    overflowX: "auto",
+    paddingBottom: 4,
   },
   inputLabel: {
     display: "grid",
@@ -1163,33 +1372,33 @@ const s = {
   },
   playheadInput: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(12, 17, 24, 0.8)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 8,
     padding: "6px 8px",
     fontSize: 12,
   },
   selectInput: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(12, 17, 24, 0.8)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 8,
     padding: "6px 8px",
     fontSize: 12,
   },
   toolbarButton: {
-    border: "1px solid rgba(121, 191, 255, 0.72)",
-    background: "rgba(37, 86, 126, 0.55)",
-    color: "var(--app-text-primary)",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 8,
     padding: "6px 10px",
     cursor: "pointer",
     fontSize: 12,
   },
   toolbarButtonDanger: {
-    border: "1px solid rgba(243, 127, 150, 0.8)",
-    background: "rgba(115, 31, 46, 0.56)",
-    color: "#ffd8e1",
+    border: "1px solid var(--app-danger-border)",
+    background: "var(--app-danger-bg)",
+    color: "var(--app-danger-text)",
     borderRadius: 8,
     padding: "6px 10px",
     cursor: "pointer",
@@ -1197,7 +1406,7 @@ const s = {
   },
   toolbarButtonDisabled: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(45, 51, 60, 0.55)",
+    background: "var(--app-panel-bg-muted)",
     color: "var(--app-text-muted)",
     borderRadius: 8,
     padding: "6px 10px",
@@ -1212,8 +1421,8 @@ const s = {
   markerPill: {
     fontSize: 11,
     border: "1px solid rgba(255, 210, 124, 0.8)",
-    color: "#ffe4b4",
-    background: "rgba(130, 83, 16, 0.45)",
+    color: "var(--app-warning-text)",
+    background: "var(--app-warning-bg)",
     borderRadius: 999,
     padding: "3px 8px",
     cursor: "pointer",
@@ -1221,8 +1430,8 @@ const s = {
   markerPillActive: {
     fontSize: 11,
     border: "1px solid rgba(255, 226, 166, 0.95)",
-    color: "#fff0c9",
-    background: "rgba(157, 102, 19, 0.62)",
+    color: "var(--app-warning-text)",
+    background: "var(--app-warning-bg)",
     borderRadius: 999,
     padding: "3px 8px",
     cursor: "pointer",
@@ -1230,6 +1439,9 @@ const s = {
   trackStack: {
     display: "grid",
     gap: 8,
+    minHeight: 0,
+    overflow: "auto",
+    paddingRight: 2,
   },
   trackRow: {
     display: "grid",
@@ -1240,7 +1452,7 @@ const s = {
   trackLabel: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(12, 17, 24, 0.75)",
+    background: "var(--app-panel-bg-alt)",
     padding: "8px 10px",
     display: "grid",
     gap: 4,
@@ -1252,7 +1464,7 @@ const s = {
   },
   trackControl: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(14, 20, 29, 0.8)",
+    background: "var(--app-panel-bg)",
     color: "var(--app-text-muted)",
     borderRadius: 6,
     padding: "3px 7px",
@@ -1260,9 +1472,9 @@ const s = {
     cursor: "pointer",
   },
   trackControlActive: {
-    border: "1px solid rgba(111, 190, 248, 0.95)",
-    background: "rgba(31, 72, 108, 0.6)",
-    color: "var(--app-text-primary)",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 6,
     padding: "3px 7px",
     fontSize: 10,
@@ -1271,16 +1483,16 @@ const s = {
   clipLane: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(12, 17, 24, 0.45)",
+    background: "var(--app-panel-bg)",
     padding: 8,
     display: "flex",
     gap: 6,
     flexWrap: "wrap",
-    minHeight: 56,
+    minHeight: 58,
   },
   clipCard: {
-    border: "1px solid rgba(121, 191, 255, 0.72)",
-    background: "rgba(37, 86, 126, 0.55)",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
     borderRadius: 7,
     padding: "6px 8px",
     fontSize: 11,
@@ -1291,9 +1503,9 @@ const s = {
     position: "relative",
   },
   clipCardActive: {
-    border: "1px solid rgba(160, 220, 255, 0.95)",
-    boxShadow: "0 0 0 1px rgba(160, 220, 255, 0.35)",
-    background: "rgba(52, 110, 156, 0.65)",
+    border: "1px solid var(--app-info-border)",
+    boxShadow: "0 0 0 1px var(--app-info-border)",
+    background: "var(--app-accent-soft)",
     borderRadius: 7,
     padding: "6px 8px",
     fontSize: 11,
@@ -1320,11 +1532,12 @@ const s = {
     color: "rgba(220, 238, 255, 0.85)",
   },
   inspector: {
-    marginTop: 10,
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(12, 17, 24, 0.7)",
+    background: "var(--app-panel-bg-alt)",
     padding: "8px 10px",
+    minHeight: 0,
+    overflow: "auto",
   },
   inspectorTitle: {
     margin: "0 0 8px",
@@ -1376,13 +1589,39 @@ const s = {
   },
   handoffTextarea: {
     width: "100%",
-    minHeight: 130,
+    minHeight: 90,
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(10, 14, 21, 0.92)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     padding: 8,
     fontSize: 11,
     resize: "vertical",
+  },
+  audioMetersPane: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 8,
+    background: "var(--app-panel-bg)",
+    padding: 6,
+    display: "grid",
+    gridTemplateRows: "auto minmax(0, 1fr)",
+    minHeight: 0,
+  },
+  meterColumn: {
+    minHeight: 0,
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 6,
+    background: "var(--app-panel-bg-alt)",
+    display: "grid",
+    alignContent: "end",
+    justifyItems: "center",
+    gap: 4,
+    padding: "6px 4px",
+  },
+  meterBar: {
+    width: "100%",
+    borderRadius: 2,
+    background: "linear-gradient(180deg, #7ee7ff 0%, #3b82f6 52%, #1d4ed8 100%)",
+    minHeight: 8,
   },
 } satisfies Record<string, CSSProperties>;

@@ -58,6 +58,7 @@ type CockpitWorkspaceShellProps = {
   toolCards: CockpitToolCard[];
   promptTemplates: CockpitPromptTemplate[];
   blockedCapabilities: CockpitBlockedCapability[];
+  primaryViewport?: ReactNode;
   truthRail?: ReactNode;
   reviewNote: string;
 };
@@ -75,6 +76,7 @@ export default function CockpitWorkspaceShell({
   toolCards,
   promptTemplates,
   blockedCapabilities,
+  primaryViewport,
   truthRail,
   reviewNote,
 }: CockpitWorkspaceShellProps) {
@@ -88,8 +90,8 @@ export default function CockpitWorkspaceShell({
       collapsible: false,
       scrollMode: "none",
       priority: "status",
-      minHeight: 130,
-      defaultHeight: 150,
+      minHeight: 86,
+      defaultHeight: 104,
       render: () => (
         <section style={identityCardStyle}>
           <div style={identityHeaderStyle}>
@@ -125,6 +127,25 @@ export default function CockpitWorkspaceShell({
             </button>
           ))}
         </div>
+      ),
+    },
+    {
+      id: "viewport",
+      title: "Viewport",
+      subtitle: "Primary scene view and timeline transport",
+      truthState: "workspace",
+      defaultZone: "center",
+      collapsible: true,
+      scrollMode: "none",
+      priority: "primary",
+      minHeight: 280,
+      defaultHeight: 420,
+      render: () => (
+        primaryViewport ?? (
+          <section style={viewportFallbackStyle}>
+            <strong>Viewport not configured for this cockpit.</strong>
+          </section>
+        )
       ),
     },
     {
@@ -269,11 +290,12 @@ export default function CockpitWorkspaceShell({
       subtitle: "Live safety and evidence posture",
       truthState: "status/evidence",
       defaultZone: "right",
+      allowedZones: ["right", "bottom"],
       collapsible: true,
       scrollMode: "content",
       priority: "status",
-      minHeight: 220,
-      defaultHeight: 320,
+      minHeight: 150,
+      defaultHeight: 190,
       render: () => truthRail,
     });
   }
@@ -417,4 +439,14 @@ const primaryButtonStyle = {
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontWeight: 700,
+} satisfies CSSProperties;
+
+const viewportFallbackStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-muted)",
+  minHeight: 220,
+  display: "grid",
+  placeItems: "center",
+  padding: 16,
 } satisfies CSSProperties;

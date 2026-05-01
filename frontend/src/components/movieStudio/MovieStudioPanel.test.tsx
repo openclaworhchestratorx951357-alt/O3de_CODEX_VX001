@@ -29,6 +29,26 @@ describe("MovieStudioPanel", () => {
     expect(screen.getAllByText("Scene 01 Wide").length).toBeGreaterThan(0);
   });
 
+  it("exposes light/dark theme toggle directly in Movie Studio", () => {
+    render(<MovieStudioPanel />);
+
+    const toggle = screen.getByLabelText("Movie Studio theme mode toggle");
+    const lightButton = screen.getByRole("button", { name: "Light" });
+    const darkButton = screen.getByRole("button", { name: "Dark" });
+
+    expect(toggle).toContainElement(lightButton);
+    expect(toggle).toContainElement(darkButton);
+    expect(screen.getByText(/Theme:/i)).toBeInTheDocument();
+
+    fireEvent.click(darkButton);
+    expect(screen.getByText("Theme set to dark")).toBeInTheDocument();
+    expect(darkButton).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(lightButton);
+    expect(screen.getByText("Theme set to light")).toBeInTheDocument();
+    expect(lightButton).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("updates inspector selection and adds marker from playhead", () => {
     render(<MovieStudioPanel />);
 

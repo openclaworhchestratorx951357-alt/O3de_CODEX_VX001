@@ -140,11 +140,20 @@ export function getCockpitLayoutPresetChoices(): Array<{
 export function createZonesFromPanelDefaults(panels: CockpitPanelDefinition[]): CockpitLayoutZones {
   const zones = createEmptyZones();
   for (const panel of panels) {
+    const fallbackZone = (
+      panel.allowedZones?.includes(panel.defaultZone)
+        ? panel.defaultZone
+        : panel.allowedZones?.[0] ?? panel.defaultZone
+    );
     if (!COCKPIT_LAYOUT_ZONES.includes(panel.defaultZone)) {
       zones.center.push(panel.id);
       continue;
     }
-    zones[panel.defaultZone].push(panel.id);
+    if (!COCKPIT_LAYOUT_ZONES.includes(fallbackZone)) {
+      zones.center.push(panel.id);
+      continue;
+    }
+    zones[fallbackZone].push(panel.id);
   }
   return zones;
 }
