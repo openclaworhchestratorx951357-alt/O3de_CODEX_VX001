@@ -12,9 +12,14 @@ export function setPendingAppApiMocks(apiMocks: Record<string, Mock>) {
 }
 
 export function getDesktopNavButton(name: RegExp): HTMLButtonElement {
-  const navRail = screen.getByText("Control surface").closest("aside");
-
-  expect(navRail).not.toBeNull();
+  const navRailLabel = screen.queryByText("Control surface");
+  if (!navRailLabel) {
+    return screen.getByRole("button", { name }) as HTMLButtonElement;
+  }
+  const navRail = navRailLabel.closest("aside");
+  if (!navRail) {
+    return screen.getByRole("button", { name }) as HTMLButtonElement;
+  }
 
   const navScope = within(navRail as HTMLElement);
   const visibleButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;

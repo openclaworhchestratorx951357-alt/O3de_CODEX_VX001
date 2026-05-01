@@ -962,40 +962,42 @@ export default function AssetForgeBlenderCockpit({
             label="CENTER"
             actions={<TruthBadge truth={editorModel ? "read-only" : "demo"} />}
           >
-            <div style={styles.viewportToolbar}>
-              {effectiveViewport.shading_modes.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  style={{
-                    ...styles.viewportButton,
-                    ...(mode === effectiveViewport.active_shading_mode ? styles.viewportButtonActive : null),
-                  }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-            <div style={styles.viewport}>
-              {effectiveViewport.grid_visible ? <div style={styles.gridOverlay} /> : null}
-              <div style={styles.axisBadge}>{effectiveViewport.label}</div>
-              <div style={styles.viewBadge}>{effectiveViewport.mode}</div>
-              <div style={styles.previewObject} />
-              <div style={styles.viewportNotice}>
-                {effectiveViewport.preview_status} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
-              </div>
-              <ul style={styles.viewportOverlayList}>
-                {effectiveViewport.overlays.map((overlay) => (
-                  <li key={overlay}>{overlay}</li>
+            <div style={styles.viewportCanvasStack}>
+              <div style={styles.viewportToolbar}>
+                {effectiveViewport.shading_modes.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    style={{
+                      ...styles.viewportButton,
+                      ...(mode === effectiveViewport.active_shading_mode ? styles.viewportButtonActive : null),
+                    }}
+                  >
+                    {mode}
+                  </button>
                 ))}
-              </ul>
-            </div>
-            <div style={styles.viewportFooter}>
-              {["View", "Select", "Add", "Object", "Object Mode", "Front Ortho"].map((control) => (
-                <button key={control} type="button" style={styles.footerButton}>
-                  {control}
-                </button>
-              ))}
+              </div>
+              <div style={styles.viewport}>
+                {effectiveViewport.grid_visible ? <div style={styles.gridOverlay} /> : null}
+                <div style={styles.axisBadge}>{effectiveViewport.label}</div>
+                <div style={styles.viewBadge}>{effectiveViewport.mode}</div>
+                <div style={styles.previewObject} />
+                <div style={styles.viewportNotice}>
+                  {effectiveViewport.preview_status} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
+                </div>
+                <ul style={styles.viewportOverlayList}>
+                  {effectiveViewport.overlays.map((overlay) => (
+                    <li key={overlay}>{overlay}</li>
+                  ))}
+                </ul>
+              </div>
+              <div style={styles.viewportFooter}>
+                {["View", "Select", "Add", "Object", "Object Mode", "Front Ortho"].map((control) => (
+                  <button key={control} type="button" style={styles.footerButton}>
+                    {control}
+                  </button>
+                ))}
+              </div>
             </div>
           </EditorRegion>
         </main>
@@ -1174,8 +1176,8 @@ function InspectorRow({
 const styles = {
   shell: {
     display: "grid",
-    gridTemplateRows: "auto auto minmax(0, 1fr) minmax(170px, 0.3fr)",
-    gap: 10,
+    gridTemplateRows: "auto auto minmax(0, 1fr) minmax(104px, 0.16fr)",
+    gap: 8,
     minWidth: 0,
     minHeight: 0,
     height: "100%",
@@ -1185,9 +1187,9 @@ const styles = {
   topbar: {
     display: "flex",
     justifyContent: "space-between",
-    gap: 16,
+    gap: 12,
     alignItems: "flex-start",
-    padding: "12px 14px",
+    padding: "10px 12px",
     border: "1px solid var(--app-panel-border)",
     borderRadius: "var(--app-card-radius)",
     background: "var(--app-panel-bg)",
@@ -1208,13 +1210,13 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: 24,
+    fontSize: 22,
     lineHeight: 1.1,
   },
   subtitle: {
     margin: 0,
     color: "var(--app-muted-color)",
-    fontSize: 13,
+    fontSize: 12,
   },
   warningInline: {
     margin: "4px 0 0",
@@ -1225,12 +1227,12 @@ const styles = {
     display: "flex",
     flexWrap: "wrap",
     justifyContent: "flex-end",
-    gap: 8,
+    gap: 6,
   },
   commandButton: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 9,
-    padding: "7px 10px",
+    padding: "6px 9px",
     background: "var(--app-panel-bg-alt)",
     color: "var(--app-text-color)",
     cursor: "pointer",
@@ -1239,7 +1241,7 @@ const styles = {
   commandButtonStrong: {
     border: "1px solid var(--app-accent)",
     borderRadius: 9,
-    padding: "7px 10px",
+    padding: "6px 9px",
     background: "color-mix(in srgb, var(--app-accent) 20%, var(--app-panel-bg-alt))",
     color: "var(--app-text-color)",
     cursor: "pointer",
@@ -1248,34 +1250,34 @@ const styles = {
   },
   stageStrip: {
     display: "flex",
-    gap: 8,
+    gap: 6,
     overflowX: "auto",
-    padding: "4px 2px 6px",
+    padding: "2px 1px 4px",
     minWidth: 0,
   },
   stagePill: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     whiteSpace: "nowrap",
     border: "1px solid var(--app-panel-border)",
     borderRadius: 999,
-    padding: "6px 10px",
+    padding: "5px 9px",
     background: "var(--app-panel-bg)",
     boxShadow: "var(--app-shadow-soft)",
-    fontSize: 12,
+    fontSize: 11,
   },
   editorGrid: {
     display: "grid",
-    gridTemplateColumns: "minmax(250px, 0.24fr) minmax(520px, 1fr) minmax(320px, 0.3fr)",
-    gap: 10,
+    gridTemplateColumns: "minmax(190px, 0.18fr) minmax(0, 1.45fr) minmax(250px, 0.24fr)",
+    gap: 8,
     minWidth: 0,
     minHeight: 0,
     overflow: "hidden",
   },
   leftArea: {
     display: "grid",
-    gap: 10,
+    gap: 8,
     minWidth: 0,
     minHeight: 0,
     overflow: "auto",
@@ -1288,7 +1290,7 @@ const styles = {
   },
   rightArea: {
     display: "grid",
-    gap: 10,
+    gap: 8,
     minWidth: 0,
     minHeight: 0,
     overflow: "auto",
@@ -1312,8 +1314,8 @@ const styles = {
   regionHeader: {
     display: "flex",
     justifyContent: "space-between",
-    gap: 10,
-    padding: "8px 10px",
+    gap: 8,
+    padding: "7px 9px",
     borderBottom: "1px solid var(--app-panel-border)",
     background: "var(--app-panel-bg-alt)",
     minWidth: 0,
@@ -1350,13 +1352,13 @@ const styles = {
     minWidth: 0,
     minHeight: 0,
     overflow: "auto",
-    padding: 10,
+    padding: 8,
   },
   regionBodyCompact: {
     minWidth: 0,
     minHeight: 0,
     overflow: "auto",
-    padding: 8,
+    padding: 7,
   },
   truthBadge: {
     display: "inline-flex",
@@ -1460,11 +1462,17 @@ const styles = {
     minWidth: 0,
     fontSize: 12,
   },
+  viewportCanvasStack: {
+    display: "grid",
+    gridTemplateRows: "auto minmax(0, 1fr) auto",
+    gap: 8,
+    minHeight: 0,
+    height: "100%",
+  },
   viewportToolbar: {
     display: "flex",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
   },
   viewportButton: {
     border: "1px solid var(--app-panel-border)",
@@ -1480,8 +1488,8 @@ const styles = {
   },
   viewport: {
     position: "relative",
-    minHeight: 420,
-    height: "min(58vh, 620px)",
+    minHeight: 0,
+    height: "100%",
     border: "1px solid var(--app-panel-border)",
     borderRadius: 12,
     overflow: "hidden",

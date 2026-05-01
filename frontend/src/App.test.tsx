@@ -336,7 +336,6 @@ describe("App desktop smoke", () => {
 
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
     expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
-    expect(screen.getByText("Now open")).toBeInTheDocument();
     expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
@@ -683,7 +682,7 @@ describe("App desktop smoke", () => {
     expect(screen.getAllByText(/Asset Forge/i).length).toBeGreaterThan(0);
     expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
     expect(screen.queryByText("Control surface")).toBeNull();
-    expect(screen.queryByText("Create Game")).toBeNull();
+    expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge workflow stages")).toBeInTheDocument();
@@ -720,7 +719,7 @@ describe("App desktop smoke", () => {
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
     expect(screen.queryByText("Control surface")).toBeNull();
-    expect(screen.queryByText("Create Game")).toBeNull();
+    expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge left tool and outliner area")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge center viewport area")).toBeInTheDocument();

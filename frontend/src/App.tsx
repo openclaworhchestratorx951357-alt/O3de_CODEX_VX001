@@ -2483,6 +2483,14 @@ export default function App() {
     }
   }
 
+  const immersiveCockpitWorkspaceIds: DesktopWorkspaceId[] = [
+    "create-game",
+    "create-movie",
+    "load-project",
+    "asset-forge",
+  ];
+  const isImmersiveCockpitWorkspace = immersiveCockpitWorkspaceIds.includes(activeWorkspaceId);
+
   useEffect(() => {
     setVisitedWorkspaceIds((currentWorkspaceIds) => (
       currentWorkspaceIds.includes(activeWorkspaceId)
@@ -2492,7 +2500,7 @@ export default function App() {
   }, [activeWorkspaceId]);
 
   useEffect(() => {
-    if (activeWorkspaceId !== "asset-forge") {
+    if (!isImmersiveCockpitWorkspace) {
       return;
     }
 
@@ -2522,7 +2530,7 @@ export default function App() {
     return () => {
       observer.disconnect();
     };
-  }, [activeWorkspaceId]);
+  }, [isImmersiveCockpitWorkspace]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -9100,14 +9108,163 @@ export default function App() {
     </Suspense>
   );
 
-  if (activeWorkspaceId === "asset-forge") {
-    const assetForgeWorkspacePageHeight = assetForgeHeaderHeight > 0
+  if (isImmersiveCockpitWorkspace) {
+    const immersiveWorkspacePageHeight = assetForgeHeaderHeight > 0
       ? `calc(100vh - ${assetForgeHeaderHeight}px)`
       : "calc(100vh - 88px)";
+    const immersiveWorkspaceTitle = workspaceMeta[activeWorkspaceId].title;
+    const immersiveWorkspaceSubtitle = workspaceMeta[activeWorkspaceId].subtitle;
+    const immersiveContent = (() => {
+      if (activeWorkspaceId === "create-game") {
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Create Game",
+              "Loading Create Game cockpit mission pipeline and tool cards.",
+            )}
+          >
+            <CreateGameWorkspaceView
+              onOpenPromptStudio={openPromptStudioFromCreateGameCockpit}
+              onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+              onOpenRuntimeOverview={openRuntimeOverview}
+              onOpenRecords={openRecordsRuns}
+              onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromCreateGame}
+              onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
+              onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
+              onViewLatestRun={openLatestRunEvidence}
+              onViewExecution={openLatestExecutionEvidence}
+              onViewArtifact={openLatestArtifactEvidence}
+              onViewEvidence={openRecordsEvents}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={openRunEvidenceById}
+              onOpenExecutionDetail={openExecutionEvidenceById}
+              onOpenArtifactDetail={openArtifactEvidenceById}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+            />
+          </Suspense>
+        );
+      }
+
+      if (activeWorkspaceId === "create-movie") {
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Create Movie",
+              "Loading Create Movie cockpit cinematic pipeline and proof-only placement guidance.",
+            )}
+          >
+            <CreateMovieWorkspaceView
+              onOpenPromptStudio={openPromptStudioFromCreateMovieCockpit}
+              onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+              onOpenRuntimeOverview={openRuntimeOverview}
+              onOpenRecords={openRecordsRuns}
+              onLaunchInspectTemplate={openPromptStudioWithInspectCinematicTargetTemplate}
+              onLaunchCameraTemplate={openPromptStudioWithCreateCinematicCameraTemplate}
+              onLaunchPlacementProofTemplate={openPromptStudioWithCinematicPlacementProofTemplate}
+              onViewLatestRun={openLatestRunEvidence}
+              onViewExecution={openLatestExecutionEvidence}
+              onViewArtifact={openLatestArtifactEvidence}
+              onViewEvidence={openRecordsEvents}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={openRunEvidenceById}
+              onOpenExecutionDetail={openExecutionEvidenceById}
+              onOpenArtifactDetail={openArtifactEvidenceById}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+            />
+          </Suspense>
+        );
+      }
+
+      if (activeWorkspaceId === "load-project") {
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Load Project",
+              "Loading Load Project cockpit project-path readiness controls.",
+            )}
+          >
+            <LoadProjectWorkspaceView
+              onOpenPromptStudio={openPromptStudioFromLoadProjectCockpit}
+              onOpenRuntimeOverview={openRuntimeOverview}
+              onOpenRecords={openRecordsRuns}
+              onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
+              onViewLatestRun={openLatestRunEvidence}
+              onViewExecution={openLatestExecutionEvidence}
+              onViewArtifact={openLatestArtifactEvidence}
+              onViewEvidence={openRecordsEvents}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={openRunEvidenceById}
+              onOpenExecutionDetail={openExecutionEvidenceById}
+              onOpenArtifactDetail={openArtifactEvidenceById}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+            />
+          </Suspense>
+        );
+      }
+
+      return (
+        <Suspense
+          fallback={renderWorkspaceLoadingFallback(
+            "Asset Forge",
+            "Loading the O3DE-native asset studio workspace.",
+          )}
+        >
+          <AIAssetForgePanel
+            onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
+            onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
+            onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
+            onPrefillPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
+            onOpenRuntimeOverview={openRuntimeOverview}
+            onOpenBuilder={() => setActiveWorkspaceId("builder")}
+            onOpenRecords={openRecordsRuns}
+            onViewLatestRun={openLatestRunEvidence}
+            onViewExecution={openLatestExecutionEvidence}
+            onViewArtifact={openLatestArtifactEvidence}
+            onViewEvidence={openRecordsEvents}
+            onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+            onOpenRunDetail={openRunEvidenceById}
+            onOpenExecutionDetail={openExecutionEvidenceById}
+            onOpenArtifactDetail={openArtifactEvidenceById}
+            bridgeStatus={o3deBridgeStatus}
+            policies={policies}
+            policiesLoading={policiesLoading}
+            policiesError={policiesError}
+            readiness={readiness}
+            readinessLoading={readinessLoading}
+            readinessError={readinessError}
+            adapters={adapters}
+            adaptersLoading={adaptersLoading}
+            adaptersError={adaptersError}
+            latestRunId={latestRunId}
+            latestExecutionId={latestExecutionId}
+            latestArtifactId={latestArtifactId}
+            latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+          />
+        </Suspense>
+      );
+    })();
 
     return (
       <section
-        aria-label="Asset Forge full workspace"
+        aria-label={activeWorkspaceId === "asset-forge" ? "Asset Forge full workspace" : "Immersive cockpit workspace"}
         style={{
           height: "100vh",
           minHeight: "100vh",
@@ -9123,12 +9280,14 @@ export default function App() {
           aria-label="AppHeader"
           ref={assetForgeHeaderRef}
           style={{
-            padding: "14px 18px",
+            padding: "12px 16px",
             borderBottom: "1px solid var(--app-panel-border)",
             background: "var(--app-panel-bg)",
             boxShadow: "var(--app-shadow-soft)",
             position: "relative",
             zIndex: 1,
+            display: "grid",
+            gap: 10,
           }}
         >
           <div
@@ -9136,15 +9295,16 @@ export default function App() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 14,
+              gap: 12,
+              flexWrap: "wrap",
             }}
           >
             <div>
               <strong style={{ fontSize: 20, color: "var(--app-text-color)" }}>
-                {operatorGuideShellApp.title}
+                {immersiveWorkspaceTitle}
               </strong>
               <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)" }}>
-                {operatorGuideShellApp.subtitle}
+                {immersiveWorkspaceSubtitle}
               </p>
             </div>
             <button
@@ -9167,14 +9327,61 @@ export default function App() {
               Back to Home
             </button>
           </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
+            {immersiveCockpitWorkspaceIds.map((workspaceId) => (
+              <button
+                key={workspaceId}
+                type="button"
+                aria-pressed={activeWorkspaceId === workspaceId}
+                onClick={() => setActiveWorkspaceId(workspaceId)}
+                style={{
+                  minHeight: 30,
+                  border: "1px solid var(--app-panel-border)",
+                  borderRadius: 8,
+                  padding: "0 10px",
+                  background: activeWorkspaceId === workspaceId
+                    ? "color-mix(in srgb, var(--app-accent) 22%, var(--app-panel-bg-alt))"
+                    : "var(--app-panel-bg-alt)",
+                  color: "var(--app-text-color)",
+                  cursor: "pointer",
+                  fontWeight: activeWorkspaceId === workspaceId ? 700 : 500,
+                }}
+              >
+                {workspaceMeta[workspaceId].title}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-pressed={activeWorkspaceId === "prompt"}
+              onClick={() => setActiveWorkspaceId("prompt")}
+              style={{
+                minHeight: 30,
+                border: "1px solid var(--app-panel-border)",
+                borderRadius: 8,
+                padding: "0 10px",
+                background: "var(--app-panel-bg-alt)",
+                color: "var(--app-text-color)",
+                cursor: "pointer",
+              }}
+            >
+              Prompt Studio
+            </button>
+          </div>
         </header>
         <main
-          aria-label="AssetForgeWorkspacePage"
+          aria-label={activeWorkspaceId === "asset-forge" ? "AssetForgeWorkspacePage" : "ImmersiveCockpitWorkspacePage"}
           style={{
             minHeight: 0,
-            height: assetForgeWorkspacePageHeight,
+            height: immersiveWorkspacePageHeight,
             overflow: "auto",
-            padding: "10px 12px 14px",
+            padding: 0,
             boxSizing: "border-box",
           }}
         >
@@ -9185,44 +9392,7 @@ export default function App() {
             {activeCockpitStageFocusHighlight ? (
               renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
             ) : null}
-            <Suspense
-              fallback={renderWorkspaceLoadingFallback(
-                "Asset Forge",
-                "Loading the O3DE-native asset studio workspace.",
-              )}
-            >
-              <AIAssetForgePanel
-                onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
-                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
-                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
-                onPrefillPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
-                onOpenRuntimeOverview={openRuntimeOverview}
-                onOpenBuilder={() => setActiveWorkspaceId("builder")}
-                onOpenRecords={openRecordsRuns}
-                onViewLatestRun={openLatestRunEvidence}
-                onViewExecution={openLatestExecutionEvidence}
-                onViewArtifact={openLatestArtifactEvidence}
-                onViewEvidence={openRecordsEvents}
-                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
-                onOpenRunDetail={openRunEvidenceById}
-                onOpenExecutionDetail={openExecutionEvidenceById}
-                onOpenArtifactDetail={openArtifactEvidenceById}
-                bridgeStatus={o3deBridgeStatus}
-                policies={policies}
-                policiesLoading={policiesLoading}
-                policiesError={policiesError}
-                readiness={readiness}
-                readinessLoading={readinessLoading}
-                readinessError={readinessError}
-                adapters={adapters}
-                adaptersLoading={adaptersLoading}
-                adaptersError={adaptersError}
-                latestRunId={latestRunId}
-                latestExecutionId={latestExecutionId}
-                latestArtifactId={latestArtifactId}
-                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
-              />
-            </Suspense>
+            {immersiveContent}
           </div>
         </main>
       </section>
