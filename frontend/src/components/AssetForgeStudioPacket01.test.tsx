@@ -541,10 +541,10 @@ function makePlacementHarnessExecuteReport(
     readback_plan_reference: "readback-plan://runtime-harness/candidate-a",
     revert_statement_contract_key: null,
     revert_statement_contract_match: false,
-    runtime_command_contract: {},
-    runtime_result_contract: {},
-    post_run_verification_contract: {},
-    revert_scope_contract: {},
+    runtime_command_contract: { command_id: "bridge-command-runtime-001" },
+    runtime_result_contract: { result_kind: "no-op" },
+    post_run_verification_contract: { verification_state: "not-run" },
+    revert_scope_contract: { revert_allowed: false },
     operator_note_present: true,
     contract_evidence_ready: false,
     fail_closed_reasons: [
@@ -597,10 +597,10 @@ function makePlacementLiveProofReport(
     readback_plan_reference: "readback-plan://live-proof/candidate-a",
     revert_statement_contract_key: null,
     revert_statement_contract_match: false,
-    runtime_command_contract: {},
-    runtime_result_contract: {},
-    post_run_verification_contract: {},
-    revert_scope_contract: {},
+    runtime_command_contract: { command_id: "bridge-command-live-001" },
+    runtime_result_contract: { result_kind: "no-op" },
+    post_run_verification_contract: { verification_state: "not-run" },
+    revert_scope_contract: { revert_allowed: false },
     operator_note_present: true,
     contract_evidence_ready: false,
     fail_closed_reasons: [
@@ -1699,6 +1699,10 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Admission operator id: operator-789/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Readback plan reference: readback-plan:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime command contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
@@ -1747,6 +1751,10 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Admission operator id: operator-999/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Readback plan reference: readback-plan:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime command contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.live_proof\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
