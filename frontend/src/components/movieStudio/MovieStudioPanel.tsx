@@ -172,6 +172,7 @@ export default function MovieStudioPanel() {
   const [o3deLastCheck, setO3deLastCheck] = useState<string>("Pending first check");
   const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
   const [o3deFailureCount, setO3deFailureCount] = useState<number>(0);
+  const [o3deStatusLog, setO3deStatusLog] = useState<string[]>([]);
 
   const trackCount = TRACKS.length;
   const clipCount = useMemo(
@@ -351,10 +352,18 @@ export default function MovieStudioPanel() {
       );
       setO3deHealth(targetConfigured && bridgeHealthy ? "healthy" : "degraded");
       setO3deFailureCount(0);
+      setO3deStatusLog((current) => [
+        `${new Date().toISOString()} ${targetConfigured && bridgeHealthy ? "[healthy]" : "[degraded]"} ${targetConfigured ? "target-ready" : "target-needs-setup"} ${bridgeHealthy ? "bridge-healthy" : "bridge-degraded"}`,
+        ...current,
+      ].slice(0, 6));
     } catch {
       setO3deStatus("Target: Unavailable | Bridge: Unavailable");
       setO3deHealth("unavailable");
       setO3deFailureCount((current) => current + 1);
+      setO3deStatusLog((current) => [
+        `${new Date().toISOString()} [unavailable] target-or-bridge-unreachable`,
+        ...current,
+      ].slice(0, 6));
     } finally {
       setO3deLastCheck(new Date().toISOString());
     }
@@ -460,6 +469,9 @@ export default function MovieStudioPanel() {
           </p>
           <p style={s.o3deStripText}>{o3deStatus}</p>
           <p style={s.o3deStripMeta}>Last check: {o3deLastCheck} | Consecutive failures: {o3deFailureCount}</p>
+          <p style={s.o3deStripMeta}>
+            Recent checks: {o3deStatusLog.length > 0 ? o3deStatusLog[0] : "none yet"}
+          </p>
         </div>
         <button type="button" onClick={() => void refreshO3deStatus()} style={s.toolbarButton}>
           Refresh O3DE

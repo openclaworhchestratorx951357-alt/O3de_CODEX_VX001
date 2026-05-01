@@ -23,6 +23,7 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByText((content) => content.startsWith("O3DE Health:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Last check:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("Consecutive failures:"))).toBeInTheDocument();
+    expect(screen.getByText((content) => content.startsWith("Recent checks:"))).toBeInTheDocument();
     expect(screen.getByText("Ripple Trim")).toBeInTheDocument();
     expect(screen.getAllByText("Scene 01 Wide").length).toBeGreaterThan(0);
   });
