@@ -409,8 +409,12 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
 
-    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getAllByRole("button", { name: "Open Runtime" })[0]);
+    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
+    const createGameWorkspaceSection = createGameWorkspaceHeading.closest("section");
+    expect(createGameWorkspaceSection).toBeTruthy();
+    fireEvent.click(
+      within(createGameWorkspaceSection as HTMLElement).getAllByRole("button", { name: "Open Runtime" })[0],
+    );
 
     expect(await screen.findByText(
       "SystemStatusPanel stub",
@@ -420,10 +424,20 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
-    expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
-  });
+    const createGameWorkspaceHeadingAfterReturn = (await screen.findAllByText("Create Game Cockpit"))[0];
+    const createGameWorkspaceSectionAfterReturn = createGameWorkspaceHeadingAfterReturn.closest("section");
+    expect(createGameWorkspaceSectionAfterReturn).toBeTruthy();
+    fireEvent.click(
+      within(createGameWorkspaceSectionAfterReturn as HTMLElement).getAllByRole("button", {
+        name: "Open Asset Forge",
+      })[0],
+    );
+    expect(await screen.findByText("Now open")).toBeInTheDocument();
+    expect((await screen.findAllByText("Asset Forge")).length).toBeGreaterThan(0);
+    expect(
+      await screen.findByPlaceholderText("Go to Asset Forge or type a command..."),
+    ).toBeInTheDocument();
+  }, 12000);
 
   it("opens cockpit environments from Home launcher cards", async () => {
     render(<App />);
@@ -560,6 +574,32 @@ describe("App desktop smoke", () => {
 
     expect((await screen.findAllByText("Loaded mission draft: Inspect project evidence prompt")).length).toBeGreaterThan(0);
     expect(screen.getByText("Loaded source workspace: home")).toBeInTheDocument();
+  });
+
+  it("previews chooser templates without loading a mission draft until explicit load", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
+    const createGameWorkspace = createGameWorkspaceHeading.closest("section");
+    expect(createGameWorkspace).not.toBeNull();
+    fireEvent.click(within(createGameWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+
+    const chooser = await screen.findByLabelText("Prompt template chooser context");
+    expect(screen.queryByText("Loaded mission draft: Create safe game entity prompt")).toBeNull();
+
+    fireEvent.click(
+      within(chooser).getByRole("button", { name: "Preview template: Create safe game entity prompt" }),
+    );
+
+    const previewPanel = await screen.findByLabelText("Template preview: Create safe game entity prompt");
+    expect(previewPanel).toHaveTextContent("Template preview (prefill-only)");
+    expect(previewPanel).toHaveTextContent(/Open level "Levels\/DefaultLevel"/i);
+    expect(previewPanel).toHaveTextContent("Safety: preview and copy are local-only.");
+    expect(screen.queryByText("Loaded mission draft: Create safe game entity prompt")).toBeNull();
+
+    fireEvent.click(within(previewPanel).getByRole("button", { name: "Load this template" }));
+    expect((await screen.findAllByText("Loaded mission draft: Create safe game entity prompt")).length).toBeGreaterThan(0);
   });
 
   it("opens truth-rail evidence actions with latest record context in Records", async () => {

@@ -823,6 +823,10 @@ export default function App() {
     useState<RecordsEvidenceContext | null>(null);
   const [promptTemplateChooserContext, setPromptTemplateChooserContext] =
     useState<PromptTemplateChooserContext | null>(null);
+  const [promptTemplatePreviewTemplateId, setPromptTemplatePreviewTemplateId] =
+    useState<string | null>(null);
+  const [promptTemplatePreviewCopyStatus, setPromptTemplatePreviewCopyStatus] =
+    useState<string | null>(null);
   const [latestPlacementProofOnlyReview, setLatestPlacementProofOnlyReview] =
     useState<PlacementProofOnlyReviewSnapshot | null>(null);
   const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
@@ -5129,6 +5133,8 @@ export default function App() {
       setPromptEvidenceContext(null);
     }
     if (!options?.preservePromptTemplateChooserContext) {
+      setPromptTemplatePreviewTemplateId(null);
+      setPromptTemplatePreviewCopyStatus(null);
       setPromptTemplateChooserContext(null);
     }
     setActiveWorkspaceId("prompt");
@@ -5153,6 +5159,8 @@ export default function App() {
       sourceSurfaceLabel,
       openedAtIso: new Date().toISOString(),
     });
+    setPromptTemplatePreviewTemplateId(null);
+    setPromptTemplatePreviewCopyStatus(null);
     setPromptTemplateChooserContext(null);
     setActiveWorkspaceId("prompt");
   }
@@ -5163,6 +5171,8 @@ export default function App() {
     sourceWorkspaceId: DesktopWorkspaceId,
   ): void {
     setPromptEvidenceContext(null);
+    setPromptTemplatePreviewTemplateId(null);
+    setPromptTemplatePreviewCopyStatus(null);
     setPromptTemplateChooserContext(null);
     setPromptLaunchDraftRequest({
       requestId: crypto.randomUUID(),
@@ -5183,6 +5193,8 @@ export default function App() {
     nextSafeAction: string,
   ): void {
     setPromptEvidenceContext(null);
+    setPromptTemplatePreviewTemplateId(null);
+    setPromptTemplatePreviewCopyStatus(null);
     setPromptTemplateChooserContext({
       id: crypto.randomUUID(),
       sourceWorkspaceId,
@@ -5197,6 +5209,57 @@ export default function App() {
       nextSafeAction,
     });
     setActiveWorkspaceId("prompt");
+  }
+
+  function dismissPromptTemplateChooserContext(): void {
+    setPromptTemplatePreviewTemplateId(null);
+    setPromptTemplatePreviewCopyStatus(null);
+    setPromptTemplateChooserContext(null);
+  }
+
+  function togglePromptTemplatePreview(templateId: string): void {
+    setPromptTemplatePreviewCopyStatus(null);
+    setPromptTemplatePreviewTemplateId((current) => (
+      current === templateId ? null : templateId
+    ));
+  }
+
+  async function copyPromptTemplateDraftPreview(
+    context: PromptTemplateChooserContext,
+    template: PromptTemplateChooserEntry,
+  ): Promise<void> {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      setPromptTemplatePreviewCopyStatus(
+        "Copy unavailable in this browser context. No backend action was attempted.",
+      );
+      return;
+    }
+
+    const previewPayload = [
+      `Template: ${template.label}`,
+      `Source workspace: ${workspaceMeta[context.sourceWorkspaceId].title}`,
+      `Source surface: ${template.sourceSurfaceLabel}`,
+      `Truth state: ${template.truthState}`,
+      `Dry run: ${template.draft.dryRun ? "true" : "false"}`,
+      `Preferred domains: ${template.draft.preferredDomainsText || "planner choice"}`,
+      "Prompt text:",
+      template.draft.promptText,
+      "Operator note:",
+      template.draft.operatorNote,
+      "Guidance:",
+      template.draft.guidance,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(previewPayload);
+      setPromptTemplatePreviewCopyStatus(
+        "Copied template preview to local clipboard. No prompt was executed.",
+      );
+    } catch {
+      setPromptTemplatePreviewCopyStatus(
+        "Clipboard copy failed in this browser context. No backend action was attempted.",
+      );
+    }
   }
 
   function buildPromptTemplateChooserEntriesFromRegistry(
@@ -8002,9 +8065,130 @@ export default function App() {
               >
                 {`Load template: ${template.label}`}
               </button>
+              <button
+                type="button"
+                onClick={() => togglePromptTemplatePreview(template.id)}
+                aria-expanded={promptTemplatePreviewTemplateId === template.id}
+              >
+                {promptTemplatePreviewTemplateId === template.id
+                  ? `Hide preview: ${template.label}`
+                  : `Preview template: ${template.label}`}
+              </button>
+              {promptTemplatePreviewTemplateId === template.id ? (
+                <section
+                  aria-label={`Template preview: ${template.label}`}
+                  style={{
+                    border: "1px solid rgba(120, 196, 255, 0.45)",
+                    borderRadius: 10,
+                    padding: "10px 11px",
+                    background: "rgba(11, 22, 35, 0.76)",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <strong style={{ color: "var(--app-text-color)" }}>
+                    Template preview (prefill-only)
+                  </strong>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 8,
+                      color: "var(--app-subtle-color)",
+                      fontSize: 13,
+                    }}
+                  >
+                    <span>
+                      Dry run: <strong>{template.draft.dryRun ? "true" : "false"}</strong>
+                    </span>
+                    <span>
+                      Preferred domains: <strong>{template.draft.preferredDomainsText || "planner choice"}</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {template.draft.truthLabels.map((label) => (
+                      <span
+                        key={`${template.id}-truth-${label}`}
+                        style={{
+                          border: "1px solid rgba(120, 196, 255, 0.45)",
+                          borderRadius: 999,
+                          padding: "2px 8px",
+                          fontSize: 12,
+                          color: "rgba(192, 228, 255, 0.95)",
+                        }}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontSize: 12, color: "var(--app-subtle-color)", textTransform: "uppercase", letterSpacing: 0.2 }}>
+                      Prompt text
+                    </span>
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "var(--app-text-color)",
+                        fontSize: 13,
+                        lineHeight: 1.45,
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {template.draft.promptText}
+                    </p>
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontSize: 12, color: "var(--app-subtle-color)", textTransform: "uppercase", letterSpacing: 0.2 }}>
+                      Operator note
+                    </span>
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "var(--app-subtle-color)",
+                        fontSize: 13,
+                        lineHeight: 1.45,
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {template.draft.operatorNote}
+                    </p>
+                  </div>
+                  <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+                    Guidance: {template.draft.guidance}
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => { void copyPromptTemplateDraftPreview(context, template); }}
+                    >
+                      Copy preview to clipboard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPromptStudioWithMissionDraft(
+                        template.draft,
+                        template.sourceSurfaceLabel,
+                        context.sourceWorkspaceId,
+                      )}
+                    >
+                      Load this template
+                    </button>
+                  </div>
+                  <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+                    Safety: preview and copy are local-only. No prompt preview, execute, placement, or mutation runs from this panel.
+                  </p>
+                </section>
+              ) : null}
             </article>
           ))}
         </div>
+        {promptTemplatePreviewCopyStatus ? (
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            {promptTemplatePreviewCopyStatus}
+          </p>
+        ) : null}
         <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
           Next safe action: <strong>{context.nextSafeAction}</strong>
         </p>
@@ -8012,7 +8196,7 @@ export default function App() {
           <button type="button" onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}>
             Return to source cockpit
           </button>
-          <button type="button" onClick={() => setPromptTemplateChooserContext(null)}>
+          <button type="button" onClick={dismissPromptTemplateChooserContext}>
             Dismiss template chooser
           </button>
         </div>
@@ -8455,7 +8639,7 @@ export default function App() {
             onClick={() => {
               setPromptLaunchDraftRequest(null);
               setPromptEvidenceContext(null);
-              setPromptTemplateChooserContext(null);
+              dismissPromptTemplateChooserContext();
             }}
           >
             Clear prompt intake context
