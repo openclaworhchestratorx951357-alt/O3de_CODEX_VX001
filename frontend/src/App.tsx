@@ -89,6 +89,7 @@ import type {
   ArtifactRecord,
   AdaptersResponse,
   ApprovalListItem,
+  AssetForgePromptTemplateRecord,
   CatalogAgent,
   ControlPlaneSummaryResponse,
   ExecutorRecord,
@@ -5464,6 +5465,39 @@ export default function App() {
     );
   }
 
+  function openPromptStudioWithAssetForgeEditorTemplate(
+    template: AssetForgePromptTemplateRecord,
+  ): void {
+    const truthLabel = template.truth_state;
+    const safetyLabels = Array.from(new Set([
+      truthLabel,
+      ...template.safety_labels,
+      "preview-first",
+      "autoExecute=false",
+      "non-mutating",
+    ]));
+    const draft: MissionPromptDraft = {
+      id: `asset-forge-editor-model-${template.template_id}`,
+      label: template.label,
+      promptText: template.text,
+      preferredDomainsText: truthLabel === "proof-only" ? "editor-control" : "project-build",
+      operatorNote: [
+        `Asset Forge editor model handoff: ${template.description}`,
+        "autoExecute=false.",
+        "No provider generation, Blender execution, Asset Processor execution, placement write, or mutation is admitted by this handoff.",
+      ].join(" "),
+      dryRun: true,
+      truthLabels: safetyLabels,
+      guidance: "Preview and edit this backend-supplied Asset Forge template in Prompt Studio. Do not execute mutation; use admitted review/preflight/proof-only gates only.",
+    };
+
+    openPromptStudioWithMissionDraft(
+      draft,
+      `Asset Forge editor model / ${template.label}`,
+      "asset-forge",
+    );
+  }
+
   function openPromptStudioWithInspectProjectTemplateFromCreateGame(): void {
     openPromptStudioWithMissionDraft(
       inspectProjectMissionPromptDraft,
@@ -9151,6 +9185,7 @@ export default function App() {
                 onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
+                onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}

@@ -9,6 +9,7 @@ import {
   getLaunchpadButton,
   setPendingAppApiMocks,
 } from "./test/appDesktopTestUtils";
+import type { AssetForgeEditorModelRecord } from "./types/contracts";
 import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 
 const LAZY_SURFACE_TIMEOUT_MS = 5000;
@@ -90,6 +91,85 @@ const apiMocks = vi.hoisted(() => ({
   updateAutonomyObservation: vi.fn(),
   waitForCodexControlTask: vi.fn(),
 }));
+
+function buildAssetForgePromptTemplateEditorModel(): AssetForgeEditorModelRecord {
+  return {
+    source: "asset-forge-editor-model",
+    inspection_surface: "read_only",
+    editor_model_status: "available",
+    execution_admitted: false,
+    mutation_admitted: false,
+    provider_generation_admitted: false,
+    blender_execution_admitted: false,
+    asset_processor_execution_admitted: false,
+    placement_write_admitted: false,
+    active_tool_id: "transform",
+    viewport: {
+      label: "Front Ortho",
+      mode: "Object Mode",
+      shading_modes: ["Solid", "Wireframe", "Material Preview", "O3DE Preview"],
+      active_shading_mode: "Solid",
+      grid_visible: true,
+      preview_status: "demo_no_real_model_loaded",
+      selected_object_label: "Weathered Ivy Arch",
+      overlays: ["No provider/Blender/Asset Processor/O3DE mutation admitted"],
+    },
+    tools: [],
+    context_menu_groups: [],
+    outliner: [],
+    transform: {
+      location: { x: 0, y: 0, z: 0, admitted: false },
+      rotation: { x: 0, y: 0, z: 0, admitted: false },
+      scale: { x: 1, y: 1, z: 1, admitted: false },
+      dimensions: { x: 0, y: 0, z: 0, admitted: false },
+      edit_status: "blocked",
+      blocked_reason: "Transform mutation is not admitted yet.",
+    },
+    properties: {
+      selected_object: "Weathered Ivy Arch",
+      material_preview_status: "blocked",
+      sections: [],
+      rows: [],
+    },
+    material_preview: {
+      preview_shape: "sphere",
+      preview_surface: "checker",
+      checker_visible: true,
+      tabs: ["Surface"],
+      active_tab: "Surface",
+      metadata_status: "read_only",
+      mutation_admitted: false,
+      rows: [],
+    },
+    timeline: {
+      start_frame: 1,
+      end_frame: 250,
+      current_frame: 1,
+      status: "read-only",
+    },
+    evidence: {
+      latest_run_id: null,
+      latest_execution_id: null,
+      latest_artifact_id: null,
+      stage_write_evidence_reference: null,
+      stage_write_readback_reference: null,
+      stage_write_readback_status: null,
+    },
+    prompt_templates: [
+      {
+        template_id: "backend-transform-plan",
+        label: "Backend Transform Plan",
+        description: "Backend supplied transform plan template.",
+        text: "Plan a transform update from backend model values. Do not mutate content.",
+        truth_state: "plan-only",
+        safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
+        auto_execute: false,
+      },
+    ],
+    blocked_capabilities: [],
+    next_safe_action: "Load the backend template into Prompt Studio for preview only.",
+  };
+}
 
 vi.mock("./lib/api", () => apiMocks);
 
@@ -791,6 +871,25 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getAllByText("Loaded mission draft: Placement proof-only candidate prompt").length).toBeGreaterThan(0);
     expect(screen.getByText("Loaded source: Asset Forge workflow / placement proof-only template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: asset-forge")).toBeInTheDocument();
+  });
+
+  it("loads backend Asset Forge editor-model prompt templates into Prompt Studio as safe drafts", async () => {
+    apiMocks.fetchAssetForgeEditorModel.mockResolvedValueOnce(buildAssetForgePromptTemplateEditorModel());
+
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+    const forgePanel = await screen.findByLabelText("AI Asset Forge");
+    const properties = await within(forgePanel).findByLabelText("Asset Forge transform and material properties");
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
+    expect(await within(properties).findByText("Backend Transform Plan")).toBeInTheDocument();
+    fireEvent.click(within(properties).getByRole("button", { name: "Load template" }));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getAllByText("Loaded mission draft: Backend Transform Plan").length).toBeGreaterThan(0);
+    expect(screen.getByText("Loaded source: Asset Forge editor model / Backend Transform Plan")).toBeInTheDocument();
     expect(screen.getByText("Loaded source workspace: asset-forge")).toBeInTheDocument();
   });
 

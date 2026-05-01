@@ -12,6 +12,7 @@ import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
   AssetForgeEditorModelRecord,
+  AssetForgePromptTemplateRecord,
   AssetForgeProviderStatusRecord,
   AssetForgeTaskRecord,
   O3DEBridgeStatus,
@@ -25,6 +26,7 @@ type AIAssetForgePanelProps = {
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
   reviewPacketData?: unknown;
@@ -153,6 +155,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         onOpenPromptStudio={props.onOpenPromptStudio}
         onLaunchInspectTemplate={props.onLaunchInspectTemplate}
         onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+        onLaunchPromptTemplate={props.onLaunchPromptTemplate}
         onOpenRecords={props.onOpenRecords}
         onOpenRuntimeOverview={props.onOpenRuntimeOverview}
         onViewLatestRun={props.onViewLatestRun}
