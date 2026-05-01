@@ -142,6 +142,19 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByLabelText("Snap")).toHaveValue("marker");
   });
 
+  it("supports Shift+R shortcut for reset view", () => {
+    render(<MovieStudioPanel />);
+
+    fireEvent.change(screen.getByLabelText("Range"), { target: { value: "scene" } });
+    fireEvent.change(screen.getByLabelText("Zoom"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Tracks"), { target: { value: "audio" } });
+    fireEvent.keyDown(window, { key: "R", shiftKey: true });
+
+    expect(screen.getByLabelText("Range")).toHaveValue("full");
+    expect(screen.getByLabelText("Zoom")).toHaveValue("2");
+    expect(screen.getByLabelText("Tracks")).toHaveValue("all");
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
