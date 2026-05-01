@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type {
   AdaptersResponse,
@@ -77,6 +77,12 @@ type PromptTemplate = {
 };
 
 type TransformDraft = Record<TransformGroup, Record<Axis, string>>;
+
+type DisplayPropertyRow = {
+  label: string;
+  value: string;
+  tone?: string;
+};
 
 type MenuItem = {
   id: string;
@@ -178,6 +184,14 @@ const defaultTransformDraft: TransformDraft = {
   scale: { x: "1", y: "1", z: "1" },
   dimensions: { x: "0", y: "0", z: "0" },
 };
+
+const fallbackMaterialRows: DisplayPropertyRow[] = [
+  { label: "Preview", value: "Surface preview sphere/checker", tone: "read-only" },
+  { label: "Diffuse", value: "material mutation blocked", tone: "blocked" },
+  { label: "Specular", value: "material mutation blocked", tone: "blocked" },
+  { label: "Shading", value: "read-only preview metadata", tone: "blocked" },
+  { label: "Transparency", value: "not admitted", tone: "blocked" },
+];
 
 const fallbackPromptTemplates: PromptTemplate[] = [
   {
@@ -390,6 +404,74 @@ function getPropertyTabs(model?: AssetForgeEditorModelRecord | null): Properties
 function getMaterialTabs(model?: AssetForgeEditorModelRecord | null): MaterialSubTab[] {
   const backendTabs = model?.material_preview?.tabs?.filter((tab) => tab.trim().length > 0) ?? [];
   return backendTabs.length > 0 ? backendTabs : [...fallbackMaterialTabs];
+}
+
+function formatTransformValue(value: number | undefined, fallback: string): string {
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : fallback;
+}
+
+function getAxisDraft(
+  triplet: { x: number; y: number; z: number } | undefined,
+  fallback: Record<Axis, string>,
+): Record<Axis, string> {
+  return {
+    x: formatTransformValue(triplet?.x, fallback.x),
+    y: formatTransformValue(triplet?.y, fallback.y),
+    z: formatTransformValue(triplet?.z, fallback.z),
+  };
+}
+
+function getTransformDraft(model?: AssetForgeEditorModelRecord | null): TransformDraft {
+  const transform = model?.transform;
+  if (!transform) {
+    return defaultTransformDraft;
+  }
+  return {
+    location: getAxisDraft(transform.location, defaultTransformDraft.location),
+    rotation: getAxisDraft(transform.rotation, defaultTransformDraft.rotation),
+    scale: getAxisDraft(transform.scale, defaultTransformDraft.scale),
+    dimensions: getAxisDraft(transform.dimensions, defaultTransformDraft.dimensions),
+  };
+}
+
+function mapEditorPropertyRows(rows: AssetForgeEditorModelRecord["properties"]["rows"] | undefined): DisplayPropertyRow[] {
+  return (rows ?? []).map((row) => ({
+    label: row.label ?? row.name ?? row.row_id,
+    value: row.value ?? row.status ?? "not reported",
+    tone: row.mutation_admitted ? "blocked" : (row.truth_state ?? row.tone),
+  }));
+}
+
+function getMaterialRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
+  const backendRows = mapEditorPropertyRows(model?.material_preview?.rows);
+  return backendRows.length > 0 ? backendRows : fallbackMaterialRows;
+}
+
+function getSafetyRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
+  const baseRows: DisplayPropertyRow[] = [
+    ["execution_admitted", "false", "read-only"],
+    ["placement_write_admitted", "false", "read-only"],
+    ["mutation_occurred", "false", "read-only"],
+    ["provider generation", "blocked", "blocked"],
+    ["Blender execution", "blocked", "blocked"],
+    ["Asset Processor execution", "blocked", "blocked"],
+    ["material/prefab mutation", "blocked", "blocked"],
+  ].map(([label, value, tone]) => ({ label, value, tone }));
+
+  const blockedCapabilityRows = (model?.blocked_capabilities ?? []).flatMap((capability) => [
+    {
+      label: capability.label,
+      value: capability.reason,
+      tone: "blocked",
+    },
+    {
+      label: "Next unlock",
+      value: capability.next_unlock,
+      tone: "plan-only",
+    },
+  ]);
+
+  return [...baseRows, ...blockedCapabilityRows];
 }
 
 const toolSafetyDetails: Record<string, Pick<EditorTool, "description" | "blockedReason" | "nextUnlock" | "enabled" | "promptTemplateId">> = {
@@ -731,6 +813,9 @@ export default function AssetForgeBlenderCockpit({
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
   const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
   const materialTabs = useMemo(() => getMaterialTabs(editorModel), [editorModel]);
+  const initialTransformDraft = useMemo(() => getTransformDraft(editorModel), [editorModel]);
+  const materialRows = useMemo(() => getMaterialRows(editorModel), [editorModel]);
+  const safetyRows = useMemo(() => getSafetyRows(editorModel), [editorModel]);
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -748,7 +833,7 @@ export default function AssetForgeBlenderCockpit({
   const [selectedMaterialSubTab, setSelectedMaterialSubTab] = useState<MaterialSubTab>("Surface");
   const [selectedBottomTab, setSelectedBottomTab] = useState<BottomTab>("Timeline");
   const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState("inspect-candidate");
-  const [transformDraft, setTransformDraft] = useState<TransformDraft>(defaultTransformDraft);
+  const [transformDraft, setTransformDraft] = useState<TransformDraft>(initialTransformDraft);
   const [transformDirty, setTransformDirty] = useState(false);
   const [gridVisible, setGridVisible] = useState(editorModel?.viewport?.grid_visible ?? true);
   const [statusMessage, setStatusMessage] = useState(
@@ -771,8 +856,14 @@ export default function AssetForgeBlenderCockpit({
   const activePropertiesTab = propertyTabs.includes(selectedPropertiesTab) ? selectedPropertiesTab : (propertyTabs[0] ?? "Transform");
   const activeMaterialSubTab = materialTabs.includes(selectedMaterialSubTab) ? selectedMaterialSubTab : (materialTabs[0] ?? "Surface");
 
+  useEffect(() => {
+    if (!transformDirty) {
+      setTransformDraft(initialTransformDraft);
+    }
+  }, [initialTransformDraft, transformDirty]);
+
   function resetTransformDraft() {
-    setTransformDraft(defaultTransformDraft);
+    setTransformDraft(initialTransformDraft);
     setTransformDirty(false);
     setStatusMessage("Transform draft reset locally; no project mutation occurred.");
   }
@@ -941,7 +1032,9 @@ export default function AssetForgeBlenderCockpit({
             Reset Draft
           </button>
         </div>
-        <div style={styles.statusNotice}>Transform mutation is not admitted yet.</div>
+        <div style={styles.statusNotice}>
+          {editorModel?.transform?.blocked_reason ?? "Transform mutation is not admitted yet."}
+        </div>
       </>
     );
   }
@@ -997,17 +1090,11 @@ export default function AssetForgeBlenderCockpit({
             </button>
           ))}
         </div>
-        {[
-          ["Preview", `${activeMaterialSubTab} preview sphere/checker`],
-          ["Diffuse", "material mutation blocked"],
-          ["Specular", "material mutation blocked"],
-          ["Shading", "read-only preview metadata"],
-          ["Transparency", "not admitted"],
-        ].map(([label, value]) => (
-          <div key={label} style={styles.propertyRow}>
-            <span style={styles.propertyLabel}>{label}</span>
-            <span style={styles.propertyValue}>{value}</span>
-            <Badge tone={label === "Preview" ? "read-only" : "blocked"} />
+        {(materialRows.length > 0 ? materialRows : fallbackMaterialRows).map((row) => (
+          <div key={`${row.label}-${row.value}`} style={styles.propertyRow}>
+            <span style={styles.propertyLabel}>{row.label}</span>
+            <span style={styles.propertyValue}>{row.value}</span>
+            <Badge tone={row.tone ?? "read-only"} />
           </div>
         ))}
       </>
@@ -1058,19 +1145,11 @@ export default function AssetForgeBlenderCockpit({
   function renderSafetyTab() {
     return (
       <>
-        {[
-          ["execution_admitted", "false"],
-          ["placement_write_admitted", "false"],
-          ["mutation_occurred", "false"],
-          ["provider generation", "blocked"],
-          ["Blender execution", "blocked"],
-          ["Asset Processor execution", "blocked"],
-          ["material/prefab mutation", "blocked"],
-        ].map(([label, value]) => (
-          <div key={label} style={styles.propertyRow}>
-            <span style={styles.propertyLabel}>{label}</span>
-            <span style={styles.propertyValue}>{value}</span>
-            <Badge tone={value === "false" ? "read-only" : "blocked"} />
+        {safetyRows.map((row) => (
+          <div key={`${row.label}-${row.value}`} style={styles.propertyRow}>
+            <span style={styles.propertyLabel}>{row.label}</span>
+            <span style={styles.propertyValue}>{row.value}</span>
+            <Badge tone={row.tone ?? "blocked"} />
           </div>
         ))}
       </>

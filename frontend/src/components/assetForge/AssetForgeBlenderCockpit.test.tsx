@@ -232,6 +232,47 @@ function buildEditorModelWithBackendPropertyTabs(): AssetForgeEditorModelRecord 
   };
 }
 
+function buildEditorModelWithBackendPropertyContent(): AssetForgeEditorModelRecord {
+  return {
+    ...buildEditorModelFixture(),
+    transform: {
+      location: { x: 7.5, y: -2, z: 3.25, admitted: false },
+      rotation: { x: 12, y: 0, z: -45, admitted: false },
+      scale: { x: 1.2, y: 0.8, z: 1.5, admitted: false },
+      dimensions: { x: 4, y: 5.5, z: 6, admitted: false },
+      edit_status: "preflight-only",
+      blocked_reason: "Backend transform values are draft-only; writes remain blocked.",
+    },
+    material_preview: {
+      ...buildEditorModelFixture().material_preview,
+      rows: [
+        {
+          row_id: "backend-diffuse",
+          label: "Backend Diffuse",
+          value: "read-only clay material",
+          truth_state: "read-only",
+          mutation_admitted: false,
+        },
+        {
+          row_id: "backend-specular",
+          label: "Backend Specular",
+          value: "mutation blocked by backend model",
+          truth_state: "blocked",
+          mutation_admitted: false,
+        },
+      ],
+    },
+    blocked_capabilities: [
+      {
+        capability_id: "backend-provider-generation",
+        label: "Backend Provider Generation",
+        reason: "Provider generation is not admitted by this editor model packet.",
+        next_unlock: "Run a separate model substrate admission packet.",
+      },
+    ],
+  };
+}
+
 describe("AssetForgeBlenderCockpit", () => {
   it("renders strict Blender-like shell zones and fallback safety text", () => {
     render(<AssetForgeBlenderCockpit editorModelError="editor model backend unavailable" />);
@@ -528,5 +569,44 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(within(properties).getByRole("button", { name: "Backend Surface" })).toBeInTheDocument();
     expect(within(properties).getByRole("button", { name: "Backend Wire" })).toBeInTheDocument();
     expect(within(properties).queryByRole("button", { name: "Volume" })).not.toBeInTheDocument();
+  });
+
+  it("seeds and resets transform draft values from the backend editor model", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithBackendPropertyContent()} />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    const locationX = within(properties).getByLabelText("Location X") as HTMLInputElement;
+    const rotationZ = within(properties).getByLabelText("Rotation Z") as HTMLInputElement;
+
+    expect(locationX).toHaveValue("7.5");
+    expect(rotationZ).toHaveValue("-45");
+    expect(within(properties).getByText("Backend transform values are draft-only; writes remain blocked.")).toBeInTheDocument();
+
+    fireEvent.change(locationX, { target: { value: "99" } });
+    expect(locationX).toHaveValue("99");
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Reset Draft" }));
+
+    expect(locationX).toHaveValue("7.5");
+    expect(rotationZ).toHaveValue("-45");
+  });
+
+  it("renders material and safety rows from backend editor-model content", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithBackendPropertyContent()} />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Material" }));
+    expect(within(properties).getByText("Backend Diffuse")).toBeInTheDocument();
+    expect(within(properties).getByText("read-only clay material")).toBeInTheDocument();
+    expect(within(properties).getByText("Backend Specular")).toBeInTheDocument();
+    expect(within(properties).getByText("mutation blocked by backend model")).toBeInTheDocument();
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Safety" }));
+    expect(within(properties).getByText("Backend Provider Generation")).toBeInTheDocument();
+    expect(
+      within(properties).getByText("Provider generation is not admitted by this editor model packet."),
+    ).toBeInTheDocument();
+    expect(within(properties).getByText("Run a separate model substrate admission packet.")).toBeInTheDocument();
   });
 });
