@@ -15,7 +15,6 @@ Current merged baseline remains:
 - `docs/VALIDATION-REPORT-INTAKE-BASELINE-AUDIT.md`
 - `docs/VALIDATION-REPORT-INTAKE-CONTRACT-DESIGN.md`
 - `docs/VALIDATION-REPORT-INTAKE-DRY-RUN-PARSER-MATRIX.md`
-- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
 
 Current truth:
 
@@ -35,7 +34,7 @@ Current truth:
 
 Candidate surface for a future packet:
 
-- `POST /validation/report/intake`
+- `POST /tools/dispatch` with `capability_name=validation.report.intake`
 - endpoint remains blocked by default until explicit server-side admission gate
   is enabled
 - accepted behavior remains dry-run planning only (no execution/mutation)
@@ -113,6 +112,6 @@ This design keeps all of the following blocked:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate dry-run implementation packet
-(server-owned default-off gate, fail-closed response matrix, and explicit
-review/status truths while preserving no execution/mutation admission).
+Validation intake endpoint-candidate admission audit/review packet
+(verify gate-state semantics, refusal matrix, and operator-facing review/status
+truth while preserving default-off and no execution/mutation admission).

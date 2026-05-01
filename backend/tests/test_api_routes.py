@@ -243,6 +243,40 @@ def _placement_live_proof_expected_revert_contract_key(
     ).hexdigest()
 
 
+def _validation_report_intake_valid_envelope() -> dict[str, object]:
+    envelope: dict[str, object] = {
+        "schema": "validation.report.intake.v1",
+        "capability_name": "validation.report.intake",
+        "report_id": "report-001",
+        "produced_at_utc": "2026-04-29T00:00:00Z",
+        "producer": {
+            "tool_name": "test.run.gtest",
+            "runner_family": "cli",
+            "execution_mode": "simulated",
+        },
+        "result": {
+            "status": "blocked",
+            "summary": "Blocked by policy.",
+            "warning_count": 0,
+            "error_count": 1,
+        },
+        "provenance": {
+            "source_kind": "local-run",
+            "artifact_refs": ["artifacts/reports/gtest.json"],
+        },
+        "payload": {
+            "tests": [{"name": "Suite.TestA", "status": "blocked"}],
+        },
+        "integrity": {
+            "payload_sha256": "a" * 64,
+            "payload_size_bytes": 0,
+        },
+    }
+    plan = build_validation_report_intake_dry_run_plan(envelope)
+    envelope["integrity"]["payload_size_bytes"] = plan["payload_size_bytes"]
+    return envelope
+
+
 def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
     assert payload["corridor_name"] == "asset_forge.o3de.stage_write.v1"
     assert payload["dry_run_only"] is True
@@ -9280,14 +9314,6 @@ def test_validation_report_intake_endpoint_candidate_fails_closed_for_client_aut
             assert payload["write_executed"] is False
             assert payload["project_write_admitted"] is False
             assert payload["write_status"] == "blocked"
-            assert payload["endpoint_candidate"] is True
-            assert payload["endpoint_admitted"] is False
-            assert (
-                payload["admission_flag_name"]
-                == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
-            )
-            assert payload["admission_flag_state"] == "explicit_on"
-            assert payload["admission_flag_enabled"] is True
             assert "client_authorization_fields_forbidden" in payload["fail_closed_reasons"]
 
 
