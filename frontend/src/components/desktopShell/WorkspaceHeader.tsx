@@ -162,7 +162,7 @@ const workspacePeerNavStyle = {
 const workspacePeerNavLabelStyle = {
   flex: "0 0 auto",
   color: "var(--app-subtle-color)",
-  fontSize: 10,
+  fontSize: 11,
   fontWeight: 800,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
@@ -182,7 +182,7 @@ const workspacePeerNavPillStyle = {
   background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 90%, white 10%) 0%, var(--app-panel-bg-muted) 100%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
-  fontSize: 11,
+  fontSize: 12,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,
   scrollSnapAlign: "center" as const,
@@ -201,7 +201,7 @@ const workspacePeerNavBadgeStyle = {
   borderRadius: "var(--app-pill-radius)",
   padding: "1px 5px",
   background: "var(--app-panel-bg)",
-  fontSize: 9,
+  fontSize: 10,
 } satisfies CSSProperties;
 
 const workspaceTitleStyle = {
@@ -231,7 +231,7 @@ const workspaceQuickStatPillStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
   padding: "4px 8px",
-  fontSize: 11,
+  fontSize: 12,
   lineHeight: 1.2,
   whiteSpace: "nowrap" as const,
   boxShadow: raisedControlShadow,

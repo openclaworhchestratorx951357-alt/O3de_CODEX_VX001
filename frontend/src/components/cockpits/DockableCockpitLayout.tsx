@@ -599,7 +599,7 @@ export default function DockableCockpitLayout({
       ref={containerRef}
       aria-label={`${cockpitId} dockable cockpit layout`}
       data-testid={`dockable-layout-${cockpitId}`}
-      style={rootStyle}
+      style={{ ...rootStyle, ...cockpitStyleVars }}
     >
       <div style={toolbarRowStyle}>
         <div style={layoutActionsStyle}>
@@ -639,6 +639,13 @@ const rootStyle = {
   minHeight: 0,
   height: "100%",
 } satisfies CSSProperties;
+
+const cockpitStyleVars = {
+  "--cockpit-shell-bg": "linear-gradient(160deg, color-mix(in srgb, var(--app-command-bg) 22%, var(--app-panel-bg-alt) 78%) 0%, var(--app-panel-bg-alt) 100%)",
+  "--cockpit-panel-bg": "color-mix(in srgb, var(--app-panel-bg) 90%, var(--app-command-bg) 10%)",
+  "--cockpit-panel-header-bg": "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 82%, var(--app-command-bg) 18%) 0%, var(--app-panel-bg-alt) 100%)",
+  "--cockpit-panel-border": "color-mix(in srgb, var(--app-panel-border-strong) 72%, var(--app-accent) 28%)",
+} as CSSProperties;
 
 const toolbarRowStyle = {
   display: "flex",
@@ -685,9 +692,9 @@ const canvasRootStyle = {
   minWidth: 0,
   minHeight: 0,
   overflow: "hidden",
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid var(--cockpit-panel-border, var(--app-panel-border))",
   borderRadius: 12,
-  background: "var(--app-panel-bg-alt)",
+  background: "var(--cockpit-shell-bg, var(--app-panel-bg-alt))",
   padding: 8,
   boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;

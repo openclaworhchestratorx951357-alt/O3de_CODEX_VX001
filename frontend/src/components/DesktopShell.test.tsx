@@ -98,10 +98,10 @@ describe("DesktopShell", () => {
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
     expect(screen.getAllByText("Start").length).toBeGreaterThan(0);
-    const allAppsSubtitle = screen.getByText(/Inspect -/i);
+    const allAppsSubtitle = screen.getByText("Runs, executions, artifacts");
     expect(allAppsSubtitle).toBeInTheDocument();
-    expect(allAppsSubtitle).toHaveStyle("white-space: nowrap");
-    expect(allAppsSubtitle).toHaveStyle("text-overflow: ellipsis");
+    expect(screen.getAllByText("Inspect").length).toBeGreaterThan(0);
+    expect(allAppsSubtitle).toHaveStyle("white-space: normal");
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeInTheDocument();
@@ -232,6 +232,7 @@ describe("DesktopShell", () => {
 
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.getByText("Standalone workspace body")).toBeInTheDocument();
+    expect(screen.getByText("Cockpit shell")).toBeInTheDocument();
     expect(screen.queryByText("Active workspace")).toBeNull();
     expect(screen.queryByLabelText("Workspaces workspace sections")).toBeNull();
     const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });

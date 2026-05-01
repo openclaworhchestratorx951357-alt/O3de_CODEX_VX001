@@ -354,9 +354,10 @@ function getOrderedOriginalMatchIndexes(text: string, normalizedQuery: string): 
 
 const quickAccessShellStyle = {
   position: "relative",
-  minWidth: 260,
+  minWidth: 0,
+  flex: "1 1 320px",
   width: "100%",
-  maxWidth: 620,
+  maxWidth: 760,
   justifySelf: "center",
   zIndex: 12,
 } satisfies CSSProperties;
@@ -439,14 +440,15 @@ const quickAccessResultHighlightedStyle = {
 } satisfies CSSProperties;
 
 const quickAccessResultTextStyle = {
-  display: "inline-flex",
-  alignItems: "center",
+  display: "inline-grid",
+  alignItems: "start",
   gap: 8,
   minWidth: 0,
   maxWidth: "100%",
   color: "var(--app-text-color)",
   fontSize: 13,
-  whiteSpace: "nowrap",
+  whiteSpace: "normal" as const,
+  overflowWrap: "anywhere" as const,
 } satisfies CSSProperties;
 
 const quickAccessResultTitleStyle = {

@@ -108,6 +108,8 @@ export default function DesktopShell({
           padding: themeTokens.compactDensity ? 18 : 24,
           paddingBottom: themeTokens.compactDensity ? 76 : 88,
           width: "100%",
+          maxWidth: "var(--app-shell-max-width)",
+          marginInline: "auto",
           margin: 0,
           boxSizing: "border-box",
         }}
@@ -128,7 +130,31 @@ export default function DesktopShell({
             ...(standaloneCockpitShell ? standaloneWorkspaceShellStyle : null),
           }}
         >
-          {standaloneCockpitShell ? null : (
+          {standaloneCockpitShell ? (
+            <div style={standaloneWorkspaceHeaderStyle}>
+              <div style={{ display: "grid", gap: 4 }}>
+                <span style={standaloneWorkspaceEyebrowStyle}>Cockpit shell</span>
+                <strong style={standaloneWorkspaceTitleStyle}>{workspaceTitle}</strong>
+                <span style={standaloneWorkspaceSubtitleStyle}>{workspaceSubtitle}</span>
+              </div>
+              {quickStats.length > 0 ? (
+                <div style={standaloneWorkspaceStatsStyle}>
+                  {quickStats.map((item) => (
+                    <span
+                      key={`standalone-${item.label}-${item.value}`}
+                      title={item.helpTooltip ?? undefined}
+                      style={{
+                        ...standaloneWorkspaceStatStyle,
+                        ...toneStyles[item.tone ?? "neutral"],
+                      }}
+                    >
+                      {item.label}: {item.value}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : (
             <WorkspaceHeader
               workspaceTitle={workspaceTitle}
               workspaceSubtitle={workspaceSubtitle}
@@ -152,6 +178,8 @@ export default function DesktopShell({
 const shellStyle = {
   height: "100vh",
   maxHeight: "100dvh",
+  width: "100%",
+  minWidth: 0,
   minHeight: 0,
   display: "grid",
   gridTemplateRows: "auto 1fr",
@@ -187,12 +215,16 @@ const wallpaperGlowBottomStyle = {
 const taskbarStyle = {
   position: "relative",
   zIndex: 2,
-  display: "grid",
-  gridTemplateColumns: "minmax(260px, max-content) minmax(280px, 1fr) max-content",
+  display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
   gap: 14,
   minHeight: 64,
   padding: "10px 18px",
+  width: "100%",
+  maxWidth: "var(--app-shell-max-width)",
+  marginInline: "auto",
+  boxSizing: "border-box",
   background: "var(--app-shell-taskbar-bg)",
   borderBottom: "1px solid var(--app-panel-border-strong)",
   backdropFilter: "blur(18px)",
@@ -204,8 +236,8 @@ const taskbarBrandGroupStyle = {
   display: "flex",
   alignItems: "center",
   gap: 14,
+  flex: "0 1 auto",
   minWidth: 0,
-  justifySelf: "start",
 } satisfies CSSProperties;
 
 const startBadgeStyle = {
@@ -235,11 +267,10 @@ const taskbarMetaGroupStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  flexWrap: "nowrap",
+  flexWrap: "wrap",
+  flex: "1 1 300px",
   gap: 8,
   minWidth: 0,
-  justifySelf: "end",
-  whiteSpace: "nowrap",
 } satisfies CSSProperties;
 
 const taskbarUtilityBadgeStyle = {
@@ -294,7 +325,9 @@ const workspaceShellStyle = {
 } satisfies CSSProperties;
 
 const standaloneWorkspaceShellStyle = {
-  gridTemplateRows: "minmax(0, 1fr)",
+  gridTemplateRows: "auto minmax(0, 1fr)",
+  border: "1px solid var(--app-selected-border)",
+  background: "linear-gradient(158deg, color-mix(in srgb, var(--app-active-bg) 28%, var(--app-panel-bg) 72%) 0%, var(--app-panel-bg-alt) 100%)",
 } satisfies CSSProperties;
 
 const workspaceCanvasStyle = {
@@ -306,4 +339,48 @@ const workspaceCanvasStyle = {
   paddingRight: 4,
   paddingBottom: 72,
   scrollPaddingBottom: 72,
+} satisfies CSSProperties;
+
+const standaloneWorkspaceHeaderStyle = {
+  display: "grid",
+  gap: 8,
+  padding: "10px 12px",
+  borderRadius: "var(--app-panel-radius)",
+  border: "1px solid var(--app-panel-border-strong)",
+  background: "color-mix(in srgb, var(--app-panel-bg-alt) 84%, var(--app-active-bg) 16%)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const standaloneWorkspaceEyebrowStyle = {
+  color: "var(--app-subtle-color)",
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+} satisfies CSSProperties;
+
+const standaloneWorkspaceTitleStyle = {
+  fontSize: 19,
+  lineHeight: 1.15,
+} satisfies CSSProperties;
+
+const standaloneWorkspaceSubtitleStyle = {
+  color: "var(--app-muted-color)",
+  fontSize: 13,
+  lineHeight: 1.35,
+} satisfies CSSProperties;
+
+const standaloneWorkspaceStatsStyle = {
+  display: "flex",
+  gap: 6,
+  flexWrap: "wrap",
+  alignItems: "center",
+} satisfies CSSProperties;
+
+const standaloneWorkspaceStatStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "4px 8px",
+  fontSize: 11,
+  boxShadow: "var(--app-raised-shadow)",
 } satisfies CSSProperties;

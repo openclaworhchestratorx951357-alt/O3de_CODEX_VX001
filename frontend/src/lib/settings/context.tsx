@@ -81,6 +81,9 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 
   const providerStyle: CSSProperties = {
     minHeight: "100vh",
+    width: "100%",
+    minWidth: 0,
+    overflow: "hidden",
     color: "var(--app-text-color)",
     background: "var(--app-page-bg)",
     fontSize: "calc(16px * var(--app-font-scale))",
@@ -99,6 +102,18 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 }
 
 const globalControlStyles = `
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
 [data-app-theme-root="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
 [data-app-theme-root="true"] select,
 [data-app-theme-root="true"] textarea {

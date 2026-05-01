@@ -254,9 +254,10 @@ export default function WorkspaceTree({
                         </span>
                       ) : null}
                     </div>
-                    <span style={navButtonSubtitleStyle}>
-                      {`${item.sectionLabel} - ${item.subtitle}`}
-                    </span>
+                    <div style={navButtonMetaStyle}>
+                      <span style={navButtonSectionStyle}>{item.sectionLabel}</span>
+                      <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -328,11 +329,11 @@ export default function WorkspaceTree({
 }
 
 const navRailStyle = {
-  flex: "0 0 clamp(248px, 20vw, 356px)",
+  flex: "0 0 clamp(216px, 18vw, 320px)",
   alignSelf: "stretch",
   position: "relative",
-  minWidth: 248,
-  maxWidth: 356,
+  minWidth: 216,
+  maxWidth: 320,
   height: "100%",
   maxHeight: "100%",
   display: "grid",
@@ -472,7 +473,7 @@ const navGroupSummaryLabelStyle = {
 } satisfies CSSProperties;
 
 const navGroupSummaryCountStyle = {
-  fontSize: 10,
+  fontSize: 11,
   lineHeight: 1.2,
   color: "var(--app-muted-color)",
   textTransform: "uppercase",
@@ -554,11 +555,23 @@ const navButtonLabelStyle = {
 
 const navButtonSubtitleStyle = {
   color: "var(--app-muted-color)",
+  fontSize: 11,
+  lineHeight: 1.35,
+  whiteSpace: "normal" as const,
+  overflowWrap: "anywhere" as const,
+} satisfies CSSProperties;
+
+const navButtonMetaStyle = {
+  display: "grid",
+  gap: 2,
+} satisfies CSSProperties;
+
+const navButtonSectionStyle = {
+  color: "var(--app-subtle-color)",
   fontSize: 10,
   lineHeight: 1.25,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap" as const,
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
 } satisfies CSSProperties;
 
 const navBadgeStyle = {

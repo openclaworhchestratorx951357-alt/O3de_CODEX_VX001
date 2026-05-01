@@ -176,9 +176,9 @@ export default function DockablePanel({
 }
 
 const rootStyle = {
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid var(--cockpit-panel-border, var(--app-panel-border))",
   borderRadius: 12,
-  background: "var(--app-panel-bg)",
+  background: "var(--cockpit-panel-bg, var(--app-panel-bg))",
   boxShadow: "var(--app-shadow-soft)",
   minWidth: 0,
   minHeight: 0,
@@ -203,8 +203,8 @@ const headerStyle = {
   gap: 10,
   flexWrap: "wrap",
   padding: "10px 11px",
-  borderBottom: "1px solid var(--app-panel-border)",
-  background: "var(--app-panel-bg-alt)",
+  borderBottom: "1px solid var(--cockpit-panel-border, var(--app-panel-border))",
+  background: "var(--cockpit-panel-header-bg, var(--app-panel-bg-alt))",
   minWidth: 0,
 } satisfies CSSProperties;
 
