@@ -155,6 +155,16 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByLabelText("Tracks")).toHaveValue("all");
   });
 
+  it("supports Shift+O shortcut for O3DE status refresh", async () => {
+    render(<MovieStudioPanel />);
+    const before = screen.getByText((content) => content.startsWith("Last check:")).textContent ?? "";
+    fireEvent.keyDown(window, { key: "O", shiftKey: true });
+    await waitFor(() => {
+      const after = screen.getByText((content) => content.startsWith("Last check:")).textContent ?? "";
+      expect(after).not.toEqual(before);
+    });
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 

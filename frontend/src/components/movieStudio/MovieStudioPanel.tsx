@@ -386,6 +386,9 @@ export default function MovieStudioPanel() {
         event.preventDefault();
         pushHistory("Toggle transport");
         setIsPlaying((current) => !current);
+      } else if (key === "o" && event.shiftKey) {
+        event.preventDefault();
+        void refreshO3deStatus();
       } else if (key === "r" && event.shiftKey) {
         event.preventDefault();
         resetView();
@@ -904,7 +907,7 @@ export default function MovieStudioPanel() {
               <strong>Snap:</strong> {snapMode}
             </p>
             <p style={s.inspectorLine}>
-              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next, Shift+R reset view
+              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next, Shift+R reset view, Shift+O refresh O3DE
             </p>
             <div style={s.historyBox}>
               <strong style={s.historyTitle}>Timeline History</strong>
