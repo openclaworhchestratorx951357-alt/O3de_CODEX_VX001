@@ -1757,6 +1757,28 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract preview: corridor_name, runtime_gate_env, bridge_required/i)).toBeInTheDocument();
   });
 
+  it("renders runtime-harness readiness bridge requirement as unknown when contract boolean is absent", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.prepareAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(
+      makePlacementHarnessReport({
+        bridge_readiness_contract: {
+          corridor_name: "asset_forge.o3de.placement.runtime_harness.v1",
+          runtime_gate_env: "ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS",
+          bridge_required: undefined as unknown as boolean,
+        },
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Prepare bounded runtime harness (plan-only)" }));
+
+    expect(await screen.findByText(/Bridge contract bridge required: unknown/i)).toBeInTheDocument();
+  });
+
   it("submits runtime harness execute with optional approval session id and renders fail-closed details", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
     apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(makePlacementHarnessExecuteReport());
@@ -1821,6 +1843,32 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract preview: corridor_name, runtime_gate_env, bridge_required/i)).toBeInTheDocument();
     expect(screen.getByText("Runtime harness fail-closed reasons")).toBeInTheDocument();
     expect(screen.getByText("runtime_gate_disabled")).toBeInTheDocument();
+  });
+
+  it("renders runtime-harness execute bridge requirement as unknown when contract boolean is absent", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(
+      makePlacementHarnessExecuteReport({
+        bridge_readiness_contract: {
+          corridor_name: "asset_forge.o3de.placement.runtime_harness.v1",
+          runtime_gate_env: "ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS",
+          bridge_required: undefined as unknown as boolean,
+        },
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot harness execute gate." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit one-shot runtime harness gate" }));
+
+    expect(await screen.findByText(/Bridge contract bridge required: unknown/i)).toBeInTheDocument();
   });
 
   it("renders runtime-harness authorization as unknown when server boolean is absent", async () => {
