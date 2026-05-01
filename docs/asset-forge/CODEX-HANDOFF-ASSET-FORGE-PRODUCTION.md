@@ -166,6 +166,50 @@ Packet 01 guardrail note:
 - `AssetForgeStudioPacket01` keeps runtime execution blocked in app/runtime.
 - Vitest mode keeps mocked runtime-path coverage available so regression tests can still verify parsing and UI behavior without enabling real execution in product runtime.
 
+## Current Blender editor handoff snapshot (2026-05-01)
+
+Start new Asset Forge editor threads from
+`docs/asset-forge/ASSET-FORGE-BLENDER-EDITOR-CURRENT-HANDOFF.md`.
+
+Current integration branch and savepoint:
+
+- branch: `codex/asset-forge-prompt-prefill-polish`
+- current commit: `4d5bc42 Add cockpit app registry foundation`
+- protected visual tag: `asset-forge-blender-layout-polished`
+- protected visual commit: `821710a Polish Asset Forge Blender-like editor layout`
+
+Current capability truth:
+
+- Asset Forge has a full-screen Blender-style editor shell.
+- The editor consumes backend `/asset-forge/editor-model` where available and
+  preserves static fallback if unavailable.
+- Tools, menus, workflow stages, status strip tabs, outliner, transform,
+  properties, material preview, prompt templates, and blocked capabilities are
+  backend-model supported.
+- Frontend interactions are local/editor-like only: menu dropdowns, selected
+  tools, selected outliner nodes, viewport mode switching, transform draft
+  editing, properties tabs, bottom tabs, and prompt-template preview/copy/open.
+- `frontend/src/lib/cockpitAppRegistry.ts` now registers Asset Forge as a
+  first-class `full-screen-editor` cockpit.
+
+Safety truth:
+
+- `execution_admitted=false`
+- `mutation_admitted=false`
+- `provider_generation_admitted=false`
+- `blender_execution_admitted=false`
+- `asset_processor_execution_admitted=false`
+- `placement_write_admitted=false`
+- no prompt template auto-executes
+- no UI tool click dispatches backend mutation
+
+Next recommended packet:
+
+- Add read-only backend `GET /cockpit-apps/registry`, then add frontend typed
+  fetch support while preserving static fallback. Do not combine that with real
+  generation, Blender, Asset Processor, placement, material mutation, or prompt
+  auto-execution.
+
 ## Revert path
 
 State exactly how to revert the commit. If only frontend/docs changed, say so. If runtime artifacts were created, list them and how to remove them.

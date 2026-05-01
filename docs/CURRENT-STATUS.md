@@ -1,6 +1,6 @@
 # Current Status
 
-Status date: 2026-04-27
+Status date: 2026-05-01
 
 This file is a human and agent handoff snapshot. It summarizes the latest
 repository truth without replacing code, tests, runtime proof artifacts, or the
@@ -21,7 +21,25 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-a12a3a79935197140600753eb20fbd487e679491
+6c11e218af7fc88f7cea8f0fac7fabcebfe8cd54
+```
+
+The active Asset Forge integration branch is:
+
+```text
+codex/asset-forge-prompt-prefill-polish @ 4d5bc42
+```
+
+Current Asset Forge Blender-editor handoff:
+
+```text
+docs/asset-forge/ASSET-FORGE-BLENDER-EDITOR-CURRENT-HANDOFF.md
+```
+
+The protected polished visual baseline is:
+
+```text
+asset-forge-blender-layout-polished @ 821710a
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -33,6 +51,31 @@ completed Phase 8 Camera bool write/restore corridor and readback-only Camera
 far clip evidence remain admitted as previously recorded.
 
 Recent handoff-relevant packets:
+
+- The current Asset Forge Blender-style editor stack gives Asset Forge its own
+  full-screen workspace, preserves the dominant viewport/right properties/left
+  tool shelf/bottom timeline structure, adds local editor interactions, and
+  keeps all dangerous execution/mutation surfaces blocked.
+- `GET /asset-forge/editor-model` is implemented as a read-only backend
+  contract for the Blender-style editor model. It supplies tools, menu groups,
+  workflow stages, status strip tabs, outliner rows, transform/property rows,
+  material preview metadata, prompt templates, and blocked capability reasons.
+- Frontend Asset Forge consumes the backend editor model with a static fallback
+  and shows fallback truth when unavailable.
+- The cockpit app registry foundation is implemented in
+  `frontend/src/lib/cockpitAppRegistry.ts`; Asset Forge is marked as a
+  first-class `full-screen-editor` cockpit and all execution/mutation/provider/
+  Blender/Asset Processor/placement flags remain false.
+- Recent integration commits:
+  `317bdd3` editor menu model,
+  `ae33131` backend workflow/status model,
+  `1f9d011` backend properties/material tabs,
+  `64aeb88` backend property content,
+  `4d5bc42` cockpit app registry foundation.
+- Next safest packet: add read-only backend `GET /cockpit-apps/registry`, then
+  add frontend typed fetch support and later consumption with fallback. Do not
+  combine this with real generation, Blender execution, Asset Processor
+  execution, placement writes, material mutation, or prompt auto-execution.
 
 - PR #71 fixed the Windows taskbar bottom safe area and clamped the Call an
   agent menu.

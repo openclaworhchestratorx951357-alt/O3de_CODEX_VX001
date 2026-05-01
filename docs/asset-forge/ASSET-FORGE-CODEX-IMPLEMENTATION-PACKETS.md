@@ -212,3 +212,71 @@ Rules:
 ## Default next step
 
 Start with Packet 01 if the docs are already installed. The user specifically wants the GUI to be thought out like Meshy and Blender, so the GUI shell should not be deferred.
+
+## Current implementation checkpoint (2026-05-01)
+
+The Packet 01-era GUI shell has advanced into a full-screen Blender-style
+editor direction. Future threads should read
+`ASSET-FORGE-BLENDER-EDITOR-CURRENT-HANDOFF.md` before choosing the next packet.
+
+Current completed safe editor/cockpit work:
+
+- protected polished layout tag:
+  `asset-forge-blender-layout-polished` at `821710a`
+- current integration head:
+  `codex/asset-forge-prompt-prefill-polish` at `4d5bc42`
+- backend `/asset-forge/editor-model` contract exists
+- frontend consumes editor-model data with fallback
+- editor menus, workflow stages, status strip tabs, transform/property content,
+  material preview rows, prompt templates, and blocked capabilities are
+  backend-supported
+- local editor UI behavior exists for menu/tool/outliner/viewport/properties
+  and bottom-tab state
+- cockpit app registry foundation exists in
+  `frontend/src/lib/cockpitAppRegistry.ts`
+
+Current safety truth:
+
+- no provider generation
+- no real Blender execution
+- no Asset Processor execution
+- no project file writes
+- no placement writes
+- no material/prefab/broad asset mutation
+- no arbitrary shell/Python/Editor script execution
+- no automatic prompt execution
+- no backend dispatch from simple UI clicks
+
+Recommended next packet:
+
+```text
+Packet 12 - Backend cockpit app registry contract
+```
+
+Goal:
+Expose the app-wide cockpit registry as a read-only backend contract.
+
+Deliverables:
+- `GET /cockpit-apps/registry`
+- typed backend records for cockpit registrations
+- Asset Forge marked `full-screen-editor`
+- all execution/mutation/provider/Blender/Asset Processor/placement flags false
+- blocked capabilities with reasons and next unlocks
+- backend route tests
+- optional frontend TypeScript API/types only, without requiring UI consumption
+
+Rules:
+- no runtime execution
+- no prompt auto-execution
+- no project writes
+- no backend dispatch from registry reads
+
+Packet after that:
+
+```text
+Packet 13 - Frontend consumes backend cockpit registry with fallback
+```
+
+Goal:
+Use the backend registry to drive cockpit launch/navigation metadata while
+preserving the current static registry as fallback.
