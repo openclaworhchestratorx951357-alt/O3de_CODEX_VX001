@@ -343,6 +343,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/asset-forge/provider/status" in payload["routes"]
         assert "/asset-forge/blender/status" in payload["routes"]
         assert "/asset-forge/editor-model" in payload["routes"]
+        assert "/cockpit-apps/registry" in payload["routes"]
         assert "/asset-forge/studio/status" in payload["routes"]
         assert "/asset-forge/blender/inspect" in payload["routes"]
         assert "/asset-forge/o3de/stage-plan" in payload["routes"]
@@ -409,6 +410,73 @@ def test_asset_forge_task_route_returns_plan_only_demo_candidates() -> None:
         assert len(payload["candidates"]) == 4
         assert all(candidate["status"] == "demo" for candidate in payload["candidates"])
         assert all("O3DE readiness placeholder" in candidate["readiness_placeholder"] for candidate in payload["candidates"])
+
+
+def test_cockpit_app_registry_route_returns_read_only_contract() -> None:
+    with isolated_client() as client:
+        response = client.get("/cockpit-apps/registry")
+        assert response.status_code == 200
+        payload = response.json()
+
+    assert payload["source"] == "cockpit-app-registry"
+    assert payload["inspection_surface"] == "read_only"
+    assert payload["registry_status"] == "available"
+    assert payload["execution_admitted"] is False
+    assert payload["mutation_admitted"] is False
+    assert payload["provider_generation_admitted"] is False
+    assert payload["blender_execution_admitted"] is False
+    assert payload["asset_processor_execution_admitted"] is False
+    assert payload["placement_write_admitted"] is False
+
+    registrations = payload["registrations"]
+    workspace_ids = [registration["workspace_id"] for registration in registrations]
+    assert workspace_ids == ["create-game", "create-movie", "load-project", "asset-forge"]
+    assert len(set(workspace_ids)) == len(workspace_ids)
+
+    asset_forge = next(
+        registration for registration in registrations
+        if registration["workspace_id"] == "asset-forge"
+    )
+    assert asset_forge["nav_label"] == "Asset Forge"
+    assert asset_forge["shell_mode"] == "full-screen-editor"
+    assert "Blender-style" in asset_forge["workspace_subtitle"]
+    assert "full-screen" in asset_forge["help_tooltip"]
+    assert asset_forge["execution_admitted"] is False
+    assert asset_forge["mutation_admitted"] is False
+    assert asset_forge["provider_generation_admitted"] is False
+    assert asset_forge["blender_execution_admitted"] is False
+    assert asset_forge["asset_processor_execution_admitted"] is False
+    assert asset_forge["placement_write_admitted"] is False
+
+    assert all(registration["execution_admitted"] is False for registration in registrations)
+    assert all(registration["mutation_admitted"] is False for registration in registrations)
+    assert all(registration["provider_generation_admitted"] is False for registration in registrations)
+    assert all(registration["blender_execution_admitted"] is False for registration in registrations)
+    assert all(registration["asset_processor_execution_admitted"] is False for registration in registrations)
+    assert all(registration["placement_write_admitted"] is False for registration in registrations)
+    assert all(registration["blocked"] for registration in registrations)
+    assert all(registration["next_safe_action"] for registration in registrations)
+
+    blocked_capability_ids = {
+        capability["capability_id"]
+        for capability in payload["blocked_capabilities"]
+    }
+    for required_capability in {
+        "provider-generation",
+        "blender-execution",
+        "asset-processor-execution",
+        "placement-write",
+        "material-mutation",
+    }:
+        assert required_capability in blocked_capability_ids
+    assert all(capability["reason"] for capability in payload["blocked_capabilities"])
+    assert all(capability["next_unlock"] for capability in payload["blocked_capabilities"])
+    assert "full-screen editor cockpit" in payload["next_safe_action"]
+
+    serialized = json.dumps(payload).lower()
+    assert "mutation succeeded" not in serialized
+    assert "execution succeeded" not in serialized
+    assert '"write_status": "succeeded"' not in serialized
 
 
 def test_asset_forge_editor_model_route_returns_read_only_contract() -> None:

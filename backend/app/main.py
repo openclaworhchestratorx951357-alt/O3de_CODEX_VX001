@@ -10,6 +10,7 @@ from app.api.routes.app_control import router as app_control_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.autonomy import router as autonomy_router
+from app.api.routes.cockpit_apps import router as cockpit_apps_router
 from app.api.routes.codex_control import router as codex_control_router
 from app.api.routes.events import router as events_router
 from app.api.routes.executions import router as executions_router
@@ -74,6 +75,7 @@ app.include_router(health_router)
 app.include_router(o3de_target_router)
 app.include_router(adapters_router)
 app.include_router(app_control_router)
+app.include_router(cockpit_apps_router)
 app.include_router(summary_router)
 app.include_router(asset_forge_router)
 app.include_router(validation_report_intake_router)
@@ -108,6 +110,7 @@ def root() -> RootStatus:
         "/adapters",
         "/app/control/preview",
         "/app/control/report",
+        "/cockpit-apps/registry",
         "/summary",
         "/asset-forge/task",
         "/asset-forge/task/plan",

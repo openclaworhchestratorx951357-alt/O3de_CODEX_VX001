@@ -1460,6 +1460,63 @@ export interface AssetForgeEditorModelRecord {
   next_safe_action: string;
 }
 
+export type CockpitWorkspaceId =
+  | "create-game"
+  | "create-movie"
+  | "load-project"
+  | "asset-forge";
+
+export type CockpitShellMode =
+  | "dockable-cockpit"
+  | "full-screen-editor";
+
+export type CockpitTone = "neutral" | "info" | "success" | "warning";
+
+export interface CockpitAppRegistrationRecord {
+  workspace_id: CockpitWorkspaceId;
+  nav_label: string;
+  nav_subtitle: string;
+  workspace_title: string;
+  workspace_subtitle: string;
+  launch_title: string;
+  detail: string;
+  truth_state: string;
+  blocked: string;
+  next_safe_action: string;
+  action_label: string;
+  shell_mode: CockpitShellMode;
+  tone: CockpitTone;
+  help_tooltip: string;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  provider_generation_admitted: boolean;
+  blender_execution_admitted: boolean;
+  asset_processor_execution_admitted: boolean;
+  placement_write_admitted: boolean;
+}
+
+export interface CockpitAppBlockedCapabilityRecord {
+  capability_id: string;
+  label: string;
+  reason: string;
+  next_unlock: string;
+}
+
+export interface CockpitAppRegistryRecord {
+  source: string;
+  inspection_surface: string;
+  registry_status: string;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  provider_generation_admitted: boolean;
+  blender_execution_admitted: boolean;
+  asset_processor_execution_admitted: boolean;
+  placement_write_admitted: boolean;
+  registrations: CockpitAppRegistrationRecord[];
+  blocked_capabilities: CockpitAppBlockedCapabilityRecord[];
+  next_safe_action: string;
+}
+
 export interface AssetForgeStudioLaneStatusRecord {
   lane: "Provider" | "Blender" | "O3DE ingest" | "Placement" | "Review";
   truth: "demo" | "plan-only" | "preflight-only" | "gated-real" | "blocked";
