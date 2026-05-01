@@ -1436,6 +1436,30 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Quality review contract preview: mesh_quality_review/i)).toBeInTheDocument();
   });
 
+  it("renders unknown review booleans when optional review fields are absent", async () => {
+    apiMocks.createAssetForgeO3DEOperatorReviewPacket.mockResolvedValueOnce(
+      makeReviewPacketReport({
+        provenance: {
+          license_name: "CC-BY-4.0",
+        },
+        asset_processor: {
+          asset_processor_warnings: 0,
+        },
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create operator review packet (Packet 09.5)" }));
+
+    expect(await screen.findByText(/Commercial use allowed: unknown/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor completed: unknown/i)).toBeInTheDocument();
+    expect(screen.getByText(/Provenance contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Provenance contract preview: license_name/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor contract preview: asset_processor_warnings/i)).toBeInTheDocument();
+  });
+
   it("surfaces review-packet gate errors for blocked review status", async () => {
     apiMocks.createAssetForgeO3DEOperatorReviewPacket.mockResolvedValueOnce(
       makeReviewPacketReport({
