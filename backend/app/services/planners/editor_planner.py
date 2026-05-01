@@ -51,6 +51,7 @@ _COMPONENT_FIND_STEP_ID = "editor-component-find-1"
 CANDIDATE_EDITOR_MUTATION_REFUSAL = "editor.candidate_mutation.unsupported"
 EDITOR_PROPERTY_DISCOVERY_REFUSAL = "editor.component.property.list.unsupported"
 EDITOR_GENERIC_RESTORE_REFUSAL = "editor.restore.unsupported"
+_EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY = "editor.placement.proof_only"
 _CANDIDATE_EDITOR_MUTATION_REQUIREMENT = (
     "Candidate editor mutation surfaces require explicit backup, restore/reload "
     "verification, post-restore absence or readback verification, and "
@@ -79,6 +80,12 @@ _GENERIC_RESTORE_REQUIREMENT = (
     "Restore or undo prompts require a separately admitted exact corridor with "
     "recorded before-value evidence; generic restore and generalized undo are not "
     "admitted."
+)
+_EDITOR_PLACEMENT_PROOF_ONLY_REQUIREMENT = (
+    "editor.placement.proof_only requires an explicit bounded request with "
+    "candidate id/label, staged source path, target level/entity/component, "
+    "stage-write evidence/readback references, and preserves fail-closed "
+    "non-admission execution posture."
 )
 _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
     re.compile(
@@ -221,6 +228,142 @@ def _requires_candidate_editor_mutation_admission(prompt_text: str) -> bool:
         pattern.search(normalized) is not None
         for pattern in _CANDIDATE_EDITOR_MUTATION_PATTERNS
     )
+
+
+def _extract_editor_placement_proof_only_args(
+    prompt_text: str,
+) -> dict[str, object] | None:
+    normalized = prompt_text.lower()
+    has_proof_only_marker = "proof-only" in normalized or "proof only" in normalized
+    has_editor_or_asset_forge_context = (
+        "editor" in normalized
+        or "asset forge" in normalized
+        or "asset_forge" in normalized
+    )
+    if (
+        not has_editor_or_asset_forge_context
+        or "placement" not in normalized
+        or not has_proof_only_marker
+    ):
+        return None
+
+    def _extract(*phrases: str) -> str | None:
+        for phrase in phrases:
+            value = extract_value_after_phrase(prompt_text, phrase)
+            if value:
+                return value
+        return None
+
+    candidate_id = _extract("candidate_id ", "candidate id ")
+    candidate_label = _extract(
+        "candidate_label ",
+        "candidate label ",
+        "labeled ",
+    )
+    staged_source_relative_path = _extract(
+        "staged_source_relative_path ",
+        "staged source relative path ",
+        "staged generated asset path ",
+        "staged generated asset ",
+        "staged asset path ",
+        "staged asset ",
+        "staged source path ",
+        "staged source ",
+    )
+    target_level_relative_path = _extract(
+        "target_level_relative_path ",
+        "target level relative path ",
+        "target level path ",
+        "target level ",
+    )
+    target_entity_name = _extract(
+        "target_entity_name ",
+        "target entity name ",
+        "target entity ",
+        "entity named ",
+    )
+    stage_write_evidence_reference = _extract(
+        "stage_write_evidence_reference ",
+        "stage-write evidence reference ",
+        "stage-write evidence ",
+        "stage write evidence reference ",
+        "stage write evidence ",
+    )
+    stage_write_readback_reference = _extract(
+        "stage_write_readback_reference ",
+        "stage-write readback reference ",
+        "stage-write readback ",
+        "stage write readback reference ",
+        "stage write readback ",
+    )
+
+    required_values = (
+        candidate_id,
+        candidate_label,
+        staged_source_relative_path,
+        target_level_relative_path,
+        target_entity_name,
+        stage_write_evidence_reference,
+        stage_write_readback_reference,
+    )
+    if any(value is None for value in required_values):
+        return None
+
+    target_component = _extract("target_component ", "target component ") or "Mesh"
+    approval_state_raw = _extract("approval_state ", "approval state ")
+    if approval_state_raw is None:
+        approval_state_match = re.search(
+            r"\bapproval\s+(approved|not[- ]approved)\b",
+            normalized,
+        )
+        if approval_state_match:
+            approval_state_raw = approval_state_match.group(1)
+    if approval_state_raw is None:
+        approval_state_raw = "not-approved"
+    approval_state_normalized = approval_state_raw.strip().lower()
+    if approval_state_normalized not in {"approved", "not-approved"}:
+        if approval_state_normalized == "not approved":
+            approval_state_normalized = "not-approved"
+        else:
+            approval_state_normalized = "not-approved"
+    if approval_state_normalized not in {"approved", "not-approved"}:
+        approval_state_normalized = "not-approved"
+    approval_note = _extract("approval_note ", "approval note ") or ""
+    approval_session_id = _extract("approval_session_id ", "approval session id ")
+    readback_status_raw = (
+        _extract(
+            "stage_write_readback_status ",
+            "stage-write readback status ",
+            "stage write readback status ",
+            "readback status ",
+        )
+        or "succeeded"
+    )
+    readback_status_normalized = (
+        readback_status_raw.strip().lower().replace("-", "_").replace(" ", "_")
+    )
+    if readback_status_normalized == "notrun":
+        readback_status_normalized = "not_run"
+    if readback_status_normalized not in {"not_run", "blocked", "failed", "succeeded"}:
+        readback_status_normalized = "not_run"
+
+    args: dict[str, object] = {
+        "candidate_id": candidate_id,
+        "candidate_label": candidate_label,
+        "staged_source_relative_path": staged_source_relative_path,
+        "target_level_relative_path": target_level_relative_path,
+        "target_entity_name": target_entity_name,
+        "target_component": target_component,
+        "approval_state": approval_state_normalized,
+        "approval_note": approval_note,
+        "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+        "stage_write_evidence_reference": stage_write_evidence_reference,
+        "stage_write_readback_reference": stage_write_readback_reference,
+        "stage_write_readback_status": readback_status_normalized,
+    }
+    if approval_session_id:
+        args["approval_session_id"] = approval_session_id
+    return args
 
 
 def _requires_property_discovery_admission(prompt_text: str) -> bool:
@@ -416,6 +559,7 @@ def plan_editor_prompt(
             "editor.component.add",
             "editor.component.find",
             "editor.component.property.get",
+            _EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY,
             _CAMERA_BOOL_WRITE_CAPABILITY,
             _CAMERA_BOOL_RESTORE_CAPABILITY,
         )
@@ -429,6 +573,33 @@ def plan_editor_prompt(
         ["editor", "level", "entity", "component"],
     )
     if not wants_editor:
+        return steps, refusals, requirements
+
+    proof_only_candidate_args = _extract_editor_placement_proof_only_args(prompt_text)
+    if proof_only_candidate_args is not None:
+        proof_only_capability = capabilities[_EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY]
+        if proof_only_capability is None:
+            refusals.append(
+                "editor.placement.proof_only capability metadata is unavailable in this packet."
+            )
+            requirements.append(_EDITOR_PLACEMENT_PROOF_ONLY_REQUIREMENT)
+            return steps, refusals, requirements
+        steps.append(
+            make_step(
+                step_id="editor-placement-proof-only-1",
+                capability=proof_only_capability,
+                request=request,
+                args=proof_only_candidate_args,
+                planner_note=(
+                    "Create only a bounded proof-only placement candidate record; "
+                    "do not admit placement runtime execution or broad mutation."
+                ),
+            )
+        )
+        requirement = capability_requirement_note(proof_only_capability)
+        if requirement:
+            requirements.append(requirement)
+        requirements.append(_EDITOR_PLACEMENT_PROOF_ONLY_REQUIREMENT)
         return steps, refusals, requirements
 
     if camera_bool_write_request is not None and not (
@@ -676,8 +847,8 @@ def plan_editor_prompt(
             elif entity_id is None:
                 quoted_values = extract_quoted_values(prompt_text)
                 entity_id = quoted_values[0] if quoted_values else None
-            component_name = None
-            if component_matches:
+            component_name = _extract_component_name(prompt_text)
+            if component_name is None and component_matches:
                 normalized_component_name = re.sub(
                     r"^(?:a|an|the)\s+",
                     "",

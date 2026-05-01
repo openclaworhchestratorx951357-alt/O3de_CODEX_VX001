@@ -126,4 +126,29 @@ const globalControlStyles = `
   cursor: not-allowed;
   opacity: 0.7;
 }
+
+[data-app-theme-root="true"] * {
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+  scrollbar-width: thin;
+}
+
+[data-app-theme-root="true"] ::-webkit-scrollbar {
+  width: var(--app-scrollbar-size);
+  height: var(--app-scrollbar-size);
+}
+
+[data-app-theme-root="true"] ::-webkit-scrollbar-track {
+  background: var(--app-scrollbar-track);
+  border-radius: 999px;
+}
+
+[data-app-theme-root="true"] ::-webkit-scrollbar-thumb {
+  background: var(--app-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--app-scrollbar-track);
+}
+
+[data-app-theme-root="true"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
+}
 `;

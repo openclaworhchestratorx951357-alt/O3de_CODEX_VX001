@@ -94,4 +94,104 @@ describe("PromptExecutionTimeline", () => {
       screen.getByText("Select a prompt session to inspect child lineage."),
     ).toBeInTheDocument();
   });
+
+  it("renders a structured placement proof-only review card for fail-closed child evidence", () => {
+    const placementProofSession: PromptSessionRecord = {
+      ...session,
+      latest_child_responses: [
+        {
+          ok: true,
+          result: {
+            tool: "editor.placement.proof_only",
+            execution_mode: "simulated",
+            simulated: true,
+          },
+          execution_details: {
+            capability_name: "editor.placement.proof_only",
+            proof_status: "blocked",
+            candidate_id: "candidate-a",
+            candidate_label: "Weathered Ivy Arch",
+            staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+            target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+            target_entity_name: "AssetForgeCandidateA",
+            target_component: "Mesh",
+            stage_write_evidence_reference: "packet-10/stage-write-evidence.json",
+            stage_write_readback_reference: "packet-10/readback-evidence.json",
+            stage_write_readback_status: "succeeded",
+            artifact_id: "artifact-42",
+            artifact_label: "placement-proof-artifact",
+            execution_admitted: false,
+            placement_write_admitted: false,
+            mutation_occurred: false,
+            read_only: true,
+            fail_closed_reasons: [
+              "server_approval:missing_session",
+              "execution_admission_disabled",
+            ],
+            source: "asset-forge-editor-placement-proof-only",
+            server_approval_evaluation: {
+              decision_state: "denied",
+              decision_code: "missing_session",
+              status: "missing",
+              reason: "No server-owned approval session was provided; endpoint remains blocked.",
+            },
+          },
+        },
+      ],
+      final_result_summary:
+        "Review result: succeeded_fail_closed_blocked. "
+        + "Capability editor.placement.proof_only executed as simulated proof-only evidence. "
+        + "execution_admitted=False, placement_write_admitted=False, mutation_occurred=False, read_only=True. "
+        + "Server blocker remediation (missing_session): Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt. "
+        + "No editor placement runtime command was admitted or executed.",
+    };
+
+    render(<PromptExecutionTimeline session={placementProofSession} />);
+
+    const reviewCard = screen.getByLabelText("Placement proof-only review");
+
+    expect(within(reviewCard).getByText("Capability: editor.placement.proof_only")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("proof-only")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("fail-closed")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("execution_admitted=false")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("placement_write_admitted=false")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("mutation_occurred=false")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Candidate id: candidate-a")).toBeInTheDocument();
+    expect(within(reviewCard).getByText(/Staged source path:/)).toHaveTextContent(
+      "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+    );
+    expect(within(reviewCard).getByText("Artifact reference: placement-proof-artifact (artifact-42)")).toBeInTheDocument();
+    expect(within(reviewCard).getByText(/Target level path:/)).toHaveTextContent(
+      "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    );
+    expect(within(reviewCard).getByText("Target entity: AssetForgeCandidateA")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Target component: Mesh")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Stage-write evidence ref: packet-10/stage-write-evidence.json")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Stage-write readback ref: packet-10/readback-evidence.json")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Stage-write readback status: succeeded")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Execution mode: simulated")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Inspection surface: asset-forge-editor-placement-proof-only")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Placement execution admitted: no (execution_admitted=false)")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Placement write admitted: no (placement_write_admitted=false)")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Mutation occurred: no (mutation_occurred=false)")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Read only: yes (read_only=true)")).toBeInTheDocument();
+    expect(within(reviewCard).getByText(/Fail-closed reasons:/)).toHaveTextContent(
+      "server_approval:missing_session, execution_admission_disabled",
+    );
+    expect(within(reviewCard).getByText(/Server approval:/)).toHaveTextContent(
+      "decision_code=missing_session, decision_state=denied, status=missing",
+    );
+    expect(within(reviewCard).getByText(/Server blocker reason:/)).toHaveTextContent(
+      "No server-owned approval session was provided; endpoint remains blocked.",
+    );
+    expect(within(reviewCard).getByText("Server blocker remediation")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.")).toBeInTheDocument();
+    expect(within(reviewCard).getByText(/Prepare a server-owned approval session/)).toHaveTextContent(
+      "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.",
+    );
+    expect(within(reviewCard).getByText(/placement runtime execution is non-admitted/i)).toBeInTheDocument();
+    expect(within(reviewCard).getByText(/Next missing gate:/)).toHaveTextContent(
+      "exact placement admission corridor",
+    );
+  });
 });

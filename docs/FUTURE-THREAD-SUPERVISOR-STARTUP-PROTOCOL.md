@@ -5,6 +5,17 @@
 New Codex threads do not inherit previous chat context. Therefore, this
 repository carries its own startup rules.
 
+## Operator-Locked Policy Files
+
+The following files are operator-locked and must not be modified unless the
+operator explicitly requests the change in the current thread:
+
+- `AGENTS.md`
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
+
+Requests to "continue", "move to next slice", "clean up", or "refresh docs"
+must not be interpreted as permission to edit these files.
+
 If the operator says "use supervisor mode," Codex must activate Supervisor
 Low-Friction Mode from this protocol.
 
@@ -286,6 +297,30 @@ Before editing files, report:
 
 This can be concise, but it must be specific.
 
+## Mandatory Slice Log Append
+
+For supervisor-mode project packets, append timestamped entries to:
+
+`C:\Users\topgu\OneDrive\Documents\New project\continue-queue\codex-slice-log.txt`
+
+Use:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Add-Codex-Slice-Log.ps1 "startup readiness confirmed: <branch>/<packet>"
+```
+
+and again when a slice is completed (before the final report):
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Add-Codex-Slice-Log.ps1 "slice complete: <result summary>"
+```
+
+Treat the completion append as a blocking gate: do not send the final report
+until this log line is written.
+
+If the helper script is unavailable, append an equivalent ISO timestamp entry
+with PowerShell `Add-Content`.
+
 ## Continue Into Normalized Workflow
 
 After startup readiness is confirmed, continue into
@@ -340,6 +375,8 @@ Every Supervisor Mode packet should end with:
 - capability/runtime behavior changed yes/no
 - dependency/bootstrap actions taken
 - `.venv/` and `node_modules/` status
+- slice-log entries written yes/no
+- exact completion slice-log line appended
 - branch cleanup performed yes/no
 - recommended next slice
 - revert path

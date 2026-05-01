@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
 import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import { placementProofOnlyMissionPromptDraft } from "../lib/missionPromptTemplates";
 import {
   createDefaultO3DEProjectProfilesStore,
   createO3DEProjectProfile,
@@ -344,6 +345,150 @@ describe("PromptControlPanel", () => {
     expect(screen.getByLabelText("Prompt text")).toHaveValue(
       "Open an editor session for the selected McpSandbox project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
     );
+  });
+
+  it("loads a mission proof-only template handoff into editable prompt fields", async () => {
+    const onReturnToSourceWorkspace = vi.fn();
+    render(
+      <PromptControlPanel
+        onReturnToSourceWorkspace={onReturnToSourceWorkspace}
+        promptLaunchDraftRequest={{
+          requestId: "mission-request-1",
+          draft: placementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / placement proof-only template",
+          launchedAtIso: "2026-04-30T12:00:00.000Z",
+          sourceWorkspaceId: "create-movie",
+        }}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(
+      screen.getByText("Loaded mission template: Placement proof-only candidate prompt."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Mission template handoff review")).toBeInTheDocument();
+    expect(screen.getByText(/proof-only, fail-closed, non-mutating, real placement not admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/execution_admitted=false/i)).toBeInTheDocument();
+    expect(screen.getByText(/Loaded from:/i)).toBeInTheDocument();
+    expect(screen.getByText("Create Movie cockpit / placement proof-only template")).toBeInTheDocument();
+    expect(screen.getByText(/Prefill timestamp \(ISO\):/i)).toBeInTheDocument();
+    expect(screen.getByText("2026-04-30T12:00:00.000Z")).toBeInTheDocument();
+    expect(screen.getByText(/Source workspace id:/i)).toBeInTheDocument();
+    expect(screen.getByText("create-movie")).toBeInTheDocument();
+    expect(
+      screen.getByText(/prefill-only; manual preview and explicit execute are still required/i),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Return to source cockpit" }));
+    expect(onReturnToSourceWorkspace).toHaveBeenCalledWith("create-movie");
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      placementProofOnlyMissionPromptDraft.promptText,
+    );
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveValue("editor-control");
+    expect(screen.getByLabelText("Operator note")).toHaveValue(
+      "Mission template handoff: placement proof-only request, fail-closed, non-mutating, and execution/write non-admitted.",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox")).not.toBeChecked();
+    });
+  });
+
+  it("emits the latest placement proof-only remediation snapshot for the selected session", async () => {
+    const onPlacementProofOnlyReviewChange = vi.fn();
+    const placementProofSession: PromptSessionRecord = {
+      ...makePlannedSession(),
+      prompt_id: "prompt-proof-1",
+      child_run_ids: ["run-proof-1"],
+      child_execution_ids: ["exec-proof-1"],
+      child_artifact_ids: ["artifact-proof-1"],
+      latest_child_responses: [
+        {
+          ok: true,
+          result: {
+            tool: "editor.placement.proof_only",
+            execution_mode: "simulated",
+            simulated: true,
+          },
+          execution_details: {
+            capability_name: "editor.placement.proof_only",
+            proof_status: "blocked",
+            candidate_id: "candidate-a",
+            candidate_label: "Weathered Ivy Arch",
+            staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+            target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+            target_entity_name: "AssetForgeCandidateA",
+            target_component: "Mesh",
+            stage_write_evidence_reference: "packet-10/stage-write-evidence.json",
+            stage_write_readback_reference: "packet-10/readback-evidence.json",
+            stage_write_readback_status: "succeeded",
+            artifact_id: "artifact-42",
+            artifact_label: "placement-proof-artifact",
+            execution_admitted: false,
+            placement_write_admitted: false,
+            mutation_occurred: false,
+            read_only: true,
+            fail_closed_reasons: ["server_approval:missing_session"],
+            source: "asset-forge-editor-placement-proof-only",
+            server_approval_evaluation: {
+              decision_state: "denied",
+              decision_code: "missing_session",
+              status: "missing",
+              reason: "No server-owned approval session was provided; endpoint remains blocked.",
+            },
+          },
+        },
+      ],
+      final_result_summary:
+        "Review result: succeeded_fail_closed_blocked. "
+        + "Server blocker remediation (missing_session): Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt. "
+        + "No editor placement runtime command was admitted or executed.",
+    };
+    apiMocks.fetchPromptSessions.mockResolvedValue([placementProofSession]);
+    apiMocks.fetchPromptSession.mockResolvedValue(placementProofSession);
+
+    render(
+      <PromptControlPanel
+        onPlacementProofOnlyReviewChange={onPlacementProofOnlyReviewChange}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    await waitFor(() => {
+      const latestEmission = onPlacementProofOnlyReviewChange.mock.calls[
+        onPlacementProofOnlyReviewChange.mock.calls.length - 1
+      ]?.[0];
+      expect(latestEmission).toEqual(expect.objectContaining({
+        capabilityName: "editor.placement.proof_only",
+        promptSessionId: "prompt-proof-1",
+        childRunId: "run-proof-1",
+        childExecutionId: "exec-proof-1",
+        childArtifactId: "artifact-proof-1",
+        candidateId: "candidate-a",
+        targetLevelRelativePath: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        targetComponent: "Mesh",
+        executionAdmitted: false,
+        placementWriteAdmitted: false,
+        mutationOccurred: false,
+        serverDecisionCode: "missing_session",
+      }));
+    });
+  });
+
+  it("focuses an exact prompt session id when requested by mission truth rail handoff", async () => {
+    render(
+      <PromptControlPanel
+        focusPromptIdRequest={{
+          requestId: "focus-request-1",
+          promptId: "prompt-proof-2",
+          sourceSurfaceLabel: "mission truth rail",
+        }}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    await waitFor(() => {
+      expect(apiMocks.fetchPromptSession).toHaveBeenCalledWith("prompt-proof-2");
+    });
+    expect(screen.getByText("Opened prompt session prompt-proof-2 from mission truth rail.")).toBeInTheDocument();
   });
 
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {

@@ -20,12 +20,14 @@ except ImportError:  # pragma: no cover - runtime fallback when Pillow is unavai
     UnidentifiedImageError = OSError
 
 from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
+from app.models.asset_forge import AssetForgeEditorPlacementProofOnlyRequest
 from app.models.response_envelope import DispatchResult
 from app.services.artifacts import artifacts_service
 from app.services.asset_readback_discovery import (
     ASSET_READBACK_READY,
     discover_project_asset_readback_inputs,
 )
+from app.services.asset_forge import asset_forge_service
 from app.services.catalog import catalog_service
 from app.services.editor_automation_runtime import (
     CAMERA_BOOL_RESTORE_CAPABILITY,
@@ -278,6 +280,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                         "editor.entity.create",
                         "editor.level.open",
                         "editor.session.open",
+                        "editor.placement.proof_only",
                         "asset.batch.process",
                         "asset.move.safe",
                         "asset.processor.status",
@@ -316,6 +319,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                         "editor.entity.create",
                         "editor.level.open",
                         "editor.session.open",
+                        "editor.placement.proof_only",
                         "asset.batch.process",
                         "asset.move.safe",
                         "asset.processor.status",
@@ -666,6 +670,65 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
                 artifact_kind="editor_runtime_result",
                 artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/camera-bool-property-restore",
                 runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+            )
+        if tool == "editor.placement.proof_only":
+            proof_record = asset_forge_service.create_editor_placement_proof_only_candidate(
+                AssetForgeEditorPlacementProofOnlyRequest.model_validate(args)
+            )
+            proof_payload = proof_record.model_dump(mode="json")
+            details = {
+                "inspection_surface": "simulated",
+                "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+                "simulated": True,
+                "adapter_family": self.family,
+                "adapter_mode": self.mode,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                **proof_payload,
+            }
+            warnings = list(proof_record.warnings)
+            warnings.append(
+                "Editor placement proof-only remains fail-closed and non-admitting in this packet."
+            )
+            return AdapterExecutionReport(
+                execution_mode="simulated",
+                result=DispatchResult(
+                    status="simulated_success",
+                    tool=tool,
+                    agent=agent,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=True,
+                    simulated=True,
+                    execution_mode="simulated",
+                    approval_class=approval_class,
+                    locks_acquired=locks_acquired,
+                    message=(
+                        "Editor placement proof-only candidate recorded. "
+                        "Execution remains blocked and non-admitted."
+                    ),
+                ),
+                warnings=warnings,
+                logs=[
+                    "Editor placement proof-only candidate evaluated through bounded fail-closed corridor.",
+                    "No editor placement runtime command was executed.",
+                ],
+                artifact_label="Editor placement proof-only candidate",
+                artifact_kind="editor_placement_proof_only_candidate",
+                artifact_uri=(
+                    "simulated://runs/{run_id}/executions/{execution_id}/"
+                    "editor-placement-proof-only"
+                ),
+                artifact_metadata={
+                    **details,
+                    "tool": tool,
+                    "agent": agent,
+                    "execution_mode": "simulated",
+                },
+                execution_details=details,
+                result_summary=(
+                    "Fail-closed editor placement proof-only candidacy recorded; "
+                    "runtime execution remains non-admitted."
+                ),
             )
 
         simulated = self._simulated.execute(

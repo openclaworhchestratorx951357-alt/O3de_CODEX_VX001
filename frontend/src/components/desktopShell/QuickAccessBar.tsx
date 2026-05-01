@@ -371,7 +371,7 @@ const quickAccessLabelStyle = {
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 10px",
   background: "var(--app-input-bg)",
-  boxShadow: "var(--app-input-shadow)",
+  boxShadow: "var(--app-shadow-soft)",
   boxSizing: "border-box",
 } satisfies CSSProperties;
 
@@ -433,8 +433,9 @@ const quickAccessResultButtonStyle = {
 } satisfies CSSProperties;
 
 const quickAccessResultHighlightedStyle = {
-  border: "1px solid var(--app-accent-strong)",
-  background: "var(--app-accent-soft)",
+  border: "1px solid var(--app-active-border)",
+  background: "var(--app-active-bg)",
+  boxShadow: "var(--app-active-shadow)",
 } satisfies CSSProperties;
 
 const quickAccessResultTextStyle = {
@@ -474,7 +475,7 @@ const quickAccessActivePillStyle = {
 const quickAccessMatchStyle = {
   borderRadius: 4,
   padding: "0 1px",
-  background: "rgba(250, 204, 21, 0.18)",
+  background: "var(--app-warning-bg)",
   color: "var(--app-warning-text)",
   fontWeight: 950,
 } satisfies CSSProperties;

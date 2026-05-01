@@ -15,6 +15,18 @@ Use this priority order when instructions conflict:
 3. This repo's evergreen charter
 4. Other repo docs and roadmap text
 
+## Operator Lock (Do Not Change Without Explicit Approval)
+
+The following files are operator-locked and must not be edited unless the
+operator explicitly asks for that change in the current thread:
+
+- `AGENTS.md`
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
+
+For these files, broad requests like "continue", "next slice", "cleanup", or
+"improve docs" are not authorization to edit them. Require direct, specific
+operator instruction before modifying either file.
+
 Default standing rule:
 - Use the evergreen charter until the user explicitly replaces or supersedes it.
 - If the user says "use supervisor mode", immediately activate the startup
@@ -30,6 +42,16 @@ Default standing rule:
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
   `docs/NORMALIZED-PHASE-WORKFLOW.md` before choosing or implementing the next
   packet.
+- For project-moving work packets, append timestamped slice-log entries to
+  `C:\Users\topgu\OneDrive\Documents\New project\continue-queue\codex-slice-log.txt`
+  using `scripts/Add-Codex-Slice-Log.ps1` at minimum:
+  1) when startup readiness is confirmed, and
+  2) when each packet/slice is completed (before final report).
+  This is a required pre-final-response gate: do not send the final project
+  report until the completion entry is appended.
+  In the final report, include the exact completion log line that was appended.
+  If the helper script is unavailable, append using equivalent PowerShell
+  `Add-Content` with ISO timestamps.
 
 ## Mandatory O3DE Evidence Substrate Check
 

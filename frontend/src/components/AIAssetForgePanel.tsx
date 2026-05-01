@@ -1,6 +1,9 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
 import AssetForgeStudioPacket01 from "./AssetForgeStudioPacket01";
+import AssetForgeGuidedPipeline from "./AssetForgeGuidedPipeline";
+import MissionTruthRail from "./MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import {
   fetchAssetForgeBlenderStatus,
   fetchAssetForgeProviderStatus,
@@ -20,6 +23,8 @@ import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 type AIAssetForgePanelProps = {
   projectProfile?: O3DEProjectProfile;
   onOpenPromptStudio?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchPlacementProofTemplate?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
   reviewPacketData?: unknown;
@@ -34,6 +39,19 @@ type AIAssetForgePanelProps = {
   adapters?: AdaptersResponse | null;
   adaptersLoading?: boolean;
   adaptersError?: string | null;
+  latestRunId?: string | null;
+  latestExecutionId?: string | null;
+  latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
+  onViewLatestRun?: () => void;
+  onViewExecution?: () => void;
+  onViewArtifact?: () => void;
+  onViewEvidence?: () => void;
+  onOpenPromptSessionDetail?: (promptId: string) => void;
+  onOpenExecutionDetail?: (executionId: string) => void;
+  onOpenArtifactDetail?: (artifactId: string) => void;
+  onOpenRunDetail?: (runId: string) => void;
+  onOpenRecords?: () => void;
 };
 
 export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
@@ -96,6 +114,42 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
 
   return (
     <section aria-label="AI Asset Forge" style={panelStyle}>
+      <MissionTruthRail
+        locationLabel="Asset Forge"
+        projectLabel={props.projectProfile?.name ?? "unknown project"}
+        projectPath={props.projectProfile?.projectRoot ?? props.bridgeStatus?.project_root ?? null}
+        bridgeStatus={props.bridgeStatus}
+        adapters={props.adapters}
+        readiness={props.readiness}
+        currentExecutionMode={props.readiness?.execution_mode ?? null}
+        executionAdmitted={false}
+        placementWriteAdmitted={false}
+        mutationOccurred={false}
+        latestRunId={props.latestRunId ?? null}
+        latestExecutionId={props.latestExecutionId ?? null}
+        latestArtifactId={props.latestArtifactId ?? null}
+        latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview ?? null}
+        nextSafeAction="Open Prompt Studio and run the bounded placement proof-only template, then review persisted evidence."
+        onViewLatestRun={props.onViewLatestRun}
+        onViewExecution={props.onViewExecution}
+        onViewArtifact={props.onViewArtifact}
+        onViewEvidence={props.onViewEvidence}
+        onOpenPromptStudio={props.onOpenPromptStudio}
+        onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+        onOpenRecords={props.onOpenRecords}
+        onOpenPromptSessionDetail={props.onOpenPromptSessionDetail}
+        onOpenExecutionDetail={props.onOpenExecutionDetail}
+        onOpenArtifactDetail={props.onOpenArtifactDetail}
+        onOpenRunDetail={props.onOpenRunDetail}
+      />
+      <AssetForgeGuidedPipeline
+        onOpenPromptStudio={props.onOpenPromptStudio}
+        onLaunchInspectTemplate={props.onLaunchInspectTemplate}
+        onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+        onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+        onOpenRecords={props.onOpenRecords}
+        onViewEvidence={props.onViewEvidence}
+      />
       <AssetForgeStudioPacket01
         projectProfile={props.projectProfile}
         onOpenPromptStudio={props.onOpenPromptStudio}

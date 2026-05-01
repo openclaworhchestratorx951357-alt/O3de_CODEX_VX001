@@ -17,6 +17,431 @@ This document does not change CI behavior or runtime capability.
 - Do not run live O3DE/editor proofs for docs-only work.
 - Do not claim live runtime proof from unit tests or static checks.
 
+## App-wide Validation Workflow Quick Reference
+
+Use this compact set when updating app-wide shell recommendation surfaces and
+validation workflow guidance:
+
+| Lane | Canonical command | Evidence owner checkpoint | Expected evidence boundary |
+| --- | --- | --- | --- |
+| backend targeted packet checks | `python -m pytest backend/tests/test_api_routes.py -k \"<targeted packet expression>\" -q` | `backend/tests/test_api_routes.py` and packet-scoped route/docs references | packet-specific backend boundary behavior is regression-checked; no live O3DE/runtime admission implied |
+| prompt/control targeted checks | `python -m pytest backend/tests/test_prompt_control.py -k \"<targeted packet expression>\" -q` | `backend/tests/test_prompt_control.py` and planner/refusal packet notes | planner/refusal gate behavior is deterministic for the touched corridor; no execution admission implied |
+| catalog/capability targeted checks | `python -m pytest backend/tests/test_catalog.py -k \"<targeted packet expression>\" -q` | `backend/tests/test_catalog.py` and capability/catalog packet notes | tool/capability visibility truth is regression-checked; no runtime execution admission implied |
+| frontend shell/fixture checkpoint | `npm --prefix frontend run test -- src/components/AppCapabilityDashboardShell.test.tsx src/components/AppAuditReviewDashboardShell.test.tsx src/components/AppApprovalSessionDashboardShell.test.tsx src/components/AppEvidenceTimelineShell.test.tsx src/components/AppWorkspaceStatusChipsShell.test.tsx src/fixtures/settingsRollbackReleaseReadinessDecision.test.ts` | shell component tests + fixtures + packet timeline rows | app-wide shell recommendation surfaces and timeline/fixture linkage remain deterministic; no backend runtime admission implied |
+| docs diff hygiene | `git diff --check` and `git diff --cached --check` | packet-touched docs and test surfaces | changed packet surfaces are whitespace-clean; does not prove runtime behavior |
+
+Command-to-evidence ownership invariants:
+
+- every canonical command above must map to at least one maintained test/doc
+  surface that is named in packet evidence
+- packet completion summaries must report exact command strings that were run
+- command evidence must never be used to imply runtime-admission broadening
+
+Held-lane reminder:
+
+- `TIAF/preflight` and real CI/test execution remain long-hold non-admitting
+  lanes.
+- Broad shell/script execution remains blocked.
+- Client approval/session fields remain intent-only and non-authorizing.
+
+Held-lane boundary consistency checkpoints:
+
+| Held lane | Canonical wording checkpoint | Expected consistency scope |
+| --- | --- | --- |
+| `TIAF/preflight` | `long-hold checkpointed (bounded harness + release-readiness hold/no-go + stream handoff posture; non-admitting)` | unlock matrix + app-wide shell recommendation surfaces + timeline summaries |
+| `real CI/test execution` | `long-hold checkpointed (harness + release-readiness hold/no-go + stream handoff posture; non-admitting)` | unlock matrix + app-wide shell recommendation surfaces + timeline summaries |
+
+Consistency invariant:
+
+- held-lane wording for these two validation lanes must remain deterministic
+  across recommendation surfaces unless a dedicated packet explicitly updates
+  the canonical wording and associated evidence.
+
+Held-lane operator-safe examples:
+
+- `TIAF/preflight` example:
+  `long-hold checkpointed (bounded harness + release-readiness hold/no-go +
+  stream handoff posture; non-admitting); no runtime mutation broadening`
+- `real CI/test execution` example:
+  `long-hold checkpointed (harness + release-readiness hold/no-go + stream
+  handoff posture; non-admitting); no execution admission broadening`
+
+Example invariant:
+
+- operator-facing examples must preserve canonical held-lane wording and must
+  not imply admission broadening, runtime execution broadening, or
+  authorization broadening.
+
+Held-lane wording-audit checkpoint:
+
+- canonical held-lane wording for `TIAF/preflight` and real CI/test execution
+  is now explicitly audited for parity across unlock-matrix rows, app-wide
+  shell recommendation surfaces, and validation timeline summaries.
+- wording-audit evidence must preserve explicit non-admitting and
+  no-runtime-mutation posture for held lanes.
+
+Wording-audit invariant:
+
+- any wording change to canonical held-lane checkpoints requires a dedicated
+  packet that updates this matrix, recommendation surfaces, timeline evidence,
+  and linked fixture tests in one bounded change set.
+
+Held-lane review-status parity checkpoints:
+
+| Held lane checkpoint evidence | Canonical review-status token pattern | Expected consistency scope |
+| --- | --- | --- |
+| `tiaf preflight long-hold checkpoint packet` | `hold-tiaf-preflight-...` | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `ci admission long-hold checkpoint packet` | `hold-ci-admission-...` | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `validation workflow hold-boundary checkpoint packets` | `pass-validation-workflow-hold-boundary-...` | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+
+Review-status parity invariant:
+
+- held-lane review-status tokens must remain deterministic and aligned to the
+  canonical token patterns above unless a dedicated packet updates matrix
+  wording, timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane taxonomy checkpoints:
+
+| Held lane checkpoint evidence | Canonical truth label | Canonical review-status posture | Expected consistency scope |
+| --- | --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | `plan-only` | `pass-validation-workflow-hold-boundary-...` | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | `proof-only` | `hold-tiaf-preflight-...` | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `ci admission long-hold checkpoint packet` | `proof-only` | `hold-ci-admission-...` | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+
+Taxonomy invariant:
+
+- held-lane truth labels, review-status token posture, and canonical boundary
+  wording must remain aligned to the checkpoints above unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane chronology checkpoints:
+
+| Held lane checkpoint evidence | Canonical chronology posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | descending recorded-at ordering with newest checkpoint first | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | long-hold chronology remains after validation-workflow checkpoint chain | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | long-hold chronology remains after validation-workflow checkpoint chain | timeline summaries + fixture tests |
+
+Chronology invariant:
+
+- held-lane timeline ordering and lane progression must remain deterministic
+  (newest-first validation workflow checkpoint chain, followed by preserved
+  long-hold lane checkpoints) unless a dedicated packet updates matrix wording,
+  timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane progression integrity checkpoints:
+
+| Held lane checkpoint evidence | Canonical progression posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | newest-first progression chain with monotonic packet sequencing and pass-status continuity | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane progression remains in hold posture after validation workflow progression chain | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane progression remains in hold posture after validation workflow progression chain | timeline summaries + fixture tests |
+
+Progression-integrity invariant:
+
+- held-lane progression must remain deterministic (newest-first validation
+  workflow checkpoint sequence with continuous pass-status progression and
+  preserved downstream hold-lane posture) unless a dedicated packet updates
+  matrix wording, timeline evidence rows, recommendation surfaces, and linked
+  fixture assertions together.
+
+Held-lane stability checkpoints:
+
+| Held lane checkpoint evidence | Canonical stability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | ordering, truth labels, review-status posture, and boundary wording remain deterministic under incremental stream updates | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through validation workflow checkpoint updates | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through validation workflow checkpoint updates | timeline summaries + fixture tests |
+
+Stability invariant:
+
+- held-lane stability must remain deterministic (ordering, truth labels,
+  review-status posture, and boundary wording) across recommendation surfaces
+  and timeline summaries while preserving downstream `TIAF/preflight` and real
+  CI/test long-hold posture, unless a dedicated packet updates matrix wording,
+  timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane resilience checkpoints:
+
+| Held lane checkpoint evidence | Canonical resilience posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic stability posture remains intact through recommendation rollovers and incremental stream churn | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through resilience checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through resilience checkpoint rollovers | timeline summaries + fixture tests |
+
+Resilience invariant:
+
+- held-lane resilience must remain deterministic (stability posture preserved
+  through recommendation rollovers and stream churn) across recommendation
+  surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane continuity checkpoints:
+
+| Held lane checkpoint evidence | Canonical continuity posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic resilience posture remains intact through subsequent packet additions and timeline growth | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through continuity checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through continuity checkpoint rollovers | timeline summaries + fixture tests |
+
+Continuity invariant:
+
+- held-lane continuity must remain deterministic (resilience posture preserved
+  through subsequent packet additions and timeline growth) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane durability checkpoints:
+
+| Held lane checkpoint evidence | Canonical durability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic continuity posture remains intact through extended stream duration and repeated handoff cycles | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through durability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through durability checkpoint rollovers | timeline summaries + fixture tests |
+
+Durability invariant:
+
+- held-lane durability must remain deterministic (continuity posture preserved
+  through extended stream duration and repeated handoff cycles) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane endurance checkpoints:
+
+| Held lane checkpoint evidence | Canonical endurance posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic durability posture remains intact under prolonged stream cadence and repeated supervisor handoffs | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through endurance checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through endurance checkpoint rollovers | timeline summaries + fixture tests |
+
+Endurance invariant:
+
+- held-lane endurance must remain deterministic (durability posture preserved
+  under prolonged stream cadence and repeated supervisor handoffs) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane longevity checkpoints:
+
+| Held lane checkpoint evidence | Canonical longevity posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic endurance posture remains intact through prolonged multi-packet operation and future thread handoffs | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through longevity checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through longevity checkpoint rollovers | timeline summaries + fixture tests |
+
+Longevity invariant:
+
+- held-lane longevity must remain deterministic (endurance posture preserved
+  through prolonged multi-packet operation and future thread handoffs) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane sustainability checkpoints:
+
+| Held lane checkpoint evidence | Canonical sustainability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic longevity posture remains intact across extended packet churn and repeated supervisor transitions | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through sustainability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through sustainability checkpoint rollovers | timeline summaries + fixture tests |
+
+Sustainability invariant:
+
+- held-lane sustainability must remain deterministic (longevity posture
+  preserved across extended packet churn and repeated supervisor transitions)
+  across recommendation surfaces and timeline summaries while preserving
+  downstream `TIAF/preflight` and real CI/test long-hold posture, unless a
+  dedicated packet updates matrix wording, timeline evidence rows,
+  recommendation surfaces, and linked fixture assertions together.
+
+Held-lane maintainability checkpoints:
+
+| Held lane checkpoint evidence | Canonical maintainability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic sustainability posture remains intact under continued stream extension and cross-thread maintenance updates | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through maintainability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through maintainability checkpoint rollovers | timeline summaries + fixture tests |
+
+Maintainability invariant:
+
+- held-lane maintainability must remain deterministic (sustainability posture
+  preserved under continued stream extension and cross-thread maintenance
+  updates) across recommendation surfaces and timeline summaries while
+  preserving downstream `TIAF/preflight` and real CI/test long-hold posture,
+  unless a dedicated packet updates matrix wording, timeline evidence rows,
+  recommendation surfaces, and linked fixture assertions together.
+
+Held-lane adaptability checkpoints:
+
+| Held lane checkpoint evidence | Canonical adaptability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic maintainability posture remains intact under future recommendation-surface evolution | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through adaptability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through adaptability checkpoint rollovers | timeline summaries + fixture tests |
+
+Adaptability invariant:
+
+- held-lane adaptability must remain deterministic (maintainability posture
+  preserved under future recommendation-surface evolution) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane operability checkpoints:
+
+| Held lane checkpoint evidence | Canonical operability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic adaptability posture remains intact under extended operator-facing usage and handoff cadence | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through operability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through operability checkpoint rollovers | timeline summaries + fixture tests |
+
+Operability invariant:
+
+- held-lane operability must remain deterministic (adaptability posture
+  preserved under extended operator-facing usage and handoff cadence) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane auditability checkpoints:
+
+| Held lane checkpoint evidence | Canonical auditability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic operability posture remains intact under prolonged evidence review and operator handoff trails | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through auditability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through auditability checkpoint rollovers | timeline summaries + fixture tests |
+
+Auditability invariant:
+
+- held-lane auditability must remain deterministic (operability posture
+  preserved under prolonged evidence review and operator handoff trails) across
+  recommendation surfaces and timeline summaries while preserving downstream
+  `TIAF/preflight` and real CI/test long-hold posture, unless a dedicated
+  packet updates matrix wording, timeline evidence rows, recommendation
+  surfaces, and linked fixture assertions together.
+
+Held-lane traceability checkpoints:
+
+| Held lane checkpoint evidence | Canonical traceability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic auditability posture remains intact under cross-surface evidence lineage and recommendation provenance checks | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through traceability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through traceability checkpoint rollovers | timeline summaries + fixture tests |
+
+Traceability invariant:
+
+- held-lane traceability must remain deterministic (auditability posture
+  preserved under cross-surface evidence lineage and recommendation provenance
+  checks) across recommendation surfaces and timeline summaries while
+  preserving downstream `TIAF/preflight` and real CI/test long-hold posture,
+  unless a dedicated packet updates matrix wording, timeline evidence rows,
+  recommendation surfaces, and linked fixture assertions together.
+
+Held-lane provenance checkpoints:
+
+| Held lane checkpoint evidence | Canonical provenance posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic traceability posture remains intact under explicit evidence-source ownership and packet-chain provenance wording checks | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through provenance checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through provenance checkpoint rollovers | timeline summaries + fixture tests |
+
+Provenance invariant:
+
+- held-lane provenance must remain deterministic (traceability posture
+  preserved under explicit evidence-source ownership and packet-chain
+  provenance wording checks) across recommendation surfaces and timeline
+  summaries while preserving downstream `TIAF/preflight` and real CI/test
+  long-hold posture, unless a dedicated packet updates matrix wording,
+  timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane accountability checkpoints:
+
+| Held lane checkpoint evidence | Canonical accountability posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic provenance posture remains intact under explicit boundary-ownership language and refusal-accountability linkage | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through accountability checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through accountability checkpoint rollovers | timeline summaries + fixture tests |
+
+Accountability invariant:
+
+- held-lane accountability must remain deterministic (provenance posture
+  preserved under explicit boundary-ownership language and
+  refusal-accountability linkage) across recommendation surfaces and timeline
+  summaries while preserving downstream `TIAF/preflight` and real CI/test
+  long-hold posture, unless a dedicated packet updates matrix wording,
+  timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane self-management checkpoints:
+
+| Held lane checkpoint evidence | Canonical self-management posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary checkpoint packets` | deterministic self-command posture remains intact under explicit held-lane release-readiness decision wording and boundary-preservation self-management proof linkage | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through self-management checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through self-management checkpoint rollovers | timeline summaries + fixture tests |
+
+Self-management invariant:
+
+- held-lane self-management must remain deterministic (self-command posture
+  preserved under explicit held-lane release-readiness decision wording and
+  boundary-preservation self-management proof linkage) across recommendation
+  surfaces and timeline summaries while preserving downstream `TIAF/preflight`
+  and real CI/test long-hold posture, unless a dedicated packet updates matrix
+  wording, timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane release-readiness decision checkpoints:
+
+| Held lane checkpoint evidence | Canonical release-readiness posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary release-readiness decision packet` | deterministic self-management posture remains intact under explicit held-lane hold/no-go decision wording and boundary-preservation release-readiness proof linkage | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through release-readiness decision checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through release-readiness decision checkpoint rollovers | timeline summaries + fixture tests |
+
+Release-readiness invariant:
+
+- held-lane release-readiness must remain deterministic (self-management
+  posture preserved under explicit held-lane hold/no-go decision wording and
+  boundary-preservation release-readiness proof linkage) across recommendation
+  surfaces and timeline summaries while preserving downstream `TIAF/preflight`
+  and real CI/test long-hold posture, unless a dedicated packet updates matrix
+  wording, timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
+Held-lane long-hold checkpoints:
+
+| Held lane checkpoint evidence | Canonical long-hold posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary long-hold checkpoint packet` | deterministic release-readiness hold/no-go posture remains intact under explicit long-hold stream-handoff wording and boundary-preservation linkage | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through long-hold checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through long-hold checkpoint rollovers | timeline summaries + fixture tests |
+
+Long-hold invariant:
+
+- held-lane long-hold stream-handoff posture must remain deterministic
+  (release-readiness hold/no-go posture preserved under explicit long-hold
+  wording and boundary-preservation linkage) across recommendation surfaces and
+  timeline summaries while preserving downstream `TIAF/preflight` and real
+  CI/test long-hold posture, unless a dedicated packet updates matrix wording,
+  timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
 ## Docs And Repo Hygiene
 
 | Change type | Recommended validation | Proves | Does not prove |

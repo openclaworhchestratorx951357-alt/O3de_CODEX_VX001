@@ -227,6 +227,21 @@ CATALOG = ToolsCatalog(
                         "bool",
                     ],
                 ),
+                ToolDefinition(
+                    name="editor.placement.proof_only",
+                    description=(
+                        "Create a bounded, fail-closed editor placement proof-only "
+                        "candidate record without admitting placement execution."
+                    ),
+                    approval_class="read_only",
+                    adapter_family="editor-control",
+                    capability_status=tool_capability_status("editor.placement.proof_only"),
+                    args_schema=tool_args_schema("editor.placement.proof_only"),
+                    result_schema=tool_result_schema("editor.placement.proof_only"),
+                    default_locks=[],
+                    risk="low",
+                    tags=["editor", "placement", "proof-only", "candidate"],
+                ),
             ],
         ),
         CatalogAgent(

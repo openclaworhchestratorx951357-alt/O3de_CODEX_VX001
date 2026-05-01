@@ -97,8 +97,9 @@ const workspaceChromeStyle = {
   justifySelf: "start",
   padding: "10px 12px",
   borderRadius: "var(--app-panel-radius)",
-  background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
-  border: "1px solid var(--app-panel-border)",
+  background: "linear-gradient(135deg, color-mix(in srgb, var(--app-active-bg) 46%, var(--app-panel-bg-alt) 54%) 0%, var(--app-panel-bg-alt) 100%)",
+  border: "1px solid var(--app-panel-border-strong)",
+  boxShadow: "var(--app-shadow-soft)",
   boxSizing: "border-box",
 } satisfies CSSProperties;
 
@@ -136,10 +137,10 @@ const workspacePeerNavStyle = {
   minWidth: 0,
   overflowX: "auto",
   padding: "5px",
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid var(--app-panel-border-strong)",
   borderRadius: "var(--app-pill-radius)",
-  background: "color-mix(in srgb, var(--app-panel-bg) 70%, transparent)",
-  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+  background: "color-mix(in srgb, var(--app-panel-elevated) 88%, transparent)",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.08), var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const workspacePeerNavLabelStyle = {
@@ -159,22 +160,22 @@ const workspacePeerNavPillStyle = {
   gap: 7,
   borderWidth: 1,
   borderStyle: "solid",
-  borderColor: "color-mix(in srgb, var(--app-panel-border) 86%, transparent)",
+  borderColor: "color-mix(in srgb, var(--app-panel-border-strong) 88%, transparent)",
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 11px",
-  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 92%, white 8%) 0%, var(--app-panel-bg-alt) 100%)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 90%, white 10%) 0%, var(--app-panel-bg-muted) 100%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontSize: 11,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,
-  boxShadow: "0 5px 12px rgba(0, 0, 0, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+  boxShadow: "var(--app-raised-shadow)",
   transform: "translateY(-1px)",
 } satisfies CSSProperties;
 
 const activeWorkspacePeerNavPillStyle = {
-  borderColor: "#f8d477",
-  background: "linear-gradient(180deg, var(--app-accent-soft) 0%, color-mix(in srgb, var(--app-accent-soft) 76%, var(--app-panel-bg) 24%) 100%)",
+  borderColor: "var(--app-selected-border)",
+  background: "var(--app-active-bg)",
   boxShadow: goldSelectedShadow,
 } satisfies CSSProperties;
 

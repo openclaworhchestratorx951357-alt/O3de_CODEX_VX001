@@ -209,6 +209,20 @@ def test_editor_entity_exists_is_cataloged_as_hybrid_read_only() -> None:
     assert "editor_session" in tool.default_locks
 
 
+def test_editor_placement_proof_only_is_cataloged_as_simulated_only() -> None:
+    tool = catalog_service.get_tool_definition(
+        "editor-control",
+        "editor.placement.proof_only",
+    )
+    assert tool is not None
+    assert tool.approval_class == "read_only"
+    assert tool.adapter_family == "editor-control"
+    assert tool.capability_status == "simulated-only"
+    assert tool.args_schema.endswith("editor.placement.proof_only.args.schema.json")
+    assert tool.result_schema.endswith("editor.placement.proof_only.result.schema.json")
+    assert tool.default_locks == []
+
+
 def test_editor_session_open_catalog_timeout_matches_runtime_default() -> None:
     tool = catalog_service.get_tool_definition("editor-control", "editor.session.open")
     assert tool is not None

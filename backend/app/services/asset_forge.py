@@ -17,6 +17,10 @@ from app.models.asset_forge import (
     AssetForgeCandidateRecord,
     AssetForgeO3DEReadbackRecord,
     AssetForgeO3DEReadbackRequest,
+    AssetForgeO3DEReviewPacketRecord,
+    AssetForgeO3DEReviewPacketRequest,
+    AssetForgeO3DEAssignmentDesignRecord,
+    AssetForgeO3DEAssignmentDesignRequest,
     AssetForgeO3DEPlacementPlanRecord,
     AssetForgeO3DEPlacementPlanRequest,
     AssetForgeO3DEPlacementHarnessRecord,
@@ -29,6 +33,8 @@ from app.models.asset_forge import (
     AssetForgePlacementEvidenceIndexRecord,
     AssetForgeO3DEPlacementEvidenceRecord,
     AssetForgeO3DEPlacementEvidenceRequest,
+    AssetForgeEditorPlacementProofOnlyRecord,
+    AssetForgeEditorPlacementProofOnlyRequest,
     AssetForgeO3DEPlacementProofRecord,
     AssetForgeO3DEPlacementProofRequest,
     AssetForgeO3DEStagePlanRecord,
@@ -45,6 +51,7 @@ from app.models.asset_forge import (
     AssetForgeTaskRecord,
     AssetForgeTaskPlanRequest,
 )
+from app.services.o3de_target import o3de_target_service
 _PROVIDER_MODES = {"disabled", "mock", "configured", "real"}
 ProviderMode = Literal["disabled", "mock", "configured", "real"]
 _BLENDER_ENV_HINTS = (
@@ -57,10 +64,36 @@ _DEFAULT_MAX_INSPECT_BYTES = 262_144_000
 _INSPECT_SCRIPT_ID = "asset_forge_blender_readonly_inspector_v1"
 _ALLOWED_STAGE_SOURCE_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
 _ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
+_OPERATOR_REVIEW_PACKET_CAPABILITY = "asset_forge.o3de.review.packet"
+_OPERATOR_REVIEW_PACKET_VERSION = "asset_forge.operator_review_packet.v1"
+_ASSIGNMENT_DESIGN_CAPABILITY = "asset_forge.o3de.assignment.design"
+_ASSIGNMENT_DESIGN_VERSION = "asset_forge.assignment.design.v1"
 _STAGE_WRITE_CORRIDOR_NAME = "asset_forge.o3de.stage_write.v1"
 _STAGE_WRITE_ADMISSION_FLAG_NAME = "asset_forge.o3de.stage_write.v1.proof_only_admission_enabled"
 _STAGE_WRITE_ADMISSION_FLAG_ENV = "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED"
 _PLACEMENT_PROOF_CORRIDOR_NAME = "asset_forge.o3de.placement.proof.v1"
+_EDITOR_PLACEMENT_PROOF_ONLY_CORRIDOR_NAME = "editor.placement.proof_only.v1"
+_EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY_NAME = "editor.placement.proof_only"
+_EDITOR_PLACEMENT_RUNTIME_GATE_ENV = "ASSET_FORGE_ENABLE_EDITOR_PLACEMENT_RUNTIME_PROOF"
+_EDITOR_PLACEMENT_ADMISSION_FLAG_NAME = "editor.placement.proof_only.v1.runtime_admission_enabled"
+_EDITOR_PLACEMENT_ADMISSION_FLAG_ENV = (
+    "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_RUNTIME_ADMISSION_ENABLED"
+)
+_EDITOR_PLACEMENT_ADMISSION_PACKET_REF_ENV = (
+    "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_ADMISSION_PACKET_REF"
+)
+_EDITOR_PLACEMENT_ADMISSION_OPERATOR_ID_ENV = (
+    "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_ADMISSION_OPERATOR_ID"
+)
+_EDITOR_PLACEMENT_EVIDENCE_BUNDLE_REF_ENV = (
+    "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_EVIDENCE_BUNDLE_REF"
+)
+_EDITOR_PLACEMENT_READBACK_PLAN_REF_ENV = (
+    "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_READBACK_PLAN_REF"
+)
+_EDITOR_PLACEMENT_REVERT_CONTRACT_KEY_ENV = (
+    "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_REVERT_CONTRACT_KEY"
+)
 _PLACEMENT_PROOF_ADMISSION_FLAG_NAME = "asset_forge.o3de.placement.proof.v1.admission_enabled"
 _PLACEMENT_PROOF_ADMISSION_FLAG_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED"
 _PLACEMENT_PROOF_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_PACKET_REF"
@@ -78,6 +111,26 @@ _PLACEMENT_LIVE_PROOF_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PR
 _PLACEMENT_LIVE_PROOF_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_EVIDENCE_BUNDLE_REF"
 _PLACEMENT_LIVE_PROOF_READBACK_PLAN_REF_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_READBACK_PLAN_REF"
 _PLACEMENT_LIVE_PROOF_REVERT_CONTRACT_KEY_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_REVERT_CONTRACT_KEY"
+_PLACEMENT_RUNTIME_GATE_ENV = "ASSET_FORGE_ENABLE_PLACEMENT_PROOF"
+_PLACEMENT_BRIDGE_READINESS_CONTRACT_SCHEMA = "asset_forge.placement_bridge_readiness.v1"
+_PLACEMENT_RUNTIME_COMMAND_CONTRACT_SCHEMA = "asset_forge.placement_runtime.command_contract.v1"
+_PLACEMENT_RUNTIME_RESULT_CONTRACT_SCHEMA = "asset_forge.placement_runtime.result_contract.v1"
+_PLACEMENT_RUNTIME_POST_RUN_VERIFICATION_CONTRACT_SCHEMA = (
+    "asset_forge.placement_runtime.post_run_verification_contract.v1"
+)
+_PLACEMENT_RUNTIME_REVERT_SCOPE_CONTRACT_SCHEMA = "asset_forge.placement_runtime.revert_scope_contract.v1"
+_EDITOR_PLACEMENT_RUNTIME_COMMAND_CONTRACT_SCHEMA = (
+    "editor.placement_runtime.command_contract.v1"
+)
+_EDITOR_PLACEMENT_RUNTIME_RESULT_CONTRACT_SCHEMA = (
+    "editor.placement_runtime.result_contract.v1"
+)
+_EDITOR_PLACEMENT_RUNTIME_POST_RUN_VERIFICATION_CONTRACT_SCHEMA = (
+    "editor.placement_runtime.post_run_verification_contract.v1"
+)
+_EDITOR_PLACEMENT_RUNTIME_REVERT_SCOPE_CONTRACT_SCHEMA = (
+    "editor.placement_runtime.revert_scope_contract.v1"
+)
 _STAGE_WRITE_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_PACKET_REF"
 _STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_OPERATOR_ID"
 _STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_EVIDENCE_BUNDLE_REF"
@@ -238,6 +291,104 @@ def _resolve_placement_proof_admission_flag_state() -> tuple[
     return False, "invalid_default_off"
 
 
+def _resolve_editor_placement_admission_flag_state() -> tuple[
+    bool,
+    Literal[
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    ],
+]:
+    raw = os.environ.get(_EDITOR_PLACEMENT_ADMISSION_FLAG_ENV)
+    if raw is None:
+        return False, "missing_default_off"
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on", "enabled"}:
+        return True, "explicit_on"
+    if normalized in {"0", "false", "no", "off", "disabled"}:
+        return False, "explicit_off"
+    return False, "invalid_default_off"
+
+
+def _resolve_feature_flag_enabled(env_name: str) -> bool:
+    raw = os.environ.get(env_name)
+    if raw is None:
+        return False
+    return raw.strip().lower() in {"1", "true", "yes", "on", "enabled"}
+
+
+def _collect_placement_bridge_readiness_snapshot() -> tuple[
+    bool,
+    bool,
+    float | None,
+    list[str],
+    list[str],
+]:
+    bridge_configured = False
+    bridge_heartbeat_fresh = False
+    bridge_heartbeat_age_s: float | None = None
+    fail_closed_reasons: list[str] = []
+    warnings: list[str] = []
+    try:
+        bridge_status = o3de_target_service.get_bridge_status()
+        bridge_configured = bool(bridge_status.configured)
+        bridge_heartbeat_fresh = bool(bridge_status.heartbeat_fresh)
+        if isinstance(bridge_status.heartbeat_age_s, (int, float)):
+            bridge_heartbeat_age_s = float(bridge_status.heartbeat_age_s)
+        if not bridge_configured:
+            fail_closed_reasons.append("bridge_not_configured")
+            warnings.append(
+                "Bridge status is not configured; placement runtime execution remains blocked."
+            )
+        if not bridge_heartbeat_fresh:
+            fail_closed_reasons.append("bridge_heartbeat_not_fresh")
+            warnings.append(
+                "Bridge heartbeat is stale or missing; placement runtime execution remains blocked."
+            )
+    except Exception as exc:  # pragma: no cover - defensive fail-closed path
+        fail_closed_reasons.append("bridge_status_unavailable")
+        warnings.append(
+            f"Bridge readiness preflight could not be evaluated; placement runtime execution remains blocked ({exc})."
+        )
+    return (
+        bridge_configured,
+        bridge_heartbeat_fresh,
+        bridge_heartbeat_age_s,
+        fail_closed_reasons,
+        warnings,
+    )
+
+
+def _build_placement_bridge_readiness_contract(
+    *,
+    capability_name: str,
+    runtime_gate_enabled: bool,
+    bridge_configured: bool,
+    bridge_heartbeat_fresh: bool,
+    bridge_heartbeat_age_s: float | None,
+    fail_closed_reasons: list[str],
+    runtime_gate_env: str = _PLACEMENT_RUNTIME_GATE_ENV,
+) -> dict[str, object]:
+    readiness_status = (
+        "ready-for-admitted-runtime-harness"
+        if runtime_gate_enabled and bridge_configured and bridge_heartbeat_fresh
+        else "blocked"
+    )
+    return {
+        "schema": _PLACEMENT_BRIDGE_READINESS_CONTRACT_SCHEMA,
+        "capability_name": capability_name,
+        "runtime_gate_env": runtime_gate_env,
+        "runtime_gate_enabled": runtime_gate_enabled,
+        "bridge_configured": bridge_configured,
+        "bridge_heartbeat_fresh": bridge_heartbeat_fresh,
+        "bridge_heartbeat_age_s": bridge_heartbeat_age_s,
+        "readiness_status": readiness_status,
+        "placement_execution_admitted": False,
+        "fail_closed_reasons": list(dict.fromkeys(fail_closed_reasons)),
+    }
+
+
 def _resolve_stage_write_admission_evidence_context() -> tuple[str | None, str | None]:
     packet_reference = os.environ.get(_STAGE_WRITE_ADMISSION_PACKET_REF_ENV, "").strip() or None
     operator_id = os.environ.get(_STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV, "").strip() or None
@@ -295,6 +446,35 @@ def _build_placement_proof_revert_contract_key(
     payload = {
         "schema": "asset_forge.placement_proof.revert_contract.v1",
         "corridor_name": _PLACEMENT_PROOF_CORRIDOR_NAME,
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "staged_source_relative_path": _normalize_project_relative_path(staged_source_relative_path),
+        "target_level_relative_path": _normalize_project_relative_path(target_level_relative_path),
+        "target_entity_name": target_entity_name.strip(),
+        "target_component": target_component.strip(),
+        "stage_write_corridor_name": stage_write_corridor_name.strip(),
+        "stage_write_evidence_reference": stage_write_evidence_reference.strip(),
+        "stage_write_readback_reference": stage_write_readback_reference.strip(),
+    }
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(serialized).hexdigest()
+
+
+def _build_editor_placement_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    staged_source_relative_path: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    target_component: str,
+    stage_write_corridor_name: str,
+    stage_write_evidence_reference: str,
+    stage_write_readback_reference: str,
+) -> str:
+    payload = {
+        "schema": "editor.placement.proof_only.revert_contract.v1",
+        "corridor_name": _EDITOR_PLACEMENT_PROOF_ONLY_CORRIDOR_NAME,
         "candidate_id": candidate_id.strip(),
         "candidate_label": candidate_label.strip(),
         "staged_source_relative_path": _normalize_project_relative_path(staged_source_relative_path),
@@ -375,6 +555,119 @@ def _build_placement_live_proof_revert_contract_key(
     }
     serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return sha256(serialized).hexdigest()
+
+
+def _build_placement_runtime_contract_id(
+    *,
+    schema: str,
+    payload: dict[str, object],
+) -> str:
+    contract_payload = {"schema": schema, **payload}
+    serialized = json.dumps(contract_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(serialized).hexdigest()
+
+
+def _build_placement_runtime_admission_contract_bundle(
+    *,
+    capability_name: str,
+    request_binding: dict[str, object],
+    expected_request_fingerprint: str,
+    runtime_gate_enabled: bool,
+    bridge_readiness_contract: dict[str, object],
+    admission_packet_reference: str | None,
+    admission_operator_id: str | None,
+    evidence_bundle_reference: str | None,
+    readback_plan_reference: str | None,
+    revert_statement_contract_key: str | None,
+    expected_revert_statement_contract_key: str,
+    revert_statement_contract_match: bool,
+    contract_evidence_ready: bool,
+    execution_performed: bool,
+    readback_captured: bool,
+    runtime_gate_env: str = _PLACEMENT_RUNTIME_GATE_ENV,
+    runtime_command_contract_schema: str = _PLACEMENT_RUNTIME_COMMAND_CONTRACT_SCHEMA,
+    runtime_result_contract_schema: str = _PLACEMENT_RUNTIME_RESULT_CONTRACT_SCHEMA,
+    post_run_verification_contract_schema: str = _PLACEMENT_RUNTIME_POST_RUN_VERIFICATION_CONTRACT_SCHEMA,
+    revert_scope_contract_schema: str = _PLACEMENT_RUNTIME_REVERT_SCOPE_CONTRACT_SCHEMA,
+) -> dict[str, dict[str, object]]:
+    shared_scope = {
+        "capability_name": capability_name,
+        "request_binding_fingerprint": expected_request_fingerprint,
+        "request_binding": request_binding,
+    }
+    runtime_command_contract_id = _build_placement_runtime_contract_id(
+        schema=runtime_command_contract_schema,
+        payload={**shared_scope, "runtime_gate_env": runtime_gate_env},
+    )
+    runtime_result_contract_id = _build_placement_runtime_contract_id(
+        schema=runtime_result_contract_schema,
+        payload=shared_scope,
+    )
+    post_run_verification_contract_id = _build_placement_runtime_contract_id(
+        schema=post_run_verification_contract_schema,
+        payload=shared_scope,
+    )
+    revert_scope_contract_id = _build_placement_runtime_contract_id(
+        schema=revert_scope_contract_schema,
+        payload={**shared_scope, "expected_revert_statement_contract_key": expected_revert_statement_contract_key},
+    )
+    contract_evidence_status = "ready" if contract_evidence_ready else "incomplete"
+
+    return {
+        "runtime_command_contract": {
+            "schema": runtime_command_contract_schema,
+            "contract_id": runtime_command_contract_id,
+            "runtime_gate_env": runtime_gate_env,
+            "runtime_gate_enabled": runtime_gate_enabled,
+            "bridge_readiness_status": bridge_readiness_contract.get("readiness_status", "blocked"),
+            "execution_admitted": False,
+            "status": "blocked_non_admitted",
+            "contract_evidence_status": contract_evidence_status,
+        },
+        "runtime_result_contract": {
+            "schema": runtime_result_contract_schema,
+            "contract_id": runtime_result_contract_id,
+            "expected_fields": [
+                "execution_performed",
+                "readback_captured",
+                "bridge_command_id",
+                "fail_closed_reasons",
+                "warnings",
+                "read_only",
+            ],
+            "execution_performed": execution_performed,
+            "readback_captured": readback_captured,
+            "status": "blocked_non_admitted",
+        },
+        "post_run_verification_contract": {
+            "schema": post_run_verification_contract_schema,
+            "contract_id": post_run_verification_contract_id,
+            "verification_plan_reference": readback_plan_reference,
+            "verification_plan_ready": readback_plan_reference is not None,
+            "evidence_bundle_reference": evidence_bundle_reference,
+            "evidence_bundle_ready": evidence_bundle_reference is not None,
+            "required_checks": [
+                "target_scope_binding_matches",
+                "bridge_readback_captured",
+                "entity_state_readback",
+                "collateral_mutation_absent",
+            ],
+            "status": contract_evidence_status,
+            "execution_admitted": False,
+        },
+        "revert_scope_contract": {
+            "schema": revert_scope_contract_schema,
+            "contract_id": revert_scope_contract_id,
+            "expected_revert_statement_contract_key": expected_revert_statement_contract_key,
+            "provided_revert_statement_contract_key": revert_statement_contract_key,
+            "revert_statement_contract_match": revert_statement_contract_match,
+            "revert_statement_required_for_admission": True,
+            "admission_packet_reference": admission_packet_reference,
+            "admission_operator_id": admission_operator_id,
+            "status": "ready" if revert_statement_contract_match else "incomplete",
+            "execution_admitted": False,
+        },
+    }
 
 
 def _planned_stage_write_manifest_payload(
@@ -527,6 +820,52 @@ def _token_preview(token: str) -> str:
     if len(token) <= 16:
         return token
     return f"{token[:12]}...{token[-4:]}"
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    return {}
+
+
+def _as_str(value: Any) -> str | None:
+    if isinstance(value, str):
+        candidate = value.strip()
+        return candidate or None
+    return None
+
+
+def _as_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    return None
+
+
+def _read_project_name(project_root: Path) -> str | None:
+    project_json_path = project_root / "project.json"
+    if not project_json_path.is_file():
+        return None
+    try:
+        payload = json.loads(project_json_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    for key in ("project_name", "projectName"):
+        value = _as_str(payload.get(key))
+        if value:
+            return value
+    return None
+
+
+def _load_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if isinstance(payload, dict):
+        return payload
+    return None
 
 
 class AssetForgeService:
@@ -2177,6 +2516,588 @@ class AssetForgeService:
             source="asset-forge-o3de-ingest-readback",
         )
 
+    def create_o3de_operator_review_packet(
+        self,
+        request: AssetForgeO3DEReviewPacketRequest,
+    ) -> AssetForgeO3DEReviewPacketRecord:
+        normalized_source_relative = _normalize_source_asset_relative_path(
+            request.source_asset_relative_path
+        )
+        normalized_provenance_relative = _normalize_project_relative_path(
+            request.provenance_metadata_relative_path
+        )
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+
+        readback_record = self.read_o3de_ingest_readback(
+            AssetForgeO3DEReadbackRequest(
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                source_asset_relative_path=normalized_source_relative,
+                selected_platform=selected_platform,
+            )
+        )
+        warnings = list(readback_record.warnings)
+
+        project_root_path = (
+            Path(readback_record.project_root).resolve()
+            if readback_record.project_root
+            else None
+        )
+        project_json_path = (
+            (project_root_path / "project.json").resolve()
+            if project_root_path
+            else None
+        )
+        project_name = (
+            _read_project_name(project_root_path)
+            if project_root_path is not None
+            else None
+        )
+        if project_name is None:
+            warnings.append(
+                "Project name is unknown; project.json did not provide a readable project_name."
+            )
+
+        provenance_abs_path: Path | None = None
+        provenance_payload: dict[str, Any] = {}
+        provenance_sha256: str | None = None
+        provenance_exists = False
+
+        if project_root_path is not None:
+            provenance_abs_path = (project_root_path / normalized_provenance_relative).resolve()
+            if not _path_within_root(provenance_abs_path, project_root_path):
+                warnings.append(
+                    "Provenance metadata path escapes the selected project root and is treated as missing."
+                )
+            elif provenance_abs_path.is_file():
+                provenance_exists = True
+                provenance_sha256 = _sha256_file(provenance_abs_path)
+                loaded_provenance = _load_json_object(provenance_abs_path)
+                if loaded_provenance is None:
+                    warnings.append(
+                        "Provenance metadata file exists but is not valid JSON object content."
+                    )
+                else:
+                    provenance_payload = loaded_provenance
+            else:
+                warnings.append(
+                    "Provenance metadata file is missing for the selected generated-asset candidate."
+                )
+        else:
+            warnings.append(
+                "Project root is unavailable, so provenance metadata lookup could not be performed."
+            )
+
+        generation_payload = _as_dict(provenance_payload.get("generation"))
+        cleanup_payload = _as_dict(provenance_payload.get("cleanup"))
+        license_payload = _as_dict(provenance_payload.get("license"))
+        quality_payload = _as_dict(provenance_payload.get("quality_review"))
+
+        asset_slug = (
+            _as_str(provenance_payload.get("asset_slug"))
+            or _as_str(provenance_payload.get("generated_asset_slug"))
+            or _slugify(request.candidate_label)
+        )
+        generation_backend = (
+            _as_str(generation_payload.get("backend"))
+            or _as_str(provenance_payload.get("generation_backend"))
+        )
+        generation_backend_repository = (
+            _as_str(generation_payload.get("backend_repository"))
+            or _as_str(provenance_payload.get("generation_backend_repository"))
+        )
+        generation_backend_commit = (
+            _as_str(generation_payload.get("backend_commit"))
+            or _as_str(provenance_payload.get("generation_backend_commit"))
+        )
+        model_name = (
+            _as_str(generation_payload.get("model_name"))
+            or _as_str(provenance_payload.get("model_name"))
+        )
+        model_source = (
+            _as_str(generation_payload.get("model_source"))
+            or _as_str(provenance_payload.get("model_source"))
+        )
+        input_prompt = (
+            _as_str(generation_payload.get("input_prompt"))
+            or _as_str(provenance_payload.get("input_prompt"))
+        )
+        input_reference = (
+            _as_str(generation_payload.get("input_image_or_reference"))
+            or _as_str(provenance_payload.get("input_image_or_reference"))
+        )
+        generation_seed = generation_payload.get("seed", provenance_payload.get("seed"))
+        generation_settings = (
+            generation_payload.get("settings")
+            if isinstance(generation_payload.get("settings"), dict)
+            else {}
+        )
+        generation_timestamp = (
+            _as_str(generation_payload.get("generated_at_utc"))
+            or _as_str(provenance_payload.get("generation_timestamp"))
+        )
+        generation_output_path = (
+            _as_str(generation_payload.get("output_path"))
+            or _as_str(provenance_payload.get("generation_output_path"))
+        )
+        generation_output_sha256 = (
+            _as_str(generation_payload.get("output_sha256"))
+            or _as_str(provenance_payload.get("generation_output_sha256"))
+        )
+        cleanup_tool = (
+            _as_str(cleanup_payload.get("tool"))
+            or _as_str(provenance_payload.get("cleanup_tool"))
+        )
+        cleanup_settings = (
+            cleanup_payload.get("settings")
+            if isinstance(cleanup_payload.get("settings"), dict)
+            else {}
+        )
+        cleanup_output_path = (
+            _as_str(cleanup_payload.get("output_path"))
+            or _as_str(provenance_payload.get("cleanup_output_path"))
+        )
+        cleanup_output_sha256 = (
+            _as_str(cleanup_payload.get("output_sha256"))
+            or _as_str(provenance_payload.get("cleanup_output_sha256"))
+        )
+        license_name = (
+            _as_str(license_payload.get("name"))
+            or _as_str(provenance_payload.get("license_name"))
+        )
+        license_url = (
+            _as_str(license_payload.get("url"))
+            or _as_str(provenance_payload.get("license_url"))
+        )
+        commercial_use_allowed = _as_bool(license_payload.get("commercial_use_allowed"))
+        if commercial_use_allowed is None:
+            commercial_use_allowed = _as_bool(
+                provenance_payload.get("commercial_use_allowed")
+            )
+        intended_use = (
+            _as_str(license_payload.get("intended_use"))
+            or _as_str(provenance_payload.get("intended_use"))
+        )
+        quality_status = (
+            _as_str(quality_payload.get("status"))
+            or _as_str(provenance_payload.get("quality_status"))
+        )
+
+        review_status: Literal[
+            "missing_provenance",
+            "missing_source_asset",
+            "asset_processor_not_run",
+            "asset_processor_failed",
+            "asset_processor_warnings_need_review",
+            "asset_database_missing",
+            "source_not_found",
+            "product_not_found",
+            "dependency_rows_missing",
+            "catalog_presence_missing",
+            "license_review_required",
+            "quality_review_required",
+            "ready_for_operator_decision",
+            "operator_rejected",
+            "operator_requested_regeneration",
+            "operator_requested_cleanup",
+            "operator_approved_internal_prototype",
+            "operator_approved_assignment_design",
+        ] = "ready_for_operator_decision"
+        blocked_reason: str | None = None
+
+        if not provenance_exists:
+            review_status = "missing_provenance"
+            blocked_reason = (
+                "Provenance metadata is missing or invalid for the selected generated-asset candidate."
+            )
+        elif not readback_record.source_exists:
+            review_status = "missing_source_asset"
+            blocked_reason = "Generated source asset is missing from the selected project."
+        elif not readback_record.asset_database_exists:
+            review_status = "asset_database_missing"
+            blocked_reason = "Asset Processor database is missing for the selected project."
+        elif not readback_record.source_found_in_assetdb:
+            review_status = "source_not_found"
+            blocked_reason = (
+                "Generated source asset is not indexed in assetdb.sqlite."
+            )
+        elif readback_record.product_count <= 0:
+            review_status = "product_not_found"
+            blocked_reason = "No product rows were found for the selected generated source."
+        elif readback_record.dependency_count <= 0:
+            review_status = "dependency_rows_missing"
+            blocked_reason = "No dependency rows were found for the selected generated source."
+        elif not readback_record.catalog_presence:
+            review_status = "catalog_presence_missing"
+            blocked_reason = "Catalog product-path presence evidence is missing."
+        elif readback_record.asset_processor_error_count > 0:
+            review_status = "asset_processor_failed"
+            blocked_reason = (
+                f"Asset Processor reported {readback_record.asset_processor_error_count} error(s)."
+            )
+        elif readback_record.asset_processor_warning_count > 0:
+            review_status = "asset_processor_warnings_need_review"
+            blocked_reason = (
+                f"Asset Processor reported {readback_record.asset_processor_warning_count} warning(s) requiring operator review."
+            )
+        elif license_name is None or commercial_use_allowed is None:
+            review_status = "license_review_required"
+            blocked_reason = (
+                "License/commercial-use metadata is incomplete for operator review."
+            )
+        elif quality_status is None:
+            review_status = "quality_review_required"
+            blocked_reason = (
+                "Quality review fields are incomplete for operator decision."
+            )
+
+        if review_status == "ready_for_operator_decision":
+            if request.operator_decision == "reject":
+                review_status = "operator_rejected"
+                blocked_reason = "Operator rejected this generated-asset candidate."
+            elif request.operator_decision == "request_regeneration":
+                review_status = "operator_requested_regeneration"
+                blocked_reason = "Operator requested regeneration for this candidate."
+            elif request.operator_decision == "request_cleanup":
+                review_status = "operator_requested_cleanup"
+                blocked_reason = "Operator requested cleanup adjustments before approval."
+            elif request.operator_decision == "request_license_review":
+                review_status = "license_review_required"
+                blocked_reason = "Operator requested explicit license/commercial-use review."
+            elif request.operator_decision == "approve_internal_prototype":
+                review_status = "operator_approved_internal_prototype"
+                blocked_reason = None
+            elif request.operator_decision == "approve_assignment_design_only":
+                review_status = "operator_approved_assignment_design"
+                blocked_reason = None
+        elif request.operator_decision != "pending":
+            warnings.append(
+                "Operator decision was recorded but evidence gates remain blocked; keep assignment/placement corridors unadmitted."
+            )
+
+        next_step_by_status: dict[str, str] = {
+            "missing_provenance": "Provide a valid .forge.json provenance metadata file and rerun review packet generation.",
+            "missing_source_asset": "Restore or restage the generated source asset inside the selected project.",
+            "asset_processor_not_run": "Run operator-managed Asset Processor refresh outside this endpoint and rerun readback.",
+            "asset_processor_failed": "Fix Asset Processor errors outside this endpoint and rerun readback evidence.",
+            "asset_processor_warnings_need_review": "Review Asset Processor warnings and quality signals before any assignment design.",
+            "asset_database_missing": "Provide a project with assetdb.sqlite evidence and rerun read-only review packet generation.",
+            "source_not_found": "Run Asset Processor for the selected source outside this endpoint, then rerun review packet.",
+            "product_not_found": "Refresh product generation outside this endpoint, then rerun review packet.",
+            "dependency_rows_missing": "Capture dependency evidence outside this endpoint, then rerun review packet.",
+            "catalog_presence_missing": "Refresh catalog evidence outside this endpoint, then rerun review packet.",
+            "license_review_required": "Record explicit license/commercial-use disposition before any approval movement.",
+            "quality_review_required": "Capture operator quality review notes before any approval movement.",
+            "ready_for_operator_decision": "Record an operator decision while keeping assignment/placement execution blocked.",
+            "operator_rejected": "Keep candidate blocked and select regeneration or cleanup follow-up.",
+            "operator_requested_regeneration": "Run bounded regeneration outside O3DE and produce new provenance/readback evidence.",
+            "operator_requested_cleanup": "Run bounded cleanup/conversion updates and rerun readback review packet.",
+            "operator_approved_internal_prototype": "Use as internal prototype only; assignment/placement corridors remain unadmitted.",
+            "operator_approved_assignment_design": "Proceed to assignment-design packet only; do not execute assignment or placement.",
+        }
+        next_safest_step = next_step_by_status.get(
+            review_status,
+            "Review evidence and preserve non-admission boundaries.",
+        )
+
+        quality_review = {
+            "scale_review": _as_str(quality_payload.get("scale_review")),
+            "pivot_review": _as_str(quality_payload.get("pivot_review")),
+            "orientation_review": _as_str(quality_payload.get("orientation_review")),
+            "material_review": _as_str(quality_payload.get("material_review")),
+            "texture_review": _as_str(quality_payload.get("texture_review")),
+            "mesh_quality_review": _as_str(quality_payload.get("mesh_quality_review")),
+            "collision_readiness": _as_str(quality_payload.get("collision_readiness")),
+            "lod_readiness": _as_str(quality_payload.get("lod_readiness")),
+            "performance_notes": _as_str(quality_payload.get("performance_notes")),
+            "visual_review_artifact": _as_str(quality_payload.get("visual_review_artifact")),
+            "operator_notes": _as_str(quality_payload.get("operator_notes")),
+        }
+        if quality_review["mesh_quality_review"] is None:
+            quality_review["mesh_quality_review"] = (
+                "Unknown / unavailable; production quality is not validated in this packet."
+            )
+
+        warnings = list(dict.fromkeys(warnings))
+        return AssetForgeO3DEReviewPacketRecord(
+            capability_name=_OPERATOR_REVIEW_PACKET_CAPABILITY,
+            maturity="proof-only",
+            review_packet_version=_OPERATOR_REVIEW_PACKET_VERSION,
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            asset_slug=asset_slug,
+            project_root=readback_record.project_root,
+            project_name=project_name,
+            selected_platform=selected_platform,
+            source_asset_path=normalized_source_relative,
+            provenance_metadata_path=normalized_provenance_relative,
+            source_asset_sha256=readback_record.source_sha256,
+            read_only=True,
+            mutation_occurred=False,
+            review_status=review_status,
+            blocked_reason=blocked_reason,
+            operator_decision=request.operator_decision,
+            next_safest_step=next_safest_step,
+            provenance={
+                "generation_backend": generation_backend,
+                "generation_backend_repository": generation_backend_repository,
+                "generation_backend_commit": generation_backend_commit,
+                "model_name": model_name,
+                "model_source": model_source,
+                "input_prompt": input_prompt,
+                "input_image_or_reference": input_reference,
+                "seed": generation_seed,
+                "generation_settings": generation_settings,
+                "generation_timestamp": generation_timestamp,
+                "generation_output_path": generation_output_path,
+                "generation_output_sha256": generation_output_sha256,
+                "cleanup_tool": cleanup_tool,
+                "cleanup_settings": cleanup_settings,
+                "cleanup_output_path": cleanup_output_path,
+                "cleanup_output_sha256": cleanup_output_sha256,
+                "license_name": license_name,
+                "license_url": license_url,
+                "commercial_use_allowed": commercial_use_allowed,
+                "intended_use": intended_use,
+            },
+            o3de_source={
+                "project_root": readback_record.project_root,
+                "project_json_path": str(project_json_path) if project_json_path else None,
+                "project_name": project_name,
+                "source_asset_path": normalized_source_relative,
+                "source_asset_absolute_path": readback_record.source_asset_absolute_path,
+                "source_asset_sha256": readback_record.source_sha256,
+                "provenance_metadata_path": normalized_provenance_relative,
+                "provenance_metadata_sha256": provenance_sha256,
+                "staging_policy": f"source path must remain under {_ALLOWED_STAGE_ROOT_PREFIX}",
+                "staging_approval_source": (
+                    "server-owned approval/session semantics remain required; this packet is read-only and non-authorizing."
+                ),
+            },
+            asset_processor={
+                "asset_processor_invoked": readback_record.asset_database_exists,
+                "asset_processor_tool_path": None,
+                "asset_processor_project_root": readback_record.project_root,
+                "asset_processor_platform": selected_platform,
+                "asset_processor_completed": (
+                    readback_record.source_found_in_assetdb
+                    and readback_record.product_count > 0
+                ),
+                "asset_processor_errors": readback_record.asset_processor_error_count,
+                "asset_processor_warnings": readback_record.asset_processor_warning_count,
+                "asset_processor_log_path": None,
+                "asset_processor_log_summary": readback_record.asset_processor_job_rows[:8],
+            },
+            phase9_readback={
+                "asset_database_path": readback_record.asset_database_path,
+                "asset_catalog_path": readback_record.catalog_path,
+                "source_id": readback_record.source_id,
+                "source_guid": readback_record.source_guid,
+                "job_id": None,
+                "job_key": None,
+                "job_status": readback_record.readback_status,
+                "job_error_count": readback_record.asset_processor_error_count,
+                "job_warning_count": readback_record.asset_processor_warning_count,
+                "product_count": readback_record.product_count,
+                "dependency_count": readback_record.dependency_count,
+                "catalog_presence": readback_record.catalog_presence,
+                "representative_products": readback_record.representative_products,
+                "representative_dependencies": readback_record.representative_dependencies,
+            },
+            quality_review=quality_review,
+            warnings=warnings,
+            source="asset-forge-o3de-operator-review-packet",
+        )
+
+    def create_o3de_assignment_design(
+        self,
+        request: AssetForgeO3DEAssignmentDesignRequest,
+    ) -> AssetForgeO3DEAssignmentDesignRecord:
+        source_asset_relative_path = _normalize_source_asset_relative_path(
+            request.source_asset_relative_path
+        )
+        provenance_metadata_relative_path = _normalize_project_relative_path(
+            request.provenance_metadata_relative_path
+        )
+        target_level_relative_path = _normalize_project_relative_path(
+            request.target_level_relative_path
+        )
+        target_component = request.target_component.strip() or "Mesh"
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+        review_packet_reference = request.review_packet_reference.strip()
+        stage_write_evidence_reference = request.stage_write_evidence_reference.strip()
+        stage_write_readback_reference = request.stage_write_readback_reference.strip()
+        stage_write_readback_status = request.stage_write_readback_status
+
+        warnings = [
+            "Assignment design corridor is plan-only and non-authorizing in this packet.",
+            "Generated-asset assignment and placement execution remain blocked.",
+        ]
+        requirement_checklist = [
+            "Review packet remains read-only and non-authorizing.",
+            "Operator decision is assignment-design-only approval.",
+            "Staged source path remains under Assets/Generated/asset_forge/.",
+            "Target level path remains under Levels/ and ends with .prefab.",
+            "Stage-write evidence and readback references are present and succeeded.",
+            "Execution admission remains blocked in this packet.",
+        ]
+        fail_closed_reasons: list[str] = []
+
+        if _contains_path_traversal(source_asset_relative_path):
+            fail_closed_reasons.append("source_asset_path_traversal_detected")
+            warnings.append(
+                "Source asset path contains traversal segments and is treated as blocked."
+            )
+        if _contains_path_traversal(provenance_metadata_relative_path):
+            fail_closed_reasons.append("provenance_path_traversal_detected")
+            warnings.append(
+                "Provenance metadata path contains traversal segments and is treated as blocked."
+            )
+        if _contains_path_traversal(target_level_relative_path):
+            fail_closed_reasons.append("target_level_path_traversal_detected")
+            warnings.append(
+                "Target level path contains traversal segments and is treated as blocked."
+            )
+
+        source_extension = Path(source_asset_relative_path).suffix.lower()
+        source_path_allowlisted = source_asset_relative_path.startswith(
+            _ALLOWED_STAGE_ROOT_PREFIX
+        )
+        source_extension_allowlisted = source_extension in _ALLOWED_STAGE_DEST_EXTENSIONS
+        target_level_allowlisted = target_level_relative_path.startswith(
+            "Levels/"
+        ) and target_level_relative_path.endswith(".prefab")
+
+        if not source_path_allowlisted:
+            fail_closed_reasons.append("source_asset_path_not_allowlisted")
+            warnings.append(
+                "Source asset path must remain under Assets/Generated/asset_forge/."
+            )
+        if not source_extension_allowlisted:
+            fail_closed_reasons.append("source_asset_extension_not_allowlisted")
+            warnings.append(
+                "Source asset extension must be one of .obj/.fbx/.glb/.gltf."
+            )
+        if not target_level_allowlisted:
+            fail_closed_reasons.append("target_level_path_not_allowlisted")
+            warnings.append(
+                "Target level path must remain under Levels/ and end with .prefab."
+            )
+
+        if request.operator_decision_reference != "approve_assignment_design_only":
+            fail_closed_reasons.append("operator_decision_not_assignment_design_approval")
+            warnings.append(
+                "Operator decision reference must be approve_assignment_design_only for assignment design readiness."
+            )
+
+        if not review_packet_reference:
+            fail_closed_reasons.append("review_packet_reference_missing")
+            warnings.append("Review packet reference is required for assignment design.")
+
+        stage_write_evidence_ready = bool(stage_write_evidence_reference)
+        stage_write_readback_ready = (
+            bool(stage_write_readback_reference)
+            and stage_write_readback_status == "succeeded"
+        )
+        if not stage_write_evidence_ready:
+            fail_closed_reasons.append("stage_write_evidence_reference_missing")
+            warnings.append("Stage-write evidence reference is required.")
+        if not stage_write_readback_reference:
+            fail_closed_reasons.append("stage_write_readback_reference_missing")
+            warnings.append("Stage-write readback reference is required.")
+        if stage_write_readback_status != "succeeded":
+            fail_closed_reasons.append("stage_write_readback_not_succeeded")
+            warnings.append("Stage-write readback status must be succeeded.")
+
+        review_packet = self.create_o3de_operator_review_packet(
+            AssetForgeO3DEReviewPacketRequest(
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                source_asset_relative_path=source_asset_relative_path,
+                provenance_metadata_relative_path=provenance_metadata_relative_path,
+                selected_platform=selected_platform,
+                operator_decision=request.operator_decision_reference,
+            )
+        )
+        review_packet_status = review_packet.review_status
+        if review_packet_status != "operator_approved_assignment_design":
+            fail_closed_reasons.append("review_packet_not_assignment_design_approved")
+            warnings.append(
+                "Review packet status must be operator_approved_assignment_design before assignment design can be ready."
+            )
+        if not review_packet.read_only or review_packet.mutation_occurred:
+            fail_closed_reasons.append("review_packet_mutation_invariant_failed")
+            warnings.append(
+                "Review packet mutation invariants were not satisfied; assignment design remains blocked."
+            )
+
+        assignment_design_policy: dict[str, object] = {
+            "schema": _ASSIGNMENT_DESIGN_VERSION,
+            "capability_name": _ASSIGNMENT_DESIGN_CAPABILITY,
+            "allowed_stage_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
+            "allowed_stage_extensions": sorted(_ALLOWED_STAGE_DEST_EXTENSIONS),
+            "allowed_level_prefix": "Levels/",
+            "allowed_level_suffix": ".prefab",
+            "required_review_status": "operator_approved_assignment_design",
+            "required_operator_decision_reference": "approve_assignment_design_only",
+            "assignment_execution_admitted": False,
+            "placement_execution_admitted": False,
+            "read_only": True,
+            "mutation_occurred": False,
+        }
+
+        fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
+        warnings = list(dict.fromkeys(warnings + review_packet.warnings))
+        blocked_reason = (
+            "Assignment design remains blocked until review, readback, and path gates succeed."
+            if fail_closed_reasons
+            else None
+        )
+
+        if fail_closed_reasons:
+            assignment_design_status: Literal["blocked", "ready-for-approval"] = "blocked"
+            next_safest_step = (
+                "Resolve fail-closed reasons, keep assignment/placement execution blocked, then rerun assignment-design planning."
+            )
+        else:
+            assignment_design_status = "ready-for-approval"
+            next_safest_step = (
+                "Keep plan-only posture and proceed to a long-hold checkpoint packet before any execution-admission discussion."
+            )
+
+        return AssetForgeO3DEAssignmentDesignRecord(
+            capability_name=_ASSIGNMENT_DESIGN_CAPABILITY,
+            maturity="plan-only",
+            assignment_design_status=assignment_design_status,
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            source_asset_relative_path=source_asset_relative_path,
+            provenance_metadata_relative_path=provenance_metadata_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            selected_platform=selected_platform,
+            review_packet_reference=review_packet_reference,
+            review_packet_status=review_packet_status,
+            operator_decision_reference=request.operator_decision_reference,
+            stage_write_evidence_reference=stage_write_evidence_reference,
+            stage_write_readback_reference=stage_write_readback_reference,
+            stage_write_readback_status=stage_write_readback_status,
+            stage_write_evidence_ready=stage_write_evidence_ready,
+            stage_write_readback_ready=stage_write_readback_ready,
+            assignment_execution_status="blocked",
+            assignment_write_admitted=False,
+            read_only=True,
+            mutation_occurred=False,
+            assignment_design_policy=assignment_design_policy,
+            requirement_checklist=requirement_checklist,
+            fail_closed_reasons=fail_closed_reasons,
+            blocked_reason=blocked_reason,
+            warnings=warnings,
+            next_safest_step=next_safest_step,
+            source="asset-forge-o3de-assignment-design",
+        )
+
     def create_o3de_placement_plan(
         self,
         request: AssetForgeO3DEPlacementPlanRequest,
@@ -2527,6 +3448,363 @@ class AssetForgeService:
             "Use stage-write plus readback evidence to prepare placement design review; keep placement execution blocked by default."
         )
 
+    def create_editor_placement_proof_only_candidate(
+        self,
+        request: AssetForgeEditorPlacementProofOnlyRequest,
+    ) -> AssetForgeEditorPlacementProofOnlyRecord:
+        staged_source_relative_path = _normalize_project_relative_path(
+            request.staged_source_relative_path
+        )
+        target_level_relative_path = _normalize_project_relative_path(
+            request.target_level_relative_path
+        )
+        target_component = request.target_component.strip() or "Mesh"
+        requested_stage_write_corridor_name = request.stage_write_corridor_name.strip()
+        stage_write_evidence_reference = request.stage_write_evidence_reference.strip()
+        stage_write_readback_reference = request.stage_write_readback_reference.strip()
+        stage_write_readback_status = request.stage_write_readback_status
+        stage_write_evidence_ready = bool(stage_write_evidence_reference)
+        stage_write_readback_ready = (
+            bool(stage_write_readback_reference) and stage_write_readback_status == "succeeded"
+        )
+        runtime_gate_enabled = _resolve_feature_flag_enabled(
+            _EDITOR_PLACEMENT_RUNTIME_GATE_ENV
+        )
+        (
+            bridge_configured,
+            bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s,
+            bridge_fail_closed_reasons,
+            bridge_warnings,
+        ) = _collect_placement_bridge_readiness_snapshot()
+        bridge_readiness_contract = _build_placement_bridge_readiness_contract(
+            capability_name=_EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY_NAME,
+            runtime_gate_env=_EDITOR_PLACEMENT_RUNTIME_GATE_ENV,
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s=bridge_heartbeat_age_s,
+            fail_closed_reasons=bridge_fail_closed_reasons,
+        )
+        (
+            admission_flag_enabled,
+            admission_flag_state,
+        ) = _resolve_editor_placement_admission_flag_state()
+        (
+            admission_packet_reference,
+            admission_operator_id,
+            evidence_bundle_reference,
+            readback_plan_reference,
+            revert_statement_contract_key,
+        ) = _resolve_placement_contract_context(
+            admission_packet_ref_env=_EDITOR_PLACEMENT_ADMISSION_PACKET_REF_ENV,
+            admission_operator_id_env=_EDITOR_PLACEMENT_ADMISSION_OPERATOR_ID_ENV,
+            evidence_bundle_ref_env=_EDITOR_PLACEMENT_EVIDENCE_BUNDLE_REF_ENV,
+            readback_plan_ref_env=_EDITOR_PLACEMENT_READBACK_PLAN_REF_ENV,
+            revert_contract_key_env=_EDITOR_PLACEMENT_REVERT_CONTRACT_KEY_ENV,
+        )
+        operator_note_present = bool(request.approval_note.strip())
+        expected_revert_statement_contract_key = _build_editor_placement_revert_contract_key(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            stage_write_corridor_name=requested_stage_write_corridor_name,
+            stage_write_evidence_reference=stage_write_evidence_reference,
+            stage_write_readback_reference=stage_write_readback_reference,
+        )
+        revert_statement_contract_match = bool(
+            revert_statement_contract_key
+            and revert_statement_contract_key == expected_revert_statement_contract_key
+        )
+        contract_evidence_ready = False
+        source_extension = Path(staged_source_relative_path).suffix.lower()
+        approval_binding = _make_server_approval_binding(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            requested_capability="asset_forge.o3de.placement.execute",
+            stage_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+        )
+        request_binding_fingerprint = _binding_fingerprint(approval_binding)
+        server_approval_evaluation = self._evaluate_server_approval_session(
+            approval_session_id=request.approval_session_id,
+            expected_capability="asset_forge.o3de.placement.execute",
+            binding=approval_binding,
+        )
+
+        fail_closed_reasons: list[str] = []
+        warnings = [
+            "Editor placement proof-only corridor is bounded and non-admitting in this packet.",
+            "No broad prefab, level, or scene mutation is admitted from this candidate surface.",
+            "Placement execution remains blocked until a separate admission decision packet.",
+        ]
+        warnings.extend(bridge_warnings)
+        warnings.append(server_approval_evaluation.reason)
+
+        if admission_flag_state == "invalid_default_off":
+            fail_closed_reasons.append("admission_flag_invalid_state")
+            warnings.append(
+                f"Admission flag {_EDITOR_PLACEMENT_ADMISSION_FLAG_ENV} is malformed; defaulting to fail-closed off."
+            )
+        elif not admission_flag_enabled:
+            fail_closed_reasons.append("admission_flag_disabled_or_missing")
+            warnings.append(
+                f"Admission flag {_EDITOR_PLACEMENT_ADMISSION_FLAG_NAME} is off; editor runtime-admission remains fail-closed."
+            )
+        else:
+            warnings.append(
+                "Admission flag is on, but this packet does not admit editor placement runtime execution."
+            )
+            if admission_packet_reference is None:
+                fail_closed_reasons.append("admission_packet_reference_missing")
+                warnings.append(
+                    f"Admission packet reference {_EDITOR_PLACEMENT_ADMISSION_PACKET_REF_ENV} is required when the admission flag is on."
+                )
+            if admission_operator_id is None:
+                fail_closed_reasons.append("admission_operator_id_missing")
+                warnings.append(
+                    f"Admission operator identity {_EDITOR_PLACEMENT_ADMISSION_OPERATOR_ID_ENV} is required when the admission flag is on."
+                )
+            if evidence_bundle_reference is None:
+                fail_closed_reasons.append("evidence_bundle_reference_missing")
+                warnings.append(
+                    f"Evidence bundle reference {_EDITOR_PLACEMENT_EVIDENCE_BUNDLE_REF_ENV} is required when the admission flag is on."
+                )
+            if readback_plan_reference is None:
+                fail_closed_reasons.append("readback_plan_reference_missing")
+                warnings.append(
+                    f"Readback plan reference {_EDITOR_PLACEMENT_READBACK_PLAN_REF_ENV} is required when the admission flag is on."
+                )
+            if revert_statement_contract_key is None:
+                fail_closed_reasons.append("revert_statement_contract_key_missing")
+                warnings.append(
+                    f"Revert statement contract key {_EDITOR_PLACEMENT_REVERT_CONTRACT_KEY_ENV} is required when the admission flag is on."
+                )
+            elif not revert_statement_contract_match:
+                fail_closed_reasons.append("revert_statement_contract_key_mismatch")
+                warnings.append(
+                    "Revert statement contract key did not match the expected exact-scope editor placement request contract."
+                )
+            contract_evidence_ready = (
+                admission_packet_reference is not None
+                and admission_operator_id is not None
+                and evidence_bundle_reference is not None
+                and readback_plan_reference is not None
+                and revert_statement_contract_match
+                and operator_note_present
+            )
+            if not contract_evidence_ready:
+                fail_closed_reasons.append("contract_evidence_incomplete")
+                warnings.append(
+                    "Editor placement runtime-admission contract evidence is incomplete; execution remains blocked and fail-closed."
+                )
+
+        if not runtime_gate_enabled:
+            fail_closed_reasons.append("runtime_gate_disabled_or_missing")
+            warnings.append(
+                f"Runtime gate {_EDITOR_PLACEMENT_RUNTIME_GATE_ENV} is off; editor placement runtime execution remains blocked."
+            )
+        if not bridge_configured:
+            fail_closed_reasons.append("bridge_not_configured")
+        if not bridge_heartbeat_fresh:
+            fail_closed_reasons.append("bridge_heartbeat_not_fresh")
+
+        if _contains_path_traversal(staged_source_relative_path):
+            fail_closed_reasons.append("staged_source_path_traversal_detected")
+            warnings.append(
+                "Staged source path contains traversal segments and is treated as blocked."
+            )
+        if _contains_path_traversal(target_level_relative_path):
+            fail_closed_reasons.append("target_level_path_traversal_detected")
+            warnings.append(
+                "Target level path contains traversal segments and is treated as blocked."
+            )
+
+        staged_source_allowlisted = staged_source_relative_path.startswith(
+            _ALLOWED_STAGE_ROOT_PREFIX
+        )
+        target_level_allowlisted = (
+            target_level_relative_path.startswith("Levels/")
+            and target_level_relative_path.endswith(".prefab")
+        )
+        source_extension_allowlisted = source_extension in _ALLOWED_STAGE_DEST_EXTENSIONS
+
+        if not staged_source_allowlisted:
+            fail_closed_reasons.append("staged_source_outside_allowlisted_prefix")
+            warnings.append(
+                "Staged source path must remain under Assets/Generated/asset_forge/."
+            )
+        if not source_extension_allowlisted:
+            fail_closed_reasons.append("staged_source_extension_not_allowlisted")
+            warnings.append(
+                "Staged source extension must be one of .obj/.fbx/.glb/.gltf."
+            )
+        if not target_level_allowlisted:
+            fail_closed_reasons.append("target_level_outside_allowlisted_prefab_scope")
+            warnings.append(
+                "Target level path must remain under Levels/ and end with .prefab."
+            )
+
+        if requested_stage_write_corridor_name != _STAGE_WRITE_CORRIDOR_NAME:
+            fail_closed_reasons.append("stage_write_corridor_mismatch")
+            warnings.append(
+                f"Stage-write corridor mismatch; expected '{_STAGE_WRITE_CORRIDOR_NAME}'."
+            )
+        if not stage_write_evidence_ready:
+            fail_closed_reasons.append("stage_write_evidence_reference_missing")
+            warnings.append(
+                "Stage-write evidence reference is required for proof-only placement candidacy."
+            )
+        if not stage_write_readback_reference:
+            fail_closed_reasons.append("stage_write_readback_reference_missing")
+            warnings.append(
+                "Stage-write readback reference is required for proof-only placement candidacy."
+            )
+        if stage_write_readback_status != "succeeded":
+            fail_closed_reasons.append("stage_write_readback_not_succeeded")
+            warnings.append(
+                "Stage-write readback status must be succeeded for proof-only placement candidacy."
+            )
+
+        if request.approval_state != "approved":
+            fail_closed_reasons.append("approval_state_not_approved")
+            warnings.append(
+                "Approval state is not approved; keep proof-only placement candidacy blocked."
+            )
+        elif not operator_note_present:
+            fail_closed_reasons.append("approval_note_missing")
+            warnings.append(
+                "Approval note is required when approval_state is approved."
+            )
+
+        if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
+            fail_closed_reasons.append(
+                f"server_approval:{server_approval_evaluation.decision_code}"
+            )
+
+        runtime_contract_bundle = _build_placement_runtime_admission_contract_bundle(
+            capability_name=_EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY_NAME,
+            request_binding=approval_binding,
+            expected_request_fingerprint=request_binding_fingerprint,
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_readiness_contract=bridge_readiness_contract,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            evidence_bundle_reference=evidence_bundle_reference,
+            readback_plan_reference=readback_plan_reference,
+            revert_statement_contract_key=revert_statement_contract_key,
+            expected_revert_statement_contract_key=expected_revert_statement_contract_key,
+            revert_statement_contract_match=revert_statement_contract_match,
+            contract_evidence_ready=contract_evidence_ready,
+            execution_performed=False,
+            readback_captured=False,
+            runtime_gate_env=_EDITOR_PLACEMENT_RUNTIME_GATE_ENV,
+            runtime_command_contract_schema=_EDITOR_PLACEMENT_RUNTIME_COMMAND_CONTRACT_SCHEMA,
+            runtime_result_contract_schema=_EDITOR_PLACEMENT_RUNTIME_RESULT_CONTRACT_SCHEMA,
+            post_run_verification_contract_schema=_EDITOR_PLACEMENT_RUNTIME_POST_RUN_VERIFICATION_CONTRACT_SCHEMA,
+            revert_scope_contract_schema=_EDITOR_PLACEMENT_RUNTIME_REVERT_SCOPE_CONTRACT_SCHEMA,
+        )
+
+        fail_closed_reasons.append("editor_placement_proof_only_execution_not_admitted")
+
+        placement_proof_policy: dict[str, object] = {
+            "schema": _EDITOR_PLACEMENT_PROOF_ONLY_CORRIDOR_NAME,
+            "capability_name": _EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY_NAME,
+            "approval_required": True,
+            "approval_note_required_when_approved": True,
+            "runtime_gate_env": _EDITOR_PLACEMENT_RUNTIME_GATE_ENV,
+            "runtime_gate_required": True,
+            "admission_flag_name": _EDITOR_PLACEMENT_ADMISSION_FLAG_NAME,
+            "admission_flag_env": _EDITOR_PLACEMENT_ADMISSION_FLAG_ENV,
+            "required_stage_write_corridor_name": _STAGE_WRITE_CORRIDOR_NAME,
+            "required_stage_write_readback_status": "succeeded",
+            "allowed_stage_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
+            "allowed_stage_extensions": sorted(_ALLOWED_STAGE_DEST_EXTENSIONS),
+            "allowed_level_prefix": "Levels/",
+            "allowed_level_suffix": ".prefab",
+            "required_admission_packet_ref_env": _EDITOR_PLACEMENT_ADMISSION_PACKET_REF_ENV,
+            "required_admission_operator_id_env": _EDITOR_PLACEMENT_ADMISSION_OPERATOR_ID_ENV,
+            "required_evidence_bundle_ref_env": _EDITOR_PLACEMENT_EVIDENCE_BUNDLE_REF_ENV,
+            "required_readback_plan_ref_env": _EDITOR_PLACEMENT_READBACK_PLAN_REF_ENV,
+            "required_revert_contract_key_env": _EDITOR_PLACEMENT_REVERT_CONTRACT_KEY_ENV,
+            "required_revert_contract_key": expected_revert_statement_contract_key,
+            "execution_admitted": False,
+            "placement_write_admitted": False,
+            "mutation_occurred": False,
+            "client_approval_is_intent_only": True,
+        }
+
+        fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
+        warnings = list(dict.fromkeys(warnings))
+        proof_status: Literal["approval-required", "blocked", "ready-for-runtime-proof"]
+        if request.approval_state != "approved":
+            proof_status = "approval-required"
+            safest_next_step = (
+                "Capture explicit approval intent and bounded stage-write/readback evidence, while keeping execution non-admitted."
+            )
+        else:
+            proof_status = "blocked"
+            safest_next_step = (
+                "Use this proof-only candidate for operator review evidence only; keep placement execution blocked and non-admitted."
+            )
+
+        return AssetForgeEditorPlacementProofOnlyRecord(
+            capability_name=_EDITOR_PLACEMENT_PROOF_ONLY_CAPABILITY_NAME,
+            corridor_name=_EDITOR_PLACEMENT_PROOF_ONLY_CORRIDOR_NAME,
+            maturity="proof-only",
+            proof_status=proof_status,
+            dry_run_only=True,
+            execution_admitted=False,
+            placement_write_admitted=False,
+            mutation_occurred=False,
+            read_only=True,
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            approval_required=True,
+            approval_state=request.approval_state,
+            server_approval_session_id=request.approval_session_id,
+            server_approval_evaluation=server_approval_evaluation,
+            runtime_gate_env=_EDITOR_PLACEMENT_RUNTIME_GATE_ENV,
+            runtime_gate_enabled=runtime_gate_enabled,
+            admission_flag_name=_EDITOR_PLACEMENT_ADMISSION_FLAG_NAME,
+            admission_flag_state=admission_flag_state,
+            admission_flag_enabled=admission_flag_enabled,
+            stage_write_corridor_name=requested_stage_write_corridor_name,
+            stage_write_evidence_reference=stage_write_evidence_reference,
+            stage_write_readback_reference=stage_write_readback_reference,
+            stage_write_readback_status=stage_write_readback_status,
+            stage_write_evidence_ready=stage_write_evidence_ready,
+            stage_write_readback_ready=stage_write_readback_ready,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            evidence_bundle_reference=evidence_bundle_reference,
+            readback_plan_reference=readback_plan_reference,
+            revert_statement_contract_key=revert_statement_contract_key,
+            revert_statement_contract_match=revert_statement_contract_match,
+            operator_note_present=operator_note_present,
+            contract_evidence_ready=contract_evidence_ready,
+            bridge_readiness_contract=bridge_readiness_contract,
+            runtime_command_contract=runtime_contract_bundle["runtime_command_contract"],
+            runtime_result_contract=runtime_contract_bundle["runtime_result_contract"],
+            post_run_verification_contract=runtime_contract_bundle[
+                "post_run_verification_contract"
+            ],
+            revert_scope_contract=runtime_contract_bundle["revert_scope_contract"],
+            fail_closed_reasons=fail_closed_reasons,
+            placement_proof_policy=placement_proof_policy,
+            warnings=warnings,
+            safest_next_step=safest_next_step,
+            source="asset-forge-editor-placement-proof-only",
+        )
+
     def read_o3de_placement_evidence(
         self,
         request: AssetForgeO3DEPlacementEvidenceRequest,
@@ -2633,18 +3911,37 @@ class AssetForgeService:
     ) -> AssetForgeO3DEPlacementHarnessRecord:
         target_component = request.target_component.strip() or "Mesh"
         selected_platform = request.selected_platform.strip().lower() or "pc"
-        runtime_gate_enabled = False
-        bridge_configured = False
-        bridge_heartbeat_fresh = False
+        runtime_gate_enabled = _resolve_feature_flag_enabled(_PLACEMENT_RUNTIME_GATE_ENV)
+        (
+            bridge_configured,
+            bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s,
+            bridge_fail_closed_reasons,
+            bridge_warnings,
+        ) = _collect_placement_bridge_readiness_snapshot()
         warnings = [
             "Packet 11 runtime harness prep does not execute placement.",
             "No level/prefab/entity mutation is performed by this endpoint.",
-            "Placement runtime bridge readiness checks are disabled in PR C.",
+            "Placement runtime execution remains non-admitted in this packet.",
         ]
+        warnings.extend(bridge_warnings)
 
         harness_status: Literal["blocked", "ready-for-admitted-runtime-harness"] = "blocked"
-        warnings.append("Runtime gate ASSET_FORGE_ENABLE_PLACEMENT_PROOF is treated as disabled in PR C.")
-        warnings.append("Bridge status is intentionally not queried by this endpoint in PR C.")
+        if not runtime_gate_enabled:
+            bridge_fail_closed_reasons.append("placement_runtime_gate_disabled")
+            warnings.append(
+                f"Runtime gate {_PLACEMENT_RUNTIME_GATE_ENV} is off; placement runtime execution remains blocked."
+            )
+        if runtime_gate_enabled and bridge_configured and bridge_heartbeat_fresh:
+            harness_status = "ready-for-admitted-runtime-harness"
+        bridge_readiness_contract = _build_placement_bridge_readiness_contract(
+            capability_name="asset_forge.o3de.placement.harness.prepare",
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s=bridge_heartbeat_age_s,
+            fail_closed_reasons=bridge_fail_closed_reasons,
+        )
 
         return AssetForgeO3DEPlacementHarnessRecord(
             capability_name="asset_forge.o3de.placement.harness.prepare",
@@ -2660,6 +3957,7 @@ class AssetForgeService:
             bridge_configured=bridge_configured,
             bridge_heartbeat_fresh=bridge_heartbeat_fresh,
             runtime_gate_enabled=runtime_gate_enabled,
+            bridge_readiness_contract=bridge_readiness_contract,
             execution_performed=False,
             read_only=True,
             warnings=warnings,
@@ -2704,28 +4002,35 @@ class AssetForgeService:
             revert_statement_contract_key
             and revert_statement_contract_key == expected_revert_statement_contract_key
         )
+        approval_binding = _make_server_approval_binding(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            requested_capability="asset_forge.o3de.placement.harness.execute",
+            stage_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            selected_platform=selected_platform,
+        )
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability="asset_forge.o3de.placement.harness.execute",
-            binding=_make_server_approval_binding(
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                requested_capability="asset_forge.o3de.placement.harness.execute",
-                stage_relative_path=staged_source_relative_path,
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                selected_platform=selected_platform,
-            ),
+            binding=approval_binding,
         )
-        runtime_gate_enabled = False
-        bridge_configured = False
-        bridge_heartbeat_fresh = False
+        runtime_gate_enabled = _resolve_feature_flag_enabled(_PLACEMENT_RUNTIME_GATE_ENV)
+        (
+            bridge_configured,
+            bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s,
+            bridge_fail_closed_reasons,
+            bridge_warnings,
+        ) = _collect_placement_bridge_readiness_snapshot()
         fail_closed_reasons: list[str] = []
         warnings = [
             "One-shot Packet 11 harness endpoint is bounded and evidence-first.",
             "This slice does not auto-apply broad scene/prefab mutation.",
-            "Placement runtime harness execution is blocked in PR C.",
+            "Placement runtime harness execution remains blocked in this packet.",
         ]
+        warnings.extend(bridge_warnings)
 
         if request.approval_state != "approved":
             fail_closed_reasons.append("approval_state_not_approved")
@@ -2774,15 +4079,45 @@ class AssetForgeService:
             warnings.append(
                 "Placement harness contract evidence is incomplete; execution remains blocked."
             )
+        if not runtime_gate_enabled:
+            fail_closed_reasons.append("placement_runtime_gate_disabled")
+            warnings.append(
+                f"Runtime gate {_PLACEMENT_RUNTIME_GATE_ENV} is off; placement runtime execution remains blocked."
+            )
+        fail_closed_reasons.extend(bridge_fail_closed_reasons)
         if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
             fail_closed_reasons.append(
                 f"server_approval:{server_approval_evaluation.decision_code}"
             )
         warnings.append("Client approval fields are treated as intent only and do not authorize execution.")
-        warnings.append("No runtime bridge calls are performed by this endpoint in PR C.")
         warnings.append(server_approval_evaluation.reason)
         fail_closed_reasons.append("placement_harness_execution_not_admitted")
         fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
+        bridge_readiness_contract = _build_placement_bridge_readiness_contract(
+            capability_name="asset_forge.o3de.placement.harness.execute",
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s=bridge_heartbeat_age_s,
+            fail_closed_reasons=fail_closed_reasons,
+        )
+        runtime_contract_bundle = _build_placement_runtime_admission_contract_bundle(
+            capability_name="asset_forge.o3de.placement.harness.execute",
+            request_binding=approval_binding,
+            expected_request_fingerprint=server_approval_evaluation.expected_request_fingerprint,
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_readiness_contract=bridge_readiness_contract,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            evidence_bundle_reference=evidence_bundle_reference,
+            readback_plan_reference=readback_plan_reference,
+            revert_statement_contract_key=revert_statement_contract_key,
+            expected_revert_statement_contract_key=expected_revert_statement_contract_key,
+            revert_statement_contract_match=revert_statement_contract_match,
+            contract_evidence_ready=contract_evidence_ready,
+            execution_performed=False,
+            readback_captured=False,
+        )
         return AssetForgeO3DEPlacementHarnessExecuteRecord(
             capability_name="asset_forge.o3de.placement.harness.execute",
             maturity="proof-only",
@@ -2797,6 +4132,7 @@ class AssetForgeService:
             bridge_configured=bridge_configured,
             bridge_heartbeat_fresh=bridge_heartbeat_fresh,
             runtime_gate_enabled=runtime_gate_enabled,
+            bridge_readiness_contract=bridge_readiness_contract,
             approval_state=request.approval_state,
             server_approval_session_id=request.approval_session_id,
             server_approval_evaluation=server_approval_evaluation,
@@ -2806,6 +4142,10 @@ class AssetForgeService:
             readback_plan_reference=readback_plan_reference,
             revert_statement_contract_key=revert_statement_contract_key,
             revert_statement_contract_match=revert_statement_contract_match,
+            runtime_command_contract=runtime_contract_bundle["runtime_command_contract"],
+            runtime_result_contract=runtime_contract_bundle["runtime_result_contract"],
+            post_run_verification_contract=runtime_contract_bundle["post_run_verification_contract"],
+            revert_scope_contract=runtime_contract_bundle["revert_scope_contract"],
             operator_note_present=operator_note_present,
             contract_evidence_ready=contract_evidence_ready,
             fail_closed_reasons=fail_closed_reasons,
@@ -2825,9 +4165,14 @@ class AssetForgeService:
         request: AssetForgeO3DEPlacementLiveProofRequest,
     ) -> AssetForgeO3DEPlacementLiveProofRecord:
         selected_platform = request.selected_platform.strip().lower() or "pc"
-        runtime_gate_enabled = False
-        bridge_configured = False
-        bridge_heartbeat_fresh = False
+        runtime_gate_enabled = _resolve_feature_flag_enabled(_PLACEMENT_RUNTIME_GATE_ENV)
+        (
+            bridge_configured,
+            bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s,
+            bridge_fail_closed_reasons,
+            bridge_warnings,
+        ) = _collect_placement_bridge_readiness_snapshot()
         operator_note_present = bool(request.approval_note.strip())
         target_level_relative_path = _normalize_project_relative_path(request.target_level_relative_path)
         (
@@ -2854,23 +4199,24 @@ class AssetForgeService:
             revert_statement_contract_key
             and revert_statement_contract_key == expected_revert_statement_contract_key
         )
+        approval_binding = _make_server_approval_binding(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            requested_capability="asset_forge.o3de.placement.live_proof",
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            selected_platform=selected_platform,
+        )
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability="asset_forge.o3de.placement.live_proof",
-            binding=_make_server_approval_binding(
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                requested_capability="asset_forge.o3de.placement.live_proof",
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                selected_platform=selected_platform,
-            ),
+            binding=approval_binding,
         )
         warnings = [
-            "Live proof runtime execution is blocked in PR C.",
+            "Live proof runtime execution remains blocked in this packet.",
             "No broad prefab or scene mutation is performed in this packet.",
-            "No runtime bridge calls are performed by this endpoint in PR C.",
         ]
+        warnings.extend(bridge_warnings)
         warnings.append(server_approval_evaluation.reason)
         revert_statement = "No mutation was admitted by this proof path; no revert action required."
         fail_closed_reasons: list[str] = []
@@ -2921,6 +4267,12 @@ class AssetForgeService:
             warnings.append(
                 "Placement live-proof contract evidence is incomplete; execution remains blocked."
             )
+        if not runtime_gate_enabled:
+            fail_closed_reasons.append("placement_runtime_gate_disabled")
+            warnings.append(
+                f"Runtime gate {_PLACEMENT_RUNTIME_GATE_ENV} is off; placement runtime execution remains blocked."
+            )
+        fail_closed_reasons.extend(bridge_fail_closed_reasons)
         if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
             fail_closed_reasons.append(
                 f"server_approval:{server_approval_evaluation.decision_code}"
@@ -2933,6 +4285,31 @@ class AssetForgeService:
         )
         fail_closed_reasons.append("placement_live_proof_execution_not_admitted")
         fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
+        bridge_readiness_contract = _build_placement_bridge_readiness_contract(
+            capability_name="asset_forge.o3de.placement.live_proof",
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            bridge_heartbeat_age_s=bridge_heartbeat_age_s,
+            fail_closed_reasons=fail_closed_reasons,
+        )
+        runtime_contract_bundle = _build_placement_runtime_admission_contract_bundle(
+            capability_name="asset_forge.o3de.placement.live_proof",
+            request_binding=approval_binding,
+            expected_request_fingerprint=server_approval_evaluation.expected_request_fingerprint,
+            runtime_gate_enabled=runtime_gate_enabled,
+            bridge_readiness_contract=bridge_readiness_contract,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            evidence_bundle_reference=evidence_bundle_reference,
+            readback_plan_reference=readback_plan_reference,
+            revert_statement_contract_key=revert_statement_contract_key,
+            expected_revert_statement_contract_key=expected_revert_statement_contract_key,
+            revert_statement_contract_match=revert_statement_contract_match,
+            contract_evidence_ready=contract_evidence_ready,
+            execution_performed=False,
+            readback_captured=False,
+        )
         return AssetForgeO3DEPlacementLiveProofRecord(
             capability_name="asset_forge.o3de.placement.live_proof",
             maturity="proof-only",
@@ -2945,6 +4322,7 @@ class AssetForgeService:
             bridge_configured=bridge_configured,
             bridge_heartbeat_fresh=bridge_heartbeat_fresh,
             runtime_gate_enabled=runtime_gate_enabled,
+            bridge_readiness_contract=bridge_readiness_contract,
             server_approval_session_id=request.approval_session_id,
             server_approval_evaluation=server_approval_evaluation,
             admission_packet_reference=admission_packet_reference,
@@ -2953,6 +4331,10 @@ class AssetForgeService:
             readback_plan_reference=readback_plan_reference,
             revert_statement_contract_key=revert_statement_contract_key,
             revert_statement_contract_match=revert_statement_contract_match,
+            runtime_command_contract=runtime_contract_bundle["runtime_command_contract"],
+            runtime_result_contract=runtime_contract_bundle["runtime_result_contract"],
+            post_run_verification_contract=runtime_contract_bundle["post_run_verification_contract"],
+            revert_scope_contract=runtime_contract_bundle["revert_scope_contract"],
             operator_note_present=operator_note_present,
             contract_evidence_ready=contract_evidence_ready,
             fail_closed_reasons=fail_closed_reasons,

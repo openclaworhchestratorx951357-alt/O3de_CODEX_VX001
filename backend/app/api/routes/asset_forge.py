@@ -7,6 +7,10 @@ from app.models.asset_forge import (
     AssetForgeStudioStatusRecord,
     AssetForgeO3DEReadbackRecord,
     AssetForgeO3DEReadbackRequest,
+    AssetForgeO3DEReviewPacketRecord,
+    AssetForgeO3DEReviewPacketRequest,
+    AssetForgeO3DEAssignmentDesignRecord,
+    AssetForgeO3DEAssignmentDesignRequest,
     AssetForgeO3DEPlacementPlanRecord,
     AssetForgeO3DEPlacementPlanRequest,
     AssetForgeO3DEPlacementHarnessRecord,
@@ -18,6 +22,8 @@ from app.models.asset_forge import (
     AssetForgePlacementEvidenceIndexRecord,
     AssetForgeO3DEPlacementEvidenceRecord,
     AssetForgeO3DEPlacementEvidenceRequest,
+    AssetForgeEditorPlacementProofOnlyRecord,
+    AssetForgeEditorPlacementProofOnlyRequest,
     AssetForgeO3DEPlacementProofRecord,
     AssetForgeO3DEPlacementProofRequest,
     AssetForgeO3DEStagePlanRecord,
@@ -156,6 +162,26 @@ def read_asset_forge_o3de_ingest_evidence(
 
 
 @router.post(
+    "/asset-forge/o3de/review-packet",
+    response_model=AssetForgeO3DEReviewPacketRecord,
+)
+def create_asset_forge_o3de_operator_review_packet(
+    request: AssetForgeO3DEReviewPacketRequest,
+) -> AssetForgeO3DEReviewPacketRecord:
+    return asset_forge_service.create_o3de_operator_review_packet(request)
+
+
+@router.post(
+    "/asset-forge/o3de/assignment-design",
+    response_model=AssetForgeO3DEAssignmentDesignRecord,
+)
+def create_asset_forge_o3de_assignment_design(
+    request: AssetForgeO3DEAssignmentDesignRequest,
+) -> AssetForgeO3DEAssignmentDesignRecord:
+    return asset_forge_service.create_o3de_assignment_design(request)
+
+
+@router.post(
     "/asset-forge/o3de/placement-plan",
     response_model=AssetForgeO3DEPlacementPlanRecord,
 )
@@ -173,6 +199,16 @@ def execute_asset_forge_o3de_placement_proof(
     request: AssetForgeO3DEPlacementProofRequest,
 ) -> AssetForgeO3DEPlacementProofRecord:
     return asset_forge_service.execute_o3de_placement_proof(request)
+
+
+@router.post(
+    "/asset-forge/o3de/editor-placement-proof-only",
+    response_model=AssetForgeEditorPlacementProofOnlyRecord,
+)
+def create_asset_forge_o3de_editor_placement_proof_only_candidate(
+    request: AssetForgeEditorPlacementProofOnlyRequest,
+) -> AssetForgeEditorPlacementProofOnlyRecord:
+    return asset_forge_service.create_editor_placement_proof_only_candidate(request)
 
 
 @router.post(

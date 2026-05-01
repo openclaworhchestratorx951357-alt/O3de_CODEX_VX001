@@ -21,11 +21,16 @@ Validation intake endpoint-candidate admission audit/review packet.
 - no execution or mutation admission changes
 
 ## Safety constraints
-- no runtime bridge execution changes
-- no provider/Blender/Asset Processor execution
+- no provider generation
+- no Blender execution
+- no Asset Processor admission/execute
+- no generated-asset assignment execution
 - no placement execution
-- no project file mutation
+- no editor broad mutation admission
+- no broad project mutation
 - no client approval fields treated as authorization
+- no runtime admission broadening in this packet
+- no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
 - endpoint remains blocked for missing/invalid/explicit-off flag states

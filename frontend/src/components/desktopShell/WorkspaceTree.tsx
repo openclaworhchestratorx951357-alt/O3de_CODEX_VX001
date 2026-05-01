@@ -166,13 +166,14 @@ const currentWorkspacePillStyle = {
   gap: 5,
   width: "fit-content",
   maxWidth: "100%",
-  border: "1px solid var(--app-accent-strong)",
+  border: "1px solid var(--app-active-border)",
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 9px",
-  background: "var(--app-accent-soft)",
+  background: "var(--app-active-bg)",
   color: "var(--app-text-color)",
   fontSize: 12,
   lineHeight: 1.25,
+  boxShadow: "var(--app-active-shadow)",
 } satisfies CSSProperties;
 
 const navScrollableRegionStyle = {
@@ -188,9 +189,9 @@ const navScrollableRegionStyle = {
 const navGroupStyle = {
   display: "grid",
   gap: 0,
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid var(--app-panel-border-strong)",
   borderRadius: "var(--app-panel-radius)",
-  background: "var(--app-panel-bg-alt)",
+  background: "var(--app-panel-elevated)",
   boxShadow: "var(--app-shadow-soft)",
   overflow: "hidden",
 } satisfies CSSProperties;
@@ -244,7 +245,7 @@ const navButtonStyle = {
   borderColor: "var(--app-panel-border)",
   borderRadius: "calc(var(--app-panel-radius) - 4px)",
   padding: "8px 10px",
-  background: "var(--app-panel-bg-alt)",
+  background: "linear-gradient(155deg, var(--app-panel-bg-alt) 0%, var(--app-panel-bg-muted) 100%)",
   cursor: "pointer",
   textAlign: "left",
   display: "grid",
@@ -257,9 +258,9 @@ const navButtonStyle = {
 } satisfies CSSProperties;
 
 const activeNavButtonStyle = {
-  borderColor: "var(--app-accent-strong)",
-  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
-  boxShadow: "var(--app-shadow-strong)",
+  borderColor: "var(--app-active-border)",
+  background: "var(--app-active-bg)",
+  boxShadow: "var(--app-active-shadow)",
 } satisfies CSSProperties;
 
 const navButtonHeaderStyle = {

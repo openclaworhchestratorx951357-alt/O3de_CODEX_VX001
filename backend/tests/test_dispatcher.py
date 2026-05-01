@@ -890,6 +890,27 @@ def approve_editor_component_add_request() -> RequestEnvelope:
     return approved_request
 
 
+def make_editor_placement_proof_only_request() -> RequestEnvelope:
+    request = make_request("editor-control", "editor.placement.proof_only")
+    request.args = {
+        "candidate_id": "candidate-a",
+        "candidate_label": "Weathered Ivy Arch",
+        "staged_source_relative_path": (
+            "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        ),
+        "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        "target_entity_name": "AssetForgeCandidateA",
+        "target_component": "Mesh",
+        "approval_state": "approved",
+        "approval_note": "bounded proof-only review",
+        "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+        "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+        "stage_write_readback_reference": "packet-10/readback-evidence.json",
+        "stage_write_readback_status": "succeeded",
+    }
+    return request
+
+
 def make_editor_entity_exists_request() -> RequestEnvelope:
     request = make_request("editor-control", "editor.entity.exists")
     request.args = {
@@ -8132,6 +8153,54 @@ def test_editor_component_add_simulated_persisted_payloads_match_published_schem
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="editor.component.add",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_placement_proof_only_hybrid_persisted_payloads_match_published_schemas(
+    ) -> None:
+    with isolated_database():
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_editor_placement_proof_only_request()
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.tool == "editor.placement.proof_only"
+        assert response.result.simulated is True
+        assert response.result.execution_mode == "simulated"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["capability_name"] == "editor.placement.proof_only"
+        assert execution.details["execution_admitted"] is False
+        assert execution.details["placement_write_admitted"] is False
+        assert execution.details["mutation_occurred"] is False
+        assert execution.details["source"] == "asset-forge-editor-placement-proof-only"
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["tool"] == "editor.placement.proof_only"
+        assert artifact.metadata["agent"] == "editor-control"
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.placement.proof_only",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.placement.proof_only",
                 payload=artifact.metadata,
             )
             == []

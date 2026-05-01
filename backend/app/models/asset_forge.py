@@ -342,6 +342,78 @@ class AssetForgeO3DEReadbackRecord(BaseModel):
     source: str = Field(..., min_length=1)
 
 
+class AssetForgeO3DEReviewPacketRequest(BaseModel):
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    source_asset_relative_path: str = Field(..., min_length=1)
+    provenance_metadata_relative_path: str = Field(..., min_length=1)
+    selected_platform: str = Field(default="pc", min_length=1)
+    operator_decision: Literal[
+        "pending",
+        "reject",
+        "request_regeneration",
+        "request_cleanup",
+        "request_license_review",
+        "approve_internal_prototype",
+        "approve_assignment_design_only",
+    ] = "pending"
+
+
+class AssetForgeO3DEReviewPacketRecord(BaseModel):
+    capability_name: str = Field(..., min_length=1)
+    maturity: Literal["proof-only"]
+    review_packet_version: str = Field(..., min_length=1)
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    asset_slug: str | None = None
+    project_root: str | None = None
+    project_name: str | None = None
+    selected_platform: str = Field(..., min_length=1)
+    source_asset_path: str = Field(..., min_length=1)
+    provenance_metadata_path: str = Field(..., min_length=1)
+    source_asset_sha256: str | None = None
+    read_only: bool
+    mutation_occurred: bool
+    review_status: Literal[
+        "missing_provenance",
+        "missing_source_asset",
+        "asset_processor_not_run",
+        "asset_processor_failed",
+        "asset_processor_warnings_need_review",
+        "asset_database_missing",
+        "source_not_found",
+        "product_not_found",
+        "dependency_rows_missing",
+        "catalog_presence_missing",
+        "license_review_required",
+        "quality_review_required",
+        "ready_for_operator_decision",
+        "operator_rejected",
+        "operator_requested_regeneration",
+        "operator_requested_cleanup",
+        "operator_approved_internal_prototype",
+        "operator_approved_assignment_design",
+    ]
+    blocked_reason: str | None = None
+    operator_decision: Literal[
+        "pending",
+        "reject",
+        "request_regeneration",
+        "request_cleanup",
+        "request_license_review",
+        "approve_internal_prototype",
+        "approve_assignment_design_only",
+    ]
+    next_safest_step: str = Field(..., min_length=1)
+    provenance: dict[str, object] = Field(default_factory=dict)
+    o3de_source: dict[str, object] = Field(default_factory=dict)
+    asset_processor: dict[str, object] = Field(default_factory=dict)
+    phase9_readback: dict[str, object] = Field(default_factory=dict)
+    quality_review: dict[str, object] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    source: str = Field(..., min_length=1)
+
+
 class AssetForgeO3DEPlacementPlanRequest(BaseModel):
     candidate_id: str = Field(..., min_length=1)
     candidate_label: str = Field(..., min_length=1)
@@ -349,6 +421,72 @@ class AssetForgeO3DEPlacementPlanRequest(BaseModel):
     target_level_relative_path: str = Field(..., min_length=1)
     target_entity_name: str = Field(..., min_length=1)
     target_component: str = Field(default="Mesh", min_length=1)
+
+
+class AssetForgeO3DEAssignmentDesignRequest(BaseModel):
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    source_asset_relative_path: str = Field(..., min_length=1)
+    provenance_metadata_relative_path: str = Field(..., min_length=1)
+    target_level_relative_path: str = Field(..., min_length=1)
+    target_entity_name: str = Field(..., min_length=1)
+    target_component: str = Field(default="Mesh", min_length=1)
+    selected_platform: str = Field(default="pc", min_length=1)
+    operator_decision_reference: Literal[
+        "pending",
+        "reject",
+        "request_regeneration",
+        "request_cleanup",
+        "request_license_review",
+        "approve_internal_prototype",
+        "approve_assignment_design_only",
+    ] = "approve_assignment_design_only"
+    review_packet_reference: str = Field(default="", min_length=0)
+    stage_write_evidence_reference: str = Field(default="", min_length=0)
+    stage_write_readback_reference: str = Field(default="", min_length=0)
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"] = "not_run"
+    approval_session_id: str | None = None
+
+
+class AssetForgeO3DEAssignmentDesignRecord(BaseModel):
+    capability_name: str = Field(..., min_length=1)
+    maturity: Literal["plan-only"]
+    assignment_design_status: Literal["blocked", "ready-for-approval"]
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    source_asset_relative_path: str = Field(..., min_length=1)
+    provenance_metadata_relative_path: str = Field(..., min_length=1)
+    target_level_relative_path: str = Field(..., min_length=1)
+    target_entity_name: str = Field(..., min_length=1)
+    target_component: str = Field(..., min_length=1)
+    selected_platform: str = Field(..., min_length=1)
+    review_packet_reference: str = Field(default="", min_length=0)
+    review_packet_status: str = Field(..., min_length=1)
+    operator_decision_reference: Literal[
+        "pending",
+        "reject",
+        "request_regeneration",
+        "request_cleanup",
+        "request_license_review",
+        "approve_internal_prototype",
+        "approve_assignment_design_only",
+    ]
+    stage_write_evidence_reference: str = Field(default="", min_length=0)
+    stage_write_readback_reference: str = Field(default="", min_length=0)
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"]
+    stage_write_evidence_ready: bool
+    stage_write_readback_ready: bool
+    assignment_execution_status: Literal["blocked"]
+    assignment_write_admitted: bool
+    read_only: bool
+    mutation_occurred: bool
+    assignment_design_policy: dict[str, object] = Field(default_factory=dict)
+    requirement_checklist: list[str] = Field(default_factory=list)
+    fail_closed_reasons: list[str] = Field(default_factory=list)
+    blocked_reason: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    next_safest_step: str = Field(..., min_length=1)
+    source: str = Field(..., min_length=1)
 
 
 class AssetForgeO3DEPlacementPlanRecord(BaseModel):
@@ -373,6 +511,25 @@ class AssetForgeO3DEPlacementPlanRecord(BaseModel):
 
 
 class AssetForgeO3DEPlacementProofRequest(BaseModel):
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    staged_source_relative_path: str = Field(..., min_length=1)
+    target_level_relative_path: str = Field(..., min_length=1)
+    target_entity_name: str = Field(..., min_length=1)
+    target_component: str = Field(default="Mesh", min_length=1)
+    approval_state: Literal["not-approved", "approved"] = "not-approved"
+    approval_note: str = Field(default="", min_length=0)
+    approval_session_id: str | None = None
+    stage_write_corridor_name: str = Field(
+        default="asset_forge.o3de.stage_write.v1",
+        min_length=1,
+    )
+    stage_write_evidence_reference: str = Field(default="", min_length=0)
+    stage_write_readback_reference: str = Field(default="", min_length=0)
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"] = "not_run"
+
+
+class AssetForgeEditorPlacementProofOnlyRequest(BaseModel):
     candidate_id: str = Field(..., min_length=1)
     candidate_label: str = Field(..., min_length=1)
     staged_source_relative_path: str = Field(..., min_length=1)
@@ -441,6 +598,62 @@ class AssetForgeO3DEPlacementProofRecord(BaseModel):
     source: str = Field(..., min_length=1)
 
 
+class AssetForgeEditorPlacementProofOnlyRecord(BaseModel):
+    capability_name: str = Field(..., min_length=1)
+    corridor_name: str = Field(..., min_length=1)
+    maturity: Literal["proof-only"]
+    proof_status: Literal["approval-required", "blocked", "ready-for-runtime-proof"]
+    dry_run_only: bool
+    execution_admitted: bool
+    placement_write_admitted: bool
+    mutation_occurred: bool
+    read_only: bool
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    staged_source_relative_path: str = Field(..., min_length=1)
+    target_level_relative_path: str = Field(..., min_length=1)
+    target_entity_name: str = Field(..., min_length=1)
+    target_component: str = Field(..., min_length=1)
+    approval_required: bool
+    approval_state: Literal["not-approved", "approved"]
+    server_approval_session_id: str | None = None
+    server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
+    runtime_gate_env: str = Field(..., min_length=1)
+    runtime_gate_enabled: bool
+    admission_flag_name: str = Field(..., min_length=1)
+    admission_flag_state: Literal[
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    ]
+    admission_flag_enabled: bool
+    stage_write_corridor_name: str = Field(..., min_length=1)
+    stage_write_evidence_reference: str = Field(default="", min_length=0)
+    stage_write_readback_reference: str = Field(default="", min_length=0)
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"]
+    stage_write_evidence_ready: bool
+    stage_write_readback_ready: bool
+    admission_packet_reference: str | None = None
+    admission_operator_id: str | None = None
+    evidence_bundle_reference: str | None = None
+    readback_plan_reference: str | None = None
+    revert_statement_contract_key: str | None = None
+    revert_statement_contract_match: bool
+    operator_note_present: bool
+    contract_evidence_ready: bool
+    bridge_readiness_contract: dict[str, object] = Field(default_factory=dict)
+    runtime_command_contract: dict[str, object] = Field(default_factory=dict)
+    runtime_result_contract: dict[str, object] = Field(default_factory=dict)
+    post_run_verification_contract: dict[str, object] = Field(default_factory=dict)
+    revert_scope_contract: dict[str, object] = Field(default_factory=dict)
+    fail_closed_reasons: list[str] = Field(default_factory=list)
+    placement_proof_policy: dict[str, object] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    safest_next_step: str = Field(..., min_length=1)
+    source: str = Field(..., min_length=1)
+
+
 class AssetForgeO3DEPlacementEvidenceRequest(BaseModel):
     candidate_id: str = Field(..., min_length=1)
     candidate_label: str = Field(..., min_length=1)
@@ -501,6 +714,7 @@ class AssetForgeO3DEPlacementHarnessRecord(BaseModel):
     bridge_configured: bool
     bridge_heartbeat_fresh: bool
     runtime_gate_enabled: bool
+    bridge_readiness_contract: dict[str, object] = Field(default_factory=dict)
     execution_performed: bool
     read_only: bool
     warnings: list[str] = Field(default_factory=list)
@@ -535,6 +749,7 @@ class AssetForgeO3DEPlacementHarnessExecuteRecord(BaseModel):
     bridge_configured: bool
     bridge_heartbeat_fresh: bool
     runtime_gate_enabled: bool
+    bridge_readiness_contract: dict[str, object] = Field(default_factory=dict)
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
     server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
@@ -544,6 +759,10 @@ class AssetForgeO3DEPlacementHarnessExecuteRecord(BaseModel):
     readback_plan_reference: str | None = None
     revert_statement_contract_key: str | None = None
     revert_statement_contract_match: bool
+    runtime_command_contract: dict[str, object] = Field(default_factory=dict)
+    runtime_result_contract: dict[str, object] = Field(default_factory=dict)
+    post_run_verification_contract: dict[str, object] = Field(default_factory=dict)
+    revert_scope_contract: dict[str, object] = Field(default_factory=dict)
     operator_note_present: bool
     contract_evidence_ready: bool
     fail_closed_reasons: list[str] = Field(default_factory=list)
@@ -579,6 +798,7 @@ class AssetForgeO3DEPlacementLiveProofRecord(BaseModel):
     bridge_configured: bool
     bridge_heartbeat_fresh: bool
     runtime_gate_enabled: bool
+    bridge_readiness_contract: dict[str, object] = Field(default_factory=dict)
     server_approval_session_id: str | None = None
     server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
     admission_packet_reference: str | None = None
@@ -587,6 +807,10 @@ class AssetForgeO3DEPlacementLiveProofRecord(BaseModel):
     readback_plan_reference: str | None = None
     revert_statement_contract_key: str | None = None
     revert_statement_contract_match: bool
+    runtime_command_contract: dict[str, object] = Field(default_factory=dict)
+    runtime_result_contract: dict[str, object] = Field(default_factory=dict)
+    post_run_verification_contract: dict[str, object] = Field(default_factory=dict)
+    revert_scope_contract: dict[str, object] = Field(default_factory=dict)
     operator_note_present: bool
     contract_evidence_ready: bool
     fail_closed_reasons: list[str] = Field(default_factory=list)

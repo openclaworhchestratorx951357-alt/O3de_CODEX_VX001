@@ -1,9 +1,13 @@
-import { Suspense, lazy, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import type { HomeTaskModeId } from "../HomeTaskModePanel";
+import HomeCockpitLaunchPanel from "../HomeCockpitLaunchPanel";
+import MissionCardDeck from "../MissionCardDeck";
+import MissionTruthRail from "../MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
+import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 
 type HomeSurfaceId = "start" | "mission-control" | "guidebook";
 
@@ -12,12 +16,32 @@ type HomeWorkspaceViewProps = {
   launchpadContent: ReactNode;
   overviewContent: ReactNode;
   guideContent: ReactNode;
-  activeTaskModeId?: HomeTaskModeId;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
-  onOpenBuilder?: () => void;
   onOpenAssetForge?: () => void;
-  onActiveTaskModeChange?: (modeId: HomeTaskModeId) => void;
+  onOpenRecords?: () => void;
+  onOpenCreateGame?: () => void;
+  onOpenCreateMovie?: () => void;
+  onOpenLoadProject?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchCreateEntityTemplate?: () => void;
+  onLaunchAddMeshTemplate?: () => void;
+  onLaunchPlacementProofTemplate?: () => void;
+  onViewLatestRun?: () => void;
+  onViewExecution?: () => void;
+  onViewArtifact?: () => void;
+  onViewEvidence?: () => void;
+  onOpenPromptSessionDetail?: (promptId: string) => void;
+  onOpenExecutionDetail?: (executionId: string) => void;
+  onOpenArtifactDetail?: (artifactId: string) => void;
+  onOpenRunDetail?: (runId: string) => void;
+  bridgeStatus?: O3DEBridgeStatus | null;
+  adapters?: AdaptersResponse | null;
+  readiness?: ReadinessStatus | null;
+  latestRunId?: string | null;
+  latestExecutionId?: string | null;
+  latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
 };
 
 const missionControlWindow = getShellWorkspaceWindowGuide("home", "mission-control");
@@ -25,7 +49,6 @@ const launchpadWindow = getShellWorkspaceWindowGuide("home", "launchpad");
 const overviewWindow = getShellWorkspaceWindowGuide("home", "operator-overview");
 const guidebookWindow = getShellWorkspaceWindowGuide("home", "guidebook");
 const homeWorkspace = getShellWorkspaceGuide("home");
-const HomeTaskModePanel = lazy(() => import("../HomeTaskModePanel"));
 
 const items: DesktopTabStripItem[] = [
   {
@@ -53,12 +76,32 @@ export default function HomeWorkspaceView({
   launchpadContent,
   overviewContent,
   guideContent,
-  activeTaskModeId,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
-  onOpenBuilder,
   onOpenAssetForge,
-  onActiveTaskModeChange,
+  onOpenRecords,
+  onOpenCreateGame,
+  onOpenCreateMovie,
+  onOpenLoadProject,
+  onLaunchInspectTemplate,
+  onLaunchCreateEntityTemplate,
+  onLaunchAddMeshTemplate,
+  onLaunchPlacementProofTemplate,
+  onViewLatestRun,
+  onViewExecution,
+  onViewArtifact,
+  onViewEvidence,
+  onOpenPromptSessionDetail,
+  onOpenExecutionDetail,
+  onOpenArtifactDetail,
+  onOpenRunDetail,
+  bridgeStatus,
+  adapters,
+  readiness,
+  latestRunId,
+  latestExecutionId,
+  latestArtifactId,
+  latestPlacementProofOnlyReview,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
 
@@ -90,16 +133,60 @@ export default function HomeWorkspaceView({
     >
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
-          <Suspense fallback={<div style={taskModeLoadingStyle}>Loading task launcher...</div>}>
-            <HomeTaskModePanel
-              activeModeId={activeTaskModeId}
-              onOpenPromptStudio={onOpenPromptStudio}
-              onOpenRuntimeOverview={onOpenRuntimeOverview}
-              onOpenBuilder={onOpenBuilder}
-              onOpenAssetForge={onOpenAssetForge}
-              onActiveModeChange={onActiveTaskModeChange}
-            />
-          </Suspense>
+          <MissionTruthRail
+            locationLabel="Home / Start Here"
+            projectLabel="active operator target"
+            projectPath={bridgeStatus?.project_root ?? null}
+            bridgeStatus={bridgeStatus}
+            adapters={adapters}
+            readiness={readiness}
+            currentExecutionMode={readiness?.execution_mode ?? null}
+            executionAdmitted={false}
+            placementWriteAdmitted={false}
+            mutationOccurred={false}
+            latestRunId={latestRunId ?? null}
+            latestExecutionId={latestExecutionId ?? null}
+            latestArtifactId={latestArtifactId ?? null}
+            latestPlacementProofOnlyReview={latestPlacementProofOnlyReview ?? null}
+            nextSafeAction="Choose a mission card, open Prompt Studio, then run one bounded admitted/proof-only step and review evidence."
+            onViewLatestRun={onViewLatestRun}
+            onViewExecution={onViewExecution}
+            onViewArtifact={onViewArtifact}
+            onViewEvidence={onViewEvidence}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenRecords={onOpenRecords}
+            onOpenPromptSessionDetail={onOpenPromptSessionDetail}
+            onOpenExecutionDetail={onOpenExecutionDetail}
+            onOpenArtifactDetail={onOpenArtifactDetail}
+            onOpenRunDetail={onOpenRunDetail}
+          />
+          <MissionCardDeck
+            latestRunId={latestRunId ?? null}
+            latestExecutionId={latestExecutionId ?? null}
+            latestArtifactId={latestArtifactId ?? null}
+            onViewLatestRun={onViewLatestRun}
+            onViewExecution={onViewExecution}
+            onViewArtifact={onViewArtifact}
+            onViewEvidence={onViewEvidence}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenAssetForge={onOpenAssetForge}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenRecords={onOpenRecords}
+            onLaunchInspectTemplate={onLaunchInspectTemplate}
+            onLaunchCreateEntityTemplate={onLaunchCreateEntityTemplate}
+            onLaunchAddMeshTemplate={onLaunchAddMeshTemplate}
+            onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
+          />
+          <HomeCockpitLaunchPanel
+            onOpenCreateGame={onOpenCreateGame}
+            onOpenCreateMovie={onOpenCreateMovie}
+            onOpenLoadProject={onOpenLoadProject}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenAssetForge={onOpenAssetForge}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenRecords={onOpenRecords}
+          />
           <DesktopWindow
             variant="nested"
             title={missionControlWindow.title}
@@ -166,14 +253,4 @@ const guidedGridStyle = {
 const guidedShellStyle = {
   display: "grid",
   gap: 16,
-} satisfies CSSProperties;
-
-const taskModeLoadingStyle = {
-  minHeight: 120,
-  display: "grid",
-  placeItems: "center",
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  background: "var(--app-panel-bg-muted)",
-  color: "var(--app-text-muted)",
 } satisfies CSSProperties;

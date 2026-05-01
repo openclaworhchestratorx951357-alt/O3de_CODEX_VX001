@@ -10,7 +10,6 @@ import WorkspaceNextStepsPanel, {
 import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
 import AppControlCommandCenter from "./components/AppControlCommandCenter";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
-import type { HomeTaskModeId } from "./components/HomeTaskModePanel";
 import SettingsPanel from "./components/SettingsPanel";
 import type { HomeOverviewPanelDeckProps } from "./components/HomeOverviewPanelDeck";
 import {
@@ -71,6 +70,18 @@ import {
   resetPresetLaneFocus,
 } from "./lib/laneController";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
+import {
+  addAllowlistedMeshMissionPromptDraft,
+  cinematicPlacementProofOnlyMissionPromptDraft,
+  createCinematicCameraPlaceholderMissionPromptDraft,
+  createGameEntityMissionPromptDraft,
+  inspectCinematicTargetMissionPromptDraft,
+  inspectLoadProjectMissionPromptDraft,
+  inspectProjectMissionPromptDraft,
+  placementProofOnlyMissionPromptDraft,
+  type MissionPromptDraft,
+} from "./lib/missionPromptTemplates";
+import type { PlacementProofOnlyReviewSnapshot } from "./lib/promptPlacementProofOnlyReview";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
 import type {
@@ -112,6 +123,9 @@ const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/Build
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
 const RecordsWorkspaceDesktop = lazy(() => import("./components/workspaces/RecordsWorkspaceDesktop"));
 const RuntimeWorkspaceDesktop = lazy(() => import("./components/workspaces/RuntimeWorkspaceDesktop"));
+const CreateGameWorkspaceView = lazy(() => import("./components/workspaces/CreateGameWorkspaceView"));
+const CreateMovieWorkspaceView = lazy(() => import("./components/workspaces/CreateMovieWorkspaceView"));
+const LoadProjectWorkspaceView = lazy(() => import("./components/workspaces/LoadProjectWorkspaceView"));
 
 type ToolsCatalog = {
   agents: CatalogAgent[];
@@ -229,6 +243,9 @@ type LanePresetSource = "manual" | "session";
 
 type DesktopWorkspaceId =
   | "home"
+  | "create-game"
+  | "create-movie"
+  | "load-project"
   | "asset-forge"
   | "prompt"
   | "builder"
@@ -236,11 +253,79 @@ type DesktopWorkspaceId =
   | "runtime"
   | "records";
 
-type DesktopNavItemId =
-  | DesktopWorkspaceId
-  | "home-o3de-game"
-  | "home-o3de-cinematic"
-  | "home-load-project";
+type DesktopNavItemId = DesktopWorkspaceId;
+
+type PromptLaunchDraftRequest = {
+  requestId: string;
+  draft: MissionPromptDraft;
+  sourceSurfaceLabel?: string | null;
+  launchedAtIso?: string | null;
+  sourceWorkspaceId?: DesktopWorkspaceId | null;
+};
+
+type PromptSessionFocusRequest = {
+  requestId: string;
+  promptId: string;
+  sourceSurfaceLabel?: string | null;
+};
+
+type PromptEvidenceContext = {
+  id: string;
+  promptSessionId: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  openedAtIso: string;
+};
+
+type RecordsEvidenceContext = {
+  id: string;
+  targetKind: "run" | "execution" | "artifact";
+  targetId: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  openedAtIso: string;
+  relatedPromptSessionId?: string;
+};
+
+type PromptTemplateChooserEntry = {
+  id: string;
+  label: string;
+  detail: string;
+  truthState: string;
+  draft: MissionPromptDraft;
+  sourceSurfaceLabel: string;
+};
+
+type PromptTemplateChooserContext = {
+  id: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  title: string;
+  subtitle: string;
+  openedAtIso: string;
+  templates: PromptTemplateChooserEntry[];
+  nextSafeAction: string;
+};
+
+type PromptReturnResumeChecklist = {
+  id: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  draftLabel: string;
+  launchedAtIso: string | null;
+  returnedAtIso: string;
+  nextSafeAction: string;
+};
+
+type CockpitStageFocusHighlight = {
+  id: string;
+  workspaceId: DesktopWorkspaceId;
+  stageLabel: string;
+  stageDetail: string;
+  sourceDraftLabel: string;
+  sourceSurfaceLabel: string;
+  setAtIso: string;
+};
 
 type OperationsSurfaceId =
   | "dispatch"
@@ -606,10 +691,25 @@ export default function App() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   );
-  const [homeTaskModeId, setHomeTaskModeId] = useState<HomeTaskModeId>("o3de-game");
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   ]);
+  const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
+    useState<PromptLaunchDraftRequest | null>(null);
+  const [promptSessionFocusRequest, setPromptSessionFocusRequest] =
+    useState<PromptSessionFocusRequest | null>(null);
+  const [promptEvidenceContext, setPromptEvidenceContext] =
+    useState<PromptEvidenceContext | null>(null);
+  const [recordsEvidenceContext, setRecordsEvidenceContext] =
+    useState<RecordsEvidenceContext | null>(null);
+  const [promptTemplateChooserContext, setPromptTemplateChooserContext] =
+    useState<PromptTemplateChooserContext | null>(null);
+  const [latestPlacementProofOnlyReview, setLatestPlacementProofOnlyReview] =
+    useState<PlacementProofOnlyReviewSnapshot | null>(null);
+  const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
+    useState<PromptReturnResumeChecklist | null>(null);
+  const [cockpitStageFocusHighlight, setCockpitStageFocusHighlight] =
+    useState<CockpitStageFocusHighlight | null>(null);
   const [activeOperationsSurface, setActiveOperationsSurface] =
     useState<OperationsSurfaceId>("dispatch");
   const [activeRuntimeSurface, setActiveRuntimeSurface] =
@@ -2309,6 +2409,10 @@ export default function App() {
     const storedWorkspace = window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
     if (
       storedWorkspace === "home"
+      || storedWorkspace === "create-game"
+      || storedWorkspace === "create-movie"
+      || storedWorkspace === "load-project"
+      || storedWorkspace === "asset-forge"
       || storedWorkspace === "prompt"
       || storedWorkspace === "builder"
       || storedWorkspace === "operations"
@@ -2360,21 +2464,11 @@ export default function App() {
   function selectDesktopNavigation(navItemId: string): void {
     switch (navItemId as DesktopNavItemId) {
       case "home":
-        setHomeTaskModeId("o3de-game");
         setActiveWorkspaceId("home");
         return;
-      case "home-o3de-game":
-        setHomeTaskModeId("o3de-game");
-        setActiveWorkspaceId("home");
-        return;
-      case "home-o3de-cinematic":
-        setHomeTaskModeId("o3de-cinematic");
-        setActiveWorkspaceId("home");
-        return;
-      case "home-load-project":
-        setHomeTaskModeId("load-project");
-        setActiveWorkspaceId("home");
-        return;
+      case "create-game":
+      case "create-movie":
+      case "load-project":
       case "asset-forge":
       case "prompt":
       case "builder":
@@ -2384,7 +2478,6 @@ export default function App() {
         setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
         return;
       default:
-        setHomeTaskModeId("o3de-game");
         setActiveWorkspaceId("home");
     }
   }
@@ -4798,6 +4891,18 @@ export default function App() {
       title: homeWorkspaceGuide.workspaceTitle,
       subtitle: homeWorkspaceGuide.workspaceSubtitle,
     },
+    "create-game": {
+      title: "Create Game",
+      subtitle: "Create Game Cockpit with staged mission workflow, bounded editor actions, and evidence review.",
+    },
+    "create-movie": {
+      title: "Create Movie",
+      subtitle: "Create Movie Cockpit with cinematic planning, proof-only placement review, and explicit blockers.",
+    },
+    "load-project": {
+      title: "Load Project",
+      subtitle: "Load Project Cockpit for read-only target verification and preflight readiness checks.",
+    },
     "asset-forge": {
       title: "Asset Forge",
       subtitle: "O3DE-native production asset toolbench with read-only evidence, review, and gated creation planning.",
@@ -4824,15 +4929,24 @@ export default function App() {
     },
   };
   const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
-  const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId === "home"
-    ? homeTaskModeId === "o3de-game"
-      ? "home-o3de-game"
-      : homeTaskModeId === "o3de-cinematic"
-        ? "home-o3de-cinematic"
-        : homeTaskModeId === "load-project"
-          ? "home-load-project"
-          : "home"
-    : activeWorkspaceId;
+  const activePromptReturnResumeChecklist = promptReturnResumeChecklist
+    && promptReturnResumeChecklist.sourceWorkspaceId === activeWorkspaceId
+    ? promptReturnResumeChecklist
+    : null;
+  const activeCockpitStageFocusHighlight = cockpitStageFocusHighlight
+    && cockpitStageFocusHighlight.workspaceId === activeWorkspaceId
+    ? cockpitStageFocusHighlight
+    : null;
+  const activePromptEvidenceContext = activeWorkspaceId === "prompt"
+    ? promptEvidenceContext
+    : null;
+  const activeRecordsEvidenceContext = activeWorkspaceId === "records"
+    ? recordsEvidenceContext
+    : null;
+  const activePromptTemplateChooserContext = activeWorkspaceId === "prompt"
+    ? promptTemplateChooserContext
+    : null;
+  const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
       id: "start",
@@ -4855,28 +4969,28 @@ export default function App() {
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
       items: [
         {
-          id: "home-o3de-game",
+          id: "create-game",
           label: "Create Game",
-          subtitle: "Open the O3DE game creation desk",
+          subtitle: "Open the Create Game cockpit environment",
           badge: null,
           tone: "success",
-          helpTooltip: "Open Home directly into the O3DE game creation desk with scenario guidance and tool dock context.",
+          helpTooltip: "Open the first-class Create Game cockpit with mission pipeline, tools, and blocked-capability guidance.",
         },
         {
-          id: "home-o3de-cinematic",
+          id: "create-movie",
           label: "Create Movie",
-          subtitle: "Open the O3DE cinematic desk",
+          subtitle: "Open the Create Movie cockpit environment",
           badge: null,
           tone: "info",
-          helpTooltip: "Open Home directly into the O3DE cinematic creation desk for trailer, previs, and short-film guidance.",
+          helpTooltip: "Open the first-class Create Movie cockpit for cinematic pipeline, proof-only placement, and review guidance.",
         },
         {
-          id: "home-load-project",
+          id: "load-project",
           label: "Load Project",
-          subtitle: "Reconnect an existing O3DE project",
+          subtitle: "Open the Load Project cockpit environment",
           badge: null,
           tone: "neutral",
-          helpTooltip: "Open Home directly into the guided O3DE project loading surface for existing projects.",
+          helpTooltip: "Open the first-class Load Project cockpit for target verification and configuration preflight.",
         },
         {
           id: "asset-forge",
@@ -5059,24 +5173,515 @@ export default function App() {
     setActiveRuntimeSurface("workspaces");
   }
 
-  function openRecordsRuns(): void {
+  function openPromptSessionFromTruthRail(promptId: string): void {
+    const trimmedPromptId = promptId.trim();
+    if (!trimmedPromptId) {
+      return;
+    }
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setPromptSessionFocusRequest({
+      requestId: crypto.randomUUID(),
+      promptId: trimmedPromptId,
+      sourceSurfaceLabel,
+    });
+    setPromptEvidenceContext({
+      id: crypto.randomUUID(),
+      promptSessionId: trimmedPromptId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+    });
+    setPromptTemplateChooserContext(null);
+    setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioWithMissionDraft(
+    draft: MissionPromptDraft,
+    sourceSurfaceLabel: string,
+    sourceWorkspaceId: DesktopWorkspaceId,
+  ): void {
+    setPromptEvidenceContext(null);
+    setPromptTemplateChooserContext(null);
+    setPromptLaunchDraftRequest({
+      requestId: crypto.randomUUID(),
+      draft,
+      sourceSurfaceLabel,
+      launchedAtIso: new Date().toISOString(),
+      sourceWorkspaceId,
+    });
+    setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioWithTemplateChooserContext(
+    sourceWorkspaceId: DesktopWorkspaceId,
+    sourceSurfaceLabel: string,
+    title: string,
+    subtitle: string,
+    templates: Array<Omit<PromptTemplateChooserEntry, "id">>,
+    nextSafeAction: string,
+  ): void {
+    setPromptEvidenceContext(null);
+    setPromptTemplateChooserContext({
+      id: crypto.randomUUID(),
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      title,
+      subtitle,
+      openedAtIso: new Date().toISOString(),
+      templates: templates.map((template) => ({
+        ...template,
+        id: crypto.randomUUID(),
+      })),
+      nextSafeAction,
+    });
+    setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioFromCreateGameCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "create-game",
+      "Create Game cockpit command bar / open prompt studio",
+      "Create Game template quick-load",
+      "Pick a safe game-authoring template to prefill Prompt Studio. This does not execute any prompt.",
+      [
+        {
+          label: "Inspect project evidence prompt",
+          detail: "Read-only project orientation before content mutation.",
+          truthState: "read-only / non-mutating",
+          draft: inspectProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Create Game cockpit / inspect project template",
+        },
+        {
+          label: "Create safe game entity prompt",
+          detail: "Admitted-real narrow editor corridor for one root-level entity.",
+          truthState: "admitted-real narrow",
+          draft: createGameEntityMissionPromptDraft,
+          sourceSurfaceLabel: "Create Game cockpit / create entity template",
+        },
+        {
+          label: "Add allowlisted Mesh component prompt",
+          detail: "Allowlisted component lane with readback evidence expectation.",
+          truthState: "admitted-real allowlisted",
+          draft: addAllowlistedMeshMissionPromptDraft,
+          sourceSurfaceLabel: "Create Game cockpit / add allowlisted component template",
+        },
+      ],
+      "Choose one template, preview the plan, and keep operations inside admitted lanes.",
+    );
+  }
+
+  function openPromptStudioFromCreateMovieCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "create-movie",
+      "Create Movie cockpit command bar / open prompt studio",
+      "Create Movie template quick-load",
+      "Pick a cinematic-safe template to prefill Prompt Studio. No prompt runs automatically.",
+      [
+        {
+          label: "Inspect cinematic target prompt",
+          detail: "Read-only cinematic readiness check.",
+          truthState: "read-only / cinematic planning",
+          draft: inspectCinematicTargetMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / inspect cinematic target template",
+        },
+        {
+          label: "Create cinematic camera placeholder prompt",
+          detail: "Narrow admitted-real camera placeholder entity request.",
+          truthState: "admitted-real narrow",
+          draft: createCinematicCameraPlaceholderMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / camera placeholder template",
+        },
+        {
+          label: "Cinematic placement proof-only candidate prompt",
+          detail: "Fail-closed placement proof candidate capture with non-admitted execution/write flags.",
+          truthState: "proof-only / fail-closed / non-mutating",
+          draft: cinematicPlacementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / placement proof-only template",
+        },
+      ],
+      "Use proof-only templates for placement review; real placement remains blocked by separate admission gates.",
+    );
+  }
+
+  function openPromptStudioFromLoadProjectCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "load-project",
+      "Load Project cockpit command bar / open prompt studio",
+      "Load Project template quick-load",
+      "Prefill a target-readiness prompt without mutating project files.",
+      [
+        {
+          label: "Load project inspection prompt",
+          detail: "Read-only project/engine/target assumptions summary.",
+          truthState: "read-only / no project file writes",
+          draft: inspectLoadProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Load Project cockpit / inspect target template",
+        },
+      ],
+      "Run read-only inspection first, then decide the next admitted authoring step.",
+    );
+  }
+
+  function openPromptStudioFromAssetForgeCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "asset-forge",
+      "Asset Forge cockpit command bar / open prompt studio",
+      "Asset Forge template quick-load",
+      "Select an Asset Forge prompt template for review-first execution planning.",
+      [
+        {
+          label: "Inspect project evidence prompt",
+          detail: "Read-only orientation before candidate staging/proof review.",
+          truthState: "read-only / non-mutating",
+          draft: inspectProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Asset Forge workflow / inspect project template",
+        },
+        {
+          label: "Placement proof-only candidate prompt",
+          detail: "Fail-closed placement proof-only candidate with bounded evidence references.",
+          truthState: "proof-only / fail-closed / non-mutating",
+          draft: placementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Asset Forge workflow / placement proof-only template",
+        },
+      ],
+      "Use proof-only review paths for placement; execution and placement writes remain non-admitted.",
+    );
+  }
+
+  function openPromptStudioFromHomeCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "home",
+      "Home cockpit start-here rail / open prompt studio",
+      "Home template quick-load",
+      "Choose a mission-first template to prefill Prompt Studio. This stays prefill-only and does not auto-execute.",
+      [
+        {
+          label: "Inspect project evidence prompt",
+          detail: "Read-only orientation before admitted or proof-only steps.",
+          truthState: "read-only / non-mutating",
+          draft: inspectProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / inspect project template",
+        },
+        {
+          label: "Create safe game entity prompt",
+          detail: "Narrow admitted-real root-level entity request.",
+          truthState: "admitted-real narrow",
+          draft: createGameEntityMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / create entity template",
+        },
+        {
+          label: "Add allowlisted Mesh component prompt",
+          detail: "Allowlisted component lane with readback evidence expectation.",
+          truthState: "admitted-real allowlisted",
+          draft: addAllowlistedMeshMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / add allowlisted component template",
+        },
+        {
+          label: "Placement proof-only candidate prompt",
+          detail: "Fail-closed placement proof candidate with non-admitted execution/write flags.",
+          truthState: "proof-only / fail-closed / non-mutating",
+          draft: placementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / placement proof-only template",
+        },
+      ],
+      "Pick one template, preview the plan, then execute only inside admitted or proof-only boundaries.",
+    );
+  }
+
+  function openPromptTemplateChooserLane(
+    sourceWorkspaceId: "home" | "create-game" | "create-movie" | "load-project" | "asset-forge",
+  ): void {
+    if (sourceWorkspaceId === "home") {
+      openPromptStudioFromHomeCockpit();
+      return;
+    }
+    if (sourceWorkspaceId === "create-game") {
+      openPromptStudioFromCreateGameCockpit();
+      return;
+    }
+    if (sourceWorkspaceId === "create-movie") {
+      openPromptStudioFromCreateMovieCockpit();
+      return;
+    }
+    if (sourceWorkspaceId === "load-project") {
+      openPromptStudioFromLoadProjectCockpit();
+      return;
+    }
+    openPromptStudioFromAssetForgeCockpit();
+  }
+
+  function openPromptStudioWithPlacementProofTemplateFromHome(): void {
+    openPromptStudioWithMissionDraft(
+      placementProofOnlyMissionPromptDraft,
+      "Home mission workflow / placement proof-only template",
+      "home",
+    );
+  }
+
+  function openPromptStudioWithPlacementProofTemplateFromAssetForge(): void {
+    openPromptStudioWithMissionDraft(
+      placementProofOnlyMissionPromptDraft,
+      "Asset Forge workflow / placement proof-only template",
+      "asset-forge",
+    );
+  }
+
+  function openPromptStudioWithCinematicPlacementProofTemplate(): void {
+    openPromptStudioWithMissionDraft(
+      cinematicPlacementProofOnlyMissionPromptDraft,
+      "Create Movie cockpit / placement proof-only template",
+      "create-movie",
+    );
+  }
+
+  function openPromptStudioWithInspectProjectTemplateFromHome(): void {
+    openPromptStudioWithMissionDraft(
+      inspectProjectMissionPromptDraft,
+      "Home mission workflow / inspect project template",
+      "home",
+    );
+  }
+
+  function openPromptStudioWithInspectProjectTemplateFromAssetForge(): void {
+    openPromptStudioWithMissionDraft(
+      inspectProjectMissionPromptDraft,
+      "Asset Forge workflow / inspect project template",
+      "asset-forge",
+    );
+  }
+
+  function openPromptStudioWithInspectProjectTemplateFromCreateGame(): void {
+    openPromptStudioWithMissionDraft(
+      inspectProjectMissionPromptDraft,
+      "Create Game cockpit / inspect project template",
+      "create-game",
+    );
+  }
+
+  function openPromptStudioWithCreateGameEntityTemplate(): void {
+    openPromptStudioWithMissionDraft(
+      createGameEntityMissionPromptDraft,
+      "Create Game cockpit / create entity template",
+      "create-game",
+    );
+  }
+
+  function openPromptStudioWithAddAllowlistedMeshTemplate(): void {
+    openPromptStudioWithMissionDraft(
+      addAllowlistedMeshMissionPromptDraft,
+      "Create Game cockpit / add allowlisted component template",
+      "create-game",
+    );
+  }
+
+  function openPromptStudioWithInspectCinematicTargetTemplate(): void {
+    openPromptStudioWithMissionDraft(
+      inspectCinematicTargetMissionPromptDraft,
+      "Create Movie cockpit / inspect cinematic target template",
+      "create-movie",
+    );
+  }
+
+  function openPromptStudioWithCreateCinematicCameraTemplate(): void {
+    openPromptStudioWithMissionDraft(
+      createCinematicCameraPlaceholderMissionPromptDraft,
+      "Create Movie cockpit / camera placeholder template",
+      "create-movie",
+    );
+  }
+
+  function openPromptStudioWithInspectLoadProjectTemplate(): void {
+    openPromptStudioWithMissionDraft(
+      inspectLoadProjectMissionPromptDraft,
+      "Load Project cockpit / inspect target template",
+      "load-project",
+    );
+  }
+
+  function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
+    switch (workspaceId) {
+      case "home":
+        return "Resume from Home mission cards, then preview the loaded prompt plan before any execution.";
+      case "create-game":
+        return "Continue the Create Game pipeline stage you launched from, then preview the loaded prompt plan.";
+      case "create-movie":
+        return "Continue the Create Movie cinematic pipeline stage you launched from, then preview the loaded prompt plan.";
+      case "load-project":
+        return "Continue the Load Project checklist and run the read-only inspect prompt preview.";
+      case "asset-forge":
+        return "Continue the Asset Forge pipeline, then review proof-only placement evidence and blockers.";
+      case "prompt":
+        return "Review the loaded prompt and preview the plan before any execution request.";
+      case "builder":
+        return "Review Builder handoff context and keep runtime actions in admitted or proof-only corridors.";
+      case "operations":
+        return "Review pending approvals and execute only admitted typed control-plane actions.";
+      case "runtime":
+        return "Review runtime bridge and adapter truth before attempting the next guided action.";
+      case "records":
+        return "Review latest run, execution, and artifact evidence before choosing the next mission action.";
+      default:
+        return "Review the active workspace truth rail and continue with the next safe, non-mutating step.";
+    }
+  }
+
+  function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
+    const allowedWorkspaceIds: DesktopWorkspaceId[] = [
+      "home",
+      "create-game",
+      "create-movie",
+      "load-project",
+      "asset-forge",
+      "prompt",
+      "builder",
+      "operations",
+      "runtime",
+      "records",
+    ];
+    const resolvedWorkspaceId = allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)
+      ? sourceWorkspaceId as DesktopWorkspaceId
+      : "home";
+    const sourceSurfaceLabel = promptLaunchDraftRequest?.sourceSurfaceLabel?.trim()
+      || `${workspaceMeta[resolvedWorkspaceId].title} mission handoff`;
+    const draftLabel = promptLaunchDraftRequest?.draft?.label?.trim() || "Mission template";
+    const launchedAtIso = promptLaunchDraftRequest?.launchedAtIso?.trim() || null;
+
+    setPromptReturnResumeChecklist({
+      id: crypto.randomUUID(),
+      sourceWorkspaceId: resolvedWorkspaceId,
+      sourceSurfaceLabel,
+      draftLabel,
+      launchedAtIso,
+      returnedAtIso: new Date().toISOString(),
+      nextSafeAction: getPromptReturnNextSafeAction(resolvedWorkspaceId),
+    });
+    setActiveWorkspaceId(resolvedWorkspaceId);
+  }
+
+  function openRecordsRuns(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("runs");
   }
 
-  function openRecordsExecutions(): void {
+  function openRecordsExecutions(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("executions");
   }
 
-  function openRecordsArtifacts(): void {
+  function openRecordsArtifacts(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("artifacts");
+  }
+
+  async function openLatestRunEvidence(): Promise<void> {
+    openRecordsRuns();
+    let runId = latestRunId;
+    if (!runId) {
+      const loadedRuns = await loadRuns();
+      runId = loadedRuns[0]?.id ?? null;
+    }
+    if (runId) {
+      await openRunDetail(runId);
+    }
+  }
+
+  async function openLatestExecutionEvidence(): Promise<void> {
+    openRecordsExecutions();
+    let executionId = latestExecutionId;
+    if (!executionId) {
+      const loadedExecutions = await loadExecutions();
+      executionId = loadedExecutions[0]?.id ?? null;
+    }
+    if (executionId) {
+      await openExecutionDetail(executionId);
+    }
+  }
+
+  async function openLatestArtifactEvidence(): Promise<void> {
+    openRecordsArtifacts();
+    let artifactId = latestArtifactId;
+    if (!artifactId) {
+      const loadedArtifacts = await loadArtifacts();
+      artifactId = loadedArtifacts[0]?.id ?? null;
+    }
+    if (artifactId) {
+      await openArtifactDetail(artifactId);
+    }
   }
 
   function openRecordsEvents(): void {
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("events");
+  }
+
+  async function openRunEvidenceById(runId: string): Promise<void> {
+    const trimmedRunId = runId.trim();
+    if (!trimmedRunId) {
+      return;
+    }
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setRecordsEvidenceContext({
+      id: crypto.randomUUID(),
+      targetKind: "run",
+      targetId: trimmedRunId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+      relatedPromptSessionId: latestPlacementProofOnlyReview?.promptSessionId,
+    });
+    openRecordsRuns({ preserveEvidenceContext: true });
+    await openRunDetail(trimmedRunId);
+  }
+
+  async function openExecutionEvidenceById(executionId: string): Promise<void> {
+    const trimmedExecutionId = executionId.trim();
+    if (!trimmedExecutionId) {
+      return;
+    }
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setRecordsEvidenceContext({
+      id: crypto.randomUUID(),
+      targetKind: "execution",
+      targetId: trimmedExecutionId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+      relatedPromptSessionId: latestPlacementProofOnlyReview?.promptSessionId,
+    });
+    openRecordsExecutions({ preserveEvidenceContext: true });
+    await openExecutionDetail(trimmedExecutionId);
+  }
+
+  async function openArtifactEvidenceById(artifactId: string): Promise<void> {
+    const trimmedArtifactId = artifactId.trim();
+    if (!trimmedArtifactId) {
+      return;
+    }
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setRecordsEvidenceContext({
+      id: crypto.randomUUID(),
+      targetKind: "artifact",
+      targetId: trimmedArtifactId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+      relatedPromptSessionId: latestPlacementProofOnlyReview?.promptSessionId,
+    });
+    openRecordsArtifacts({ preserveEvidenceContext: true });
+    await openArtifactDetail(trimmedArtifactId);
   }
 
   function focusAppControlEvents(): void {
@@ -5702,6 +6307,9 @@ export default function App() {
       helpTooltip: getShellWorkspaceSurfaceGuide("records", "events").tooltip,
     },
   ] as const;
+  const latestRunId = selectedRunId ?? runs[0]?.id ?? null;
+  const latestExecutionId = selectedExecutionId ?? executions[0]?.id ?? null;
+  const latestArtifactId = selectedArtifactId ?? artifacts[0]?.id ?? null;
   const homeMissionControlContent = (
     <LayoutHeader
       title={operatorGuideShellApp.title}
@@ -7205,6 +7813,1153 @@ export default function App() {
     );
   }
 
+  function renderPromptEvidenceContextBanner(
+    context: PromptEvidenceContext,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Prompt focused evidence context"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(96, 165, 250, 0.55)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(17, 35, 58, 0.96), rgba(16, 28, 41, 0.96))",
+          boxShadow: "0 10px 24px rgba(8, 13, 19, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(167, 212, 255, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Focused evidence context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Prompt session: {context.promptSessionId}
+          </strong>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+          </span>
+          <span>
+            Source surface: <strong>{context.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: navigation only. No prompt preview, execute, or mutation is triggered automatically.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}
+          >
+            Return to source cockpit
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+          <button type="button" onClick={() => setPromptEvidenceContext(null)}>
+            Dismiss evidence context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function renderRecordsEvidenceContextBanner(
+    context: RecordsEvidenceContext,
+  ): JSX.Element {
+    const targetLabel = context.targetKind === "run"
+      ? "Run"
+      : context.targetKind === "execution"
+        ? "Execution"
+        : "Artifact";
+
+    return (
+      <section
+        aria-label="Records focused evidence context"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(100, 215, 170, 0.52)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(21, 48, 40, 0.95), rgba(16, 30, 43, 0.95))",
+          boxShadow: "0 10px 24px rgba(8, 14, 20, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(176, 239, 214, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Focused evidence context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            {targetLabel} target: {context.targetId}
+          </strong>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+          </span>
+          <span>
+            Source surface: <strong>{context.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+          <span>
+            Related prompt session: <strong>{context.relatedPromptSessionId ?? "not captured"}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: evidence drill-in only. No runtime execution, placement write, or mutation is admitted from this banner.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}
+          >
+            Return to source cockpit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (context.targetKind === "run") {
+                openRecordsRuns({ preserveEvidenceContext: true });
+                openRunDetail(context.targetId);
+                return;
+              }
+              if (context.targetKind === "execution") {
+                openRecordsExecutions({ preserveEvidenceContext: true });
+                openExecutionDetail(context.targetId);
+                return;
+              }
+              openRecordsArtifacts({ preserveEvidenceContext: true });
+              openArtifactDetail(context.targetId);
+            }}
+          >
+            Re-open focused evidence
+          </button>
+          {context.relatedPromptSessionId ? (
+            <button
+              type="button"
+              onClick={() => openPromptSessionFromTruthRail(context.relatedPromptSessionId ?? "")}
+            >
+              Open related prompt session
+            </button>
+          ) : null}
+          <button type="button" onClick={() => setRecordsEvidenceContext(null)}>
+            Dismiss evidence context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function renderPromptTemplateChooserContextCard(
+    context: PromptTemplateChooserContext,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Prompt template chooser context"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(250, 204, 21, 0.45)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(52, 40, 16, 0.95), rgba(18, 30, 42, 0.95))",
+          boxShadow: "0 10px 24px rgba(10, 14, 20, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(255, 232, 161, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Cockpit template chooser
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>{context.title}</strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            {context.subtitle}
+          </p>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+          </span>
+          <span>
+            Source surface: <strong>{context.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: selecting a template only prefills Prompt Studio fields. No preview, execute, placement, or mutation runs automatically.
+        </p>
+        <div style={{ display: "grid", gap: 8 }}>
+          {context.templates.map((template) => (
+            <article
+              key={template.id}
+              style={{
+                border: "1px solid rgba(248, 222, 145, 0.38)",
+                borderRadius: 10,
+                background: "rgba(17, 26, 36, 0.62)",
+                padding: "10px 11px",
+                display: "grid",
+                gap: 7,
+              }}
+            >
+              <div style={{ display: "grid", gap: 4 }}>
+                <strong style={{ color: "var(--app-text-color)" }}>{template.label}</strong>
+                <span style={{ color: "var(--app-subtle-color)", fontSize: 13 }}>{template.detail}</span>
+              </div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignSelf: "start",
+                  border: "1px solid rgba(248, 222, 145, 0.55)",
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  color: "rgba(255, 232, 161, 0.95)",
+                }}
+              >
+                {template.truthState}
+              </span>
+              <button
+                type="button"
+                onClick={() => openPromptStudioWithMissionDraft(
+                  template.draft,
+                  template.sourceSurfaceLabel,
+                  context.sourceWorkspaceId,
+                )}
+              >
+                {`Load template: ${template.label}`}
+              </button>
+            </article>
+          ))}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Next safe action: <strong>{context.nextSafeAction}</strong>
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button type="button" onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}>
+            Return to source cockpit
+          </button>
+          <button type="button" onClick={() => setPromptTemplateChooserContext(null)}>
+            Dismiss template chooser
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function formatPromptBooleanFlagValue(value: boolean | undefined): string {
+    if (value === true) {
+      return "true";
+    }
+    if (value === false) {
+      return "false";
+    }
+    return "unknown";
+  }
+
+  function renderPromptPlacementProofOnlyReviewCard(
+    review: PlacementProofOnlyReviewSnapshot,
+  ): JSX.Element {
+    const executionAdmittedValue = formatPromptBooleanFlagValue(review.executionAdmitted);
+    const placementWriteAdmittedValue = formatPromptBooleanFlagValue(review.placementWriteAdmitted);
+    const mutationOccurredValue = formatPromptBooleanFlagValue(review.mutationOccurred);
+    const failClosedReasons = review.failClosedReasons.length > 0
+      ? review.failClosedReasons.join(", ")
+      : "not reported";
+    const guidance = review.serverRemediation
+      ?? "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.";
+
+    return (
+      <section
+        aria-label="Prompt placement proof-only review context"
+        style={{
+          border: "1px solid rgba(252, 165, 165, 0.5)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(60, 26, 28, 0.96), rgba(24, 32, 45, 0.95))",
+          boxShadow: "0 10px 24px rgba(10, 13, 19, 0.36)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 9,
+        }}
+      >
+        <div style={{ display: "grid", gap: 4 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(254, 202, 202, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Placement proof-only review snapshot
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Capability: {review.capabilityName}
+          </strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            Candidate: <strong>{review.candidateId ?? "not reported"}</strong>
+            {" / "}
+            <strong>{review.candidateLabel ?? "not reported"}</strong>
+          </p>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Prompt session: <strong>{review.promptSessionId}</strong>
+          </span>
+          <span>
+            Staged source: <strong>{review.stagedSourceRelativePath ?? "not reported"}</strong>
+          </span>
+          <span>
+            Target level: <strong>{review.targetLevelRelativePath ?? "not reported"}</strong>
+          </span>
+          <span>
+            Target entity/component:{" "}
+            <strong>{`${review.targetEntityName ?? "not reported"} / ${review.targetComponent ?? "not reported"}`}</strong>
+          </span>
+          <span>
+            Stage-write evidence ref: <strong>{review.stageWriteEvidenceReference ?? "not reported"}</strong>
+          </span>
+          <span>
+            Stage-write readback ref: <strong>{review.stageWriteReadbackReference ?? "not reported"}</strong>
+          </span>
+          <span>
+            Stage-write readback status: <strong>{review.stageWriteReadbackStatus ?? "not reported"}</strong>
+          </span>
+          <span>
+            Inspection surface: <strong>{review.inspectionSurface ?? "not reported"}</strong>
+          </span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`execution_admitted=${executionAdmittedValue}`}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`placement_write_admitted=${placementWriteAdmittedValue}`}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`mutation_occurred=${mutationOccurredValue}`}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`read_only=${formatPromptBooleanFlagValue(review.readOnly)}`}
+          </span>
+        </div>
+        <div style={{ color: "var(--app-subtle-color)", fontSize: 13, display: "grid", gap: 4 }}>
+          <span>
+            Fail-closed reasons: <strong>{failClosedReasons}</strong>
+          </span>
+          <span>
+            Server decision:{" "}
+            <strong>{`${review.serverDecisionCode ?? "not reported"} / ${review.serverDecisionState ?? "not reported"}`}</strong>
+          </span>
+          {review.serverReason ? (
+            <span>
+              Server reason: <strong>{review.serverReason}</strong>
+            </span>
+          ) : null}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Placement proof-only remains fail-closed and non-mutating: placement execution is non-admitted,
+          placement write is non-admitted, and no mutation occurred. Real placement requires a separate
+          exact admission corridor with readback and revert/restore proof.
+        </p>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Server blocker remediation: <strong>{guidance}</strong>
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {review.promptSessionId ? (
+            <button
+              type="button"
+              onClick={() => openPromptSessionFromTruthRail(review.promptSessionId)}
+            >
+              Open proof prompt session
+            </button>
+          ) : null}
+          {review.childRunId ? (
+            <button type="button" onClick={() => { void openRunEvidenceById(review.childRunId ?? ""); }}>
+              Open proof run
+            </button>
+          ) : null}
+          {review.childExecutionId ? (
+            <button type="button" onClick={() => { void openExecutionEvidenceById(review.childExecutionId ?? ""); }}>
+              Open proof execution
+            </button>
+          ) : null}
+          {review.childArtifactId ? (
+            <button type="button" onClick={() => { void openArtifactEvidenceById(review.childArtifactId ?? ""); }}>
+              Open proof artifact
+            </button>
+          ) : null}
+          <button type="button" onClick={openOperationsApprovals}>
+            Open Operations approvals
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function renderPromptTemplateLaneSwitcherCard(): JSX.Element {
+    const templateLaneEntries: Array<{
+      workspaceId: "home" | "create-game" | "create-movie" | "load-project" | "asset-forge";
+      label: string;
+      detail: string;
+      truthState: string;
+    }> = [
+      {
+        workspaceId: "home",
+        label: "Home",
+        detail: "Inspect, safe entity, allowlisted component, and placement proof-only templates.",
+        truthState: "mission-first prefill-only",
+      },
+      {
+        workspaceId: "create-game",
+        label: "Create Game",
+        detail: "Game-authoring templates for narrow admitted entity/component lanes.",
+        truthState: "admitted-real narrow + prefill-only",
+      },
+      {
+        workspaceId: "create-movie",
+        label: "Create Movie",
+        detail: "Cinematic planning and proof-only placement candidate templates.",
+        truthState: "plan/proof-only + prefill-only",
+      },
+      {
+        workspaceId: "load-project",
+        label: "Load Project",
+        detail: "Read-only project/target readiness templates.",
+        truthState: "read-only + prefill-only",
+      },
+      {
+        workspaceId: "asset-forge",
+        label: "Asset Forge",
+        detail: "Asset Forge review and placement proof-only candidate templates.",
+        truthState: "proof-only/fail-closed + prefill-only",
+      },
+    ];
+
+    return (
+      <section
+        aria-label="Prompt template lane switcher"
+        style={{
+          border: "1px solid rgba(148, 163, 184, 0.35)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(16, 30, 45, 0.93), rgba(14, 25, 37, 0.93))",
+          boxShadow: "0 10px 22px rgba(6, 12, 20, 0.28)",
+          padding: "11px 12px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Prompt template lane switcher
+          </strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            Stay in Prompt Studio and switch to another cockpit template lane without auto-running any prompt.
+          </p>
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          {templateLaneEntries.map((lane) => (
+            <article
+              key={lane.workspaceId}
+              style={{
+                border: "1px solid rgba(147, 197, 253, 0.24)",
+                borderRadius: 10,
+                padding: "8px 9px",
+                background: "rgba(10, 18, 29, 0.62)",
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <strong style={{ color: "var(--app-text-color)" }}>{lane.label}</strong>
+                <span
+                  style={{
+                    border: "1px solid rgba(147, 197, 253, 0.5)",
+                    borderRadius: 999,
+                    padding: "2px 8px",
+                    fontSize: 12,
+                    color: "rgba(191, 219, 254, 0.95)",
+                  }}
+                >
+                  {lane.truthState}
+                </span>
+              </div>
+              <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+                {lane.detail}
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => openPromptTemplateChooserLane(lane.workspaceId)}
+                >
+                  {`Open template lane: ${lane.label}`}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: lane switching is prefill-only; no preview, execute, placement command, or mutation is triggered.
+        </p>
+      </section>
+    );
+  }
+
+  function renderPromptIntakeContextPanel(): JSX.Element | null {
+    if (
+      !promptLaunchDraftRequest
+      && !activePromptEvidenceContext
+      && !activePromptTemplateChooserContext
+      && !latestPlacementProofOnlyReview
+    ) {
+      return null;
+    }
+
+    const contextCount = [
+      promptLaunchDraftRequest,
+      activePromptEvidenceContext,
+      activePromptTemplateChooserContext,
+      latestPlacementProofOnlyReview,
+    ].filter((entry) => Boolean(entry)).length;
+
+    const nextSafeAction = latestPlacementProofOnlyReview?.serverRemediation
+      ?? activePromptTemplateChooserContext?.nextSafeAction
+      ?? promptLaunchDraftRequest?.draft?.guidance
+      ?? "Preview the loaded prompt plan and stay inside admitted or proof-only corridors.";
+
+    return (
+      <section
+        aria-label="Prompt intake context panel"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(148, 163, 184, 0.42)",
+          borderRadius: 14,
+          background:
+            "linear-gradient(135deg, rgba(20, 31, 44, 0.96), rgba(17, 28, 41, 0.95))",
+          boxShadow: "0 12px 28px rgba(7, 12, 20, 0.36)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "grid", gap: 4 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(189, 220, 255, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Prompt intake context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Mission-first prompt context lanes: {contextCount}
+          </strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            Safety: prefill-only and review-only context. No prompt auto-execution, no runtime placement
+            command admission, and no mutation is triggered from this panel.
+          </p>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span
+            style={{
+              border: "1px solid rgba(147, 197, 253, 0.65)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(191, 219, 254, 0.96)",
+            }}
+          >
+            prefill-only
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(147, 197, 253, 0.65)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(191, 219, 254, 0.96)",
+            }}
+          >
+            fail-closed truth preserved
+          </span>
+          {latestPlacementProofOnlyReview ? (
+            <>
+              <span
+                style={{
+                  border: "1px solid rgba(252, 165, 165, 0.65)",
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  fontSize: 12,
+                  color: "rgba(254, 202, 202, 0.96)",
+                }}
+              >
+                {`execution_admitted=${formatPromptBooleanFlagValue(latestPlacementProofOnlyReview.executionAdmitted)}`}
+              </span>
+              <span
+                style={{
+                  border: "1px solid rgba(252, 165, 165, 0.65)",
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  fontSize: 12,
+                  color: "rgba(254, 202, 202, 0.96)",
+                }}
+              >
+                {`placement_write_admitted=${formatPromptBooleanFlagValue(latestPlacementProofOnlyReview.placementWriteAdmitted)}`}
+              </span>
+            </>
+          ) : null}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Next safe action: <strong>{nextSafeAction}</strong>
+        </p>
+        {renderPromptTemplateLaneSwitcherCard()}
+        {promptLaunchDraftRequest ? renderPromptHandoffContextCard(promptLaunchDraftRequest) : null}
+        {activePromptEvidenceContext ? renderPromptEvidenceContextBanner(activePromptEvidenceContext) : null}
+        {activePromptTemplateChooserContext ? (
+          renderPromptTemplateChooserContextCard(activePromptTemplateChooserContext)
+        ) : null}
+        {latestPlacementProofOnlyReview ? (
+          renderPromptPlacementProofOnlyReviewCard(latestPlacementProofOnlyReview)
+        ) : null}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button type="button" onClick={openRuntimeOverview}>
+            Open Runtime overview
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPromptLaunchDraftRequest(null);
+              setPromptEvidenceContext(null);
+              setPromptTemplateChooserContext(null);
+            }}
+          >
+            Clear prompt intake context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function renderPromptReturnResumeChecklist(
+    checklist: PromptReturnResumeChecklist,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Mission handoff resume checklist"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(97, 173, 255, 0.55)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(30, 40, 57, 0.95), rgba(16, 27, 41, 0.95))",
+          boxShadow: "0 10px 26px rgba(7, 12, 20, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "grid", gap: 4 }}>
+            <span
+              style={{
+                fontSize: 12,
+                letterSpacing: 0.3,
+                textTransform: "uppercase",
+                color: "rgba(162, 201, 255, 0.95)",
+                fontWeight: 700,
+              }}
+            >
+              Mission handoff resume checklist
+            </span>
+            <strong style={{ color: "var(--app-text-color)" }}>
+              Loaded draft: {checklist.draftLabel}
+            </strong>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPromptReturnResumeChecklist(null)}
+            style={{
+              minHeight: 30,
+              border: "1px solid rgba(140, 170, 205, 0.55)",
+              borderRadius: 8,
+              padding: "0 10px",
+              background: "rgba(20, 30, 44, 0.9)",
+              color: "var(--app-text-color)",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source handoff: <strong>{checklist.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Launched (ISO): <strong>{checklist.launchedAtIso ?? "unknown"}</strong>
+          </span>
+          <span>
+            Returned (ISO): <strong>{checklist.returnedAtIso}</strong>
+          </span>
+          <span>
+            Workspace: <strong>{workspaceMeta[checklist.sourceWorkspaceId].title}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Truth state: <strong>prefill-only</strong>, <strong>fail-closed where blocked</strong>, and{" "}
+          <strong>non-mutating</strong>. Returning from Prompt Studio does not execute prompts.
+        </p>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Next safe action: <strong>{checklist.nextSafeAction}</strong>
+        </p>
+      </section>
+    );
+  }
+
+  function getPromptHandoffSourceQuickAction(
+    draftRequest: PromptLaunchDraftRequest,
+  ): { label: string; detail: string; run: () => void } | null {
+    const sourceWorkspaceId = draftRequest.sourceWorkspaceId ?? null;
+    if (!sourceWorkspaceId) {
+      return null;
+    }
+    const draftId = draftRequest.draft.id;
+    const sourceSurfaceLabel = draftRequest.sourceSurfaceLabel?.trim() || "unknown source surface";
+
+    function createStageFocusAction(
+      workspaceId: DesktopWorkspaceId,
+      stageLabel: string,
+      stageDetail: string,
+      actionLabel: string,
+      actionDetail: string,
+    ): { label: string; detail: string; run: () => void } {
+      return {
+        label: actionLabel,
+        detail: actionDetail,
+        run: () => {
+          setCockpitStageFocusHighlight({
+            id: crypto.randomUUID(),
+            workspaceId,
+            stageLabel,
+            stageDetail,
+            sourceDraftLabel: draftRequest.draft.label,
+            sourceSurfaceLabel,
+            setAtIso: new Date().toISOString(),
+          });
+          setActiveWorkspaceId(workspaceId);
+        },
+      };
+    }
+
+    if (sourceWorkspaceId === "create-game" && draftId === "create-game-safe-entity") {
+      return createStageFocusAction(
+        "create-game",
+        "Gameplay Entities",
+        "Continue safe root-level entity authoring context only.",
+        "Open Create Game cockpit (Gameplay Entities stage)",
+        "Returns to Create Game so you can continue the Gameplay Entities stage context safely.",
+      );
+    }
+    if (sourceWorkspaceId === "create-game" && draftId === "add-allowlisted-mesh-component") {
+      return createStageFocusAction(
+        "create-game",
+        "Components",
+        "Continue allowlisted component context only; arbitrary property writes remain blocked.",
+        "Open Create Game cockpit (Components stage)",
+        "Returns to Create Game so you can continue the allowlisted Components stage context safely.",
+      );
+    }
+    if (sourceWorkspaceId === "create-movie" && draftId === "create-cinematic-camera-placeholder") {
+      return createStageFocusAction(
+        "create-movie",
+        "Camera",
+        "Continue cinematic camera placeholder planning without broad scene mutation.",
+        "Open Create Movie cockpit (Camera stage)",
+        "Returns to Create Movie so you can continue camera placeholder planning without broad scene mutation.",
+      );
+    }
+    if (sourceWorkspaceId === "create-movie" && draftId === "cinematic-placement-proof-only-candidate") {
+      return createStageFocusAction(
+        "create-movie",
+        "Characters / Props",
+        "Continue proof-only cinematic prop review. Placement execution/write remain non-admitted.",
+        "Open Create Movie cockpit (Characters / Props stage)",
+        "Returns to Create Movie so you can continue proof-only cinematic prop review with blocked-placement truth.",
+      );
+    }
+    if (sourceWorkspaceId === "load-project" && draftId === "inspect-load-project-target") {
+      return createStageFocusAction(
+        "load-project",
+        "Project connection checklist",
+        "Continue read-only target verification before any authoring action.",
+        "Open Load Project cockpit (Target checklist stage)",
+        "Returns to Load Project so you can continue read-only target verification before authoring.",
+      );
+    }
+    if (sourceWorkspaceId === "asset-forge" && draftId === "placement-proof-only-candidate") {
+      return createStageFocusAction(
+        "asset-forge",
+        "Placement Proof",
+        "Continue proof-only placement review and evidence checks only.",
+        "Open Asset Forge cockpit (Placement Proof stage)",
+        "Returns to Asset Forge so you can continue placement proof-only review and evidence checks.",
+      );
+    }
+    if (sourceWorkspaceId === "home" && draftId === "inspect-project-read-only") {
+      return createStageFocusAction(
+        "home",
+        "Inspect mission",
+        "Continue read-only mission orientation and choose the next safe step.",
+        "Open Home cockpit (Inspect mission stage)",
+        "Returns to Home so you can continue read-only mission orientation and choose the next safe step.",
+      );
+    }
+
+    return createStageFocusAction(
+      sourceWorkspaceId,
+      "Source cockpit context",
+      "Continue the source cockpit context only. No prompt execution is triggered.",
+      `Open ${workspaceMeta[sourceWorkspaceId].title} cockpit`,
+      "Returns to the source cockpit context only. No prompt execution is triggered.",
+    );
+  }
+
+  function renderCockpitStageFocusHighlight(
+    highlight: CockpitStageFocusHighlight,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Cockpit stage focus"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(255, 203, 118, 0.62)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(51, 39, 20, 0.96), rgba(20, 31, 45, 0.96))",
+          boxShadow: "0 10px 24px rgba(8, 12, 18, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "grid", gap: 3 }}>
+            <span
+              style={{
+                fontSize: 12,
+                letterSpacing: 0.3,
+                textTransform: "uppercase",
+                color: "rgba(255, 221, 160, 0.95)",
+                fontWeight: 700,
+              }}
+            >
+              Cockpit stage focus
+            </span>
+            <strong style={{ color: "var(--app-text-color)" }}>
+              Focused stage: {highlight.stageLabel}
+            </strong>
+          </div>
+          <button type="button" onClick={() => setCockpitStageFocusHighlight(null)}>
+            Dismiss focus
+          </button>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          {highlight.stageDetail}
+        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source draft: <strong>{highlight.sourceDraftLabel}</strong>
+          </span>
+          <span>
+            Source handoff: <strong>{highlight.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Focus set (ISO): <strong>{highlight.setAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Safety: UI focus only. No prompt execution, no runtime command, and no mutation occurs from this highlight.
+        </p>
+      </section>
+    );
+  }
+
+  function renderPromptHandoffContextCard(
+    draftRequest: PromptLaunchDraftRequest,
+  ): JSX.Element {
+    const sourceWorkspaceId = draftRequest.sourceWorkspaceId ?? null;
+    const sourceWorkspaceLabel = sourceWorkspaceId
+      ? workspaceMeta[sourceWorkspaceId].title
+      : "Unknown source workspace";
+    const launchedAtIso = draftRequest.launchedAtIso?.trim() || "unknown";
+    const sourceSurfaceLabel = draftRequest.sourceSurfaceLabel?.trim() || "unknown source surface";
+    const truthLabels = draftRequest.draft.truthLabels.length > 0
+      ? draftRequest.draft.truthLabels.join(", ")
+      : "unknown";
+    const sourceQuickAction = getPromptHandoffSourceQuickAction(draftRequest);
+
+    return (
+      <section
+        aria-label="Prompt handoff context card"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(84, 177, 122, 0.55)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(22, 47, 35, 0.95), rgba(18, 32, 44, 0.95))",
+          boxShadow: "0 10px 26px rgba(6, 15, 23, 0.32)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "grid", gap: 4 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(159, 226, 191, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Prompt handoff context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Loaded mission draft: {draftRequest.draft.label}
+          </strong>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{sourceWorkspaceLabel}</strong>
+          </span>
+          <span>
+            Source handoff: <strong>{sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Truth labels: <strong>{truthLabels}</strong>
+          </span>
+          <span>
+            Prefill launched (ISO): <strong>{launchedAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: this handoff only prefills Prompt Studio. No preview or execution is automatic, and blocked corridors remain blocked.
+        </p>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Guidance: {draftRequest.draft.guidance}
+        </p>
+        {sourceQuickAction ? (
+          <div
+            style={{
+              border: "1px solid rgba(131, 197, 162, 0.45)",
+              borderRadius: 10,
+              padding: "10px 12px",
+              background: "rgba(12, 26, 34, 0.72)",
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <strong style={{ color: "var(--app-text-color)", fontSize: 13 }}>
+              Source-aware next action
+            </strong>
+            <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+              {sourceQuickAction.detail}
+            </p>
+            <div>
+              <button type="button" onClick={sourceQuickAction.run}>
+                {sourceQuickAction.label}
+              </button>
+            </div>
+          </div>
+        ) : null}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (sourceWorkspaceId) {
+                returnToSourceWorkspaceFromPrompt(sourceWorkspaceId);
+              }
+            }}
+            disabled={!sourceWorkspaceId}
+          >
+            Return to source cockpit
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+          <button type="button" onClick={openRuntimeOverview}>
+            Open Runtime Overview
+          </button>
+          <button type="button" onClick={() => setPromptLaunchDraftRequest(null)}>
+            Clear handoff context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   const renderOperationsWorkspace = () => (
     <Suspense
       fallback={renderWorkspaceLoadingFallback(
@@ -7367,6 +9122,12 @@ export default function App() {
           }}
         >
           <div style={{ height: "100%", minHeight: 0 }}>
+            {activePromptReturnResumeChecklist ? (
+              renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
+            ) : null}
+            {activeCockpitStageFocusHighlight ? (
+              renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
+            ) : null}
             <Suspense
               fallback={renderWorkspaceLoadingFallback(
                 "Asset Forge",
@@ -7374,9 +9135,20 @@ export default function App() {
               )}
             >
               <AIAssetForgePanel
-                onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+                onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
+                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenRecords={openRecordsRuns}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
+                onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
                 bridgeStatus={o3deBridgeStatus}
                 policies={policies}
                 policiesLoading={policiesLoading}
@@ -7387,6 +9159,10 @@ export default function App() {
                 adapters={adapters}
                 adaptersLoading={adaptersLoading}
                 adaptersError={adaptersError}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
               />
             </Suspense>
           </div>
@@ -7436,24 +9212,168 @@ export default function App() {
             onReplayRecentAction={replayWorkspaceNextStepAction}
           />
         ) : null}
+        {activePromptReturnResumeChecklist ? (
+          renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
+        ) : null}
+        {activeCockpitStageFocusHighlight ? (
+          renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
+        ) : null}
+        {activeWorkspaceId === "prompt" ? renderPromptIntakeContextPanel() : null}
+        {activeRecordsEvidenceContext ? (
+          renderRecordsEvidenceContextBanner(activeRecordsEvidenceContext)
+        ) : null}
 
-        {visitedWorkspaceIds.includes("home") ? (
+        {activeWorkspaceId === "home" ? (
           <div
-            aria-hidden={activeWorkspaceId !== "home"}
-            style={activeWorkspaceId === "home" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+            aria-hidden={false}
+            style={activeWorkspacePaneStyle}
           >
             <HomeWorkspaceView
               missionControlContent={homeMissionControlContent}
               launchpadContent={homeLaunchpadContent}
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
-              activeTaskModeId={homeTaskModeId}
-              onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+              onOpenPromptStudio={openPromptStudioFromHomeCockpit}
               onOpenRuntimeOverview={openRuntimeOverview}
-              onOpenBuilder={() => setActiveWorkspaceId("builder")}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
-              onActiveTaskModeChange={setHomeTaskModeId}
+              onOpenRecords={openRecordsRuns}
+              onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
+              onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
+              onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
+              onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromHome}
+              onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
+              onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
+              onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromHome}
+              onViewLatestRun={openLatestRunEvidence}
+              onViewExecution={openLatestExecutionEvidence}
+              onViewArtifact={openLatestArtifactEvidence}
+              onViewEvidence={openRecordsEvents}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={openRunEvidenceById}
+              onOpenExecutionDetail={openExecutionEvidenceById}
+              onOpenArtifactDetail={openArtifactEvidenceById}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
             />
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("create-game") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "create-game"}
+            style={activeWorkspaceId === "create-game" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Create Game",
+                "Loading Create Game cockpit mission pipeline and tool cards.",
+              )}
+            >
+              <CreateGameWorkspaceView
+                onOpenPromptStudio={openPromptStudioFromCreateGameCockpit}
+                onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRecords={openRecordsRuns}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromCreateGame}
+                onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
+                onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
+                onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
+                bridgeStatus={o3deBridgeStatus}
+                adapters={adapters}
+                readiness={readiness}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+              />
+            </Suspense>
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("create-movie") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "create-movie"}
+            style={activeWorkspaceId === "create-movie" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Create Movie",
+                "Loading Create Movie cockpit cinematic pipeline and proof-only placement guidance.",
+              )}
+            >
+              <CreateMovieWorkspaceView
+                onOpenPromptStudio={openPromptStudioFromCreateMovieCockpit}
+                onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRecords={openRecordsRuns}
+                onLaunchInspectTemplate={openPromptStudioWithInspectCinematicTargetTemplate}
+                onLaunchCameraTemplate={openPromptStudioWithCreateCinematicCameraTemplate}
+                onLaunchPlacementProofTemplate={openPromptStudioWithCinematicPlacementProofTemplate}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
+                onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
+                bridgeStatus={o3deBridgeStatus}
+                adapters={adapters}
+                readiness={readiness}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+              />
+            </Suspense>
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("load-project") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "load-project"}
+            style={activeWorkspaceId === "load-project" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Load Project",
+                "Loading Load Project cockpit target summary and checklist.",
+              )}
+            >
+              <LoadProjectWorkspaceView
+                onOpenPromptStudio={openPromptStudioFromLoadProjectCockpit}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRecords={openRecordsRuns}
+                onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
+                onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
+                bridgeStatus={o3deBridgeStatus}
+                adapters={adapters}
+                readiness={readiness}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+              />
+            </Suspense>
           </div>
         ) : null}
 
@@ -7471,6 +9391,10 @@ export default function App() {
               <PromptWorkspaceDesktop
                 selectedWorkspaceId={selectedWorkspaceId}
                 selectedExecutorId={selectedExecutorId}
+                promptLaunchDraftRequest={promptLaunchDraftRequest}
+                onReturnToSourceWorkspace={returnToSourceWorkspaceFromPrompt}
+                onPlacementProofOnlyReviewChange={setLatestPlacementProofOnlyReview}
+                focusPromptIdRequest={promptSessionFocusRequest}
               />
             </Suspense>
           </div>

@@ -39,7 +39,18 @@ type AppControlReceipt = Omit<AppControlExecutionReport, "items" | "script_id"> 
 };
 
 const APP_CONTROL_BACKUP_SESSION_KEY = "o3de-control-app-last-app-control-backup";
-const WORKSPACE_VALUES = ["home", "asset-forge", "prompt", "builder", "operations", "runtime", "records"] as const;
+const WORKSPACE_VALUES = [
+  "home",
+  "create-game",
+  "create-movie",
+  "load-project",
+  "asset-forge",
+  "prompt",
+  "builder",
+  "operations",
+  "runtime",
+  "records",
+] as const;
 const APP_CONTROL_BOUNDARY_ITEMS = [
   "Shell commands and Windows file edits stay out of scope here.",
   "O3DE editor/runtime state is not mutated by this surface.",
