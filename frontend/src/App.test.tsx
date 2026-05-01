@@ -305,7 +305,7 @@ describe("App desktop smoke", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
-    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "home");
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "prompt");
     vi.clearAllMocks();
     Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
@@ -315,6 +315,11 @@ describe("App desktop smoke", () => {
 
     setPendingAppApiMocks(apiMocks);
   });
+
+  async function openHomeWorkspace(): Promise<void> {
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+  }
 
   it("uses Asset Forge as the app home shell and exposes built-in app navigation", async () => {
     window.sessionStorage.removeItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
@@ -362,6 +367,7 @@ describe("App desktop smoke", () => {
 
   it("renders the home workspace and switches to prompt through the shell nav without blanking", async () => {
     render(<App />);
+    await openHomeWorkspace();
 
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
@@ -388,6 +394,7 @@ describe("App desktop smoke", () => {
 
   it("opens prompt workspace from the home recommendation strip", async () => {
     render(<App />);
+    await openHomeWorkspace();
 
     const recommendationStrip = screen.getByText("Recommended next steps").closest("section");
     expect(recommendationStrip).not.toBeNull();
@@ -445,6 +452,7 @@ describe("App desktop smoke", () => {
 
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {
     render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
@@ -573,6 +581,7 @@ describe("App desktop smoke", () => {
 
   it("opens cockpit Prompt Studio with a contextual template chooser and prefill-only safety", async () => {
     render(<App />);
+    await openHomeWorkspace();
 
     const homeWorkspaceHeading = await screen.findByText("Home start here");
     const homeWorkspace = homeWorkspaceHeading.closest("section");
@@ -967,6 +976,7 @@ describe("App desktop smoke", () => {
 
   it("loads Home and Asset Forge contextual templates into Prompt Studio as prefilled mission drafts", async () => {
     render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
@@ -1030,6 +1040,7 @@ describe("App desktop smoke", () => {
 
   it("redirects legacy home prompt-return handoff back into Asset Forge shell", async () => {
     render(<App />);
+    await openHomeWorkspace();
 
     const homeWorkspaceHeading = await screen.findByText("Home start here");
     const homeWorkspace = homeWorkspaceHeading.closest("section");
@@ -1066,6 +1077,7 @@ describe("App desktop smoke", () => {
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
     apiMocks.fetchToolsCatalog.mockResolvedValueOnce({ agents: [] });
     render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",

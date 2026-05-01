@@ -286,6 +286,13 @@ function isAssetForgeDockedWorkspaceId(value: string): value is AssetForgeDocked
   );
 }
 
+function resolveLegacyWorkspaceAlias(workspaceId: DesktopWorkspaceId): DesktopWorkspaceId {
+  if (workspaceId === "home") {
+    return "asset-forge";
+  }
+  return workspaceId;
+}
+
 function resolveInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
   if (preferredWorkspaceId === "home") {
     return "asset-forge";
@@ -323,7 +330,7 @@ function getInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWork
       || storedWorkspace === "runtime"
       || storedWorkspace === "records"
     ) {
-      return storedWorkspace;
+      return resolveLegacyWorkspaceAlias(storedWorkspace);
     }
   }
 
@@ -2499,7 +2506,7 @@ export default function App() {
       || storedWorkspace === "runtime"
       || storedWorkspace === "records"
     ) {
-      setActiveWorkspaceId(storedWorkspace);
+      setActiveWorkspaceId(resolveLegacyWorkspaceAlias(storedWorkspace));
     }
 
     const storedOperationsSurface = window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY);
@@ -2579,7 +2586,7 @@ export default function App() {
         setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
         return;
       default:
-        setActiveWorkspaceId("home");
+        setActiveWorkspaceId("asset-forge");
     }
   }
 

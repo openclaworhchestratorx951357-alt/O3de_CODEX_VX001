@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import {
+  getDesktopNavButton,
   expectDesktopTabActive,
   getDesktopTabButton,
   getLaunchpadButton,
@@ -245,10 +246,31 @@ describe("App desktop hydration", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
-    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "home");
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "prompt");
     vi.clearAllMocks();
 
     setPendingAppApiMocks(apiMocks);
+  });
+
+  async function openHomeWorkspace(): Promise<void> {
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+  }
+
+  it("maps legacy home workspace session values to the Asset Forge primary shell at startup", async () => {
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "home");
+
+    render(<App />);
+
+    expect(await screen.findByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText(
+        "AI Asset Forge",
+        {},
+        { timeout: LAZY_SURFACE_TIMEOUT_MS },
+      ),
+    ).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("asset-forge");
   });
 
   it("restores the Asset Forge docked workspace panel from session storage after remount", async () => {
@@ -282,6 +304,7 @@ describe("App desktop hydration", () => {
 
   it("restores the command center agents surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
@@ -321,6 +344,7 @@ describe("App desktop hydration", () => {
 
   it("restores the command center approvals surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
@@ -360,6 +384,7 @@ describe("App desktop hydration", () => {
 
   it("restores the command center timeline surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
@@ -399,6 +424,7 @@ describe("App desktop hydration", () => {
 
   it("restores the runtime executors surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
@@ -431,6 +457,7 @@ describe("App desktop hydration", () => {
 
   it("restores the runtime governance surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
@@ -477,6 +504,7 @@ describe("App desktop hydration", () => {
 
   it("restores the runtime workspaces surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
@@ -517,6 +545,7 @@ describe("App desktop hydration", () => {
 
   it("restores the prompt workspace from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Natural-language planning and admitted typed execution paths.",
@@ -535,6 +564,7 @@ describe("App desktop hydration", () => {
 
   it("restores the records executions surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
@@ -575,6 +605,7 @@ describe("App desktop hydration", () => {
 
   it("restores the records artifacts surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
+    await openHomeWorkspace();
 
     fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
