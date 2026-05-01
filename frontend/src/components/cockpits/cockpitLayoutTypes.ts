@@ -17,6 +17,9 @@ export type CockpitPanelDefinition = {
   defaultWidth?: number;
   defaultHeight?: number;
   collapsible?: boolean;
+  draggable?: boolean;
+  allowedZones?: CockpitLayoutZone[];
+  locked?: boolean;
   scrollMode?: "panel" | "content" | "none";
   priority?: CockpitPanelPriority;
   render: () => ReactNode;
@@ -37,6 +40,15 @@ export type CockpitLayoutState = {
   sizes: CockpitLayoutSizes;
   collapsedPanelIds: string[];
   updatedAt: string;
+};
+
+export type CockpitDragState = {
+  panelId: string;
+  sourceZoneId: CockpitLayoutZone;
+  overZoneId: CockpitLayoutZone | null;
+  overPanelId: string | null;
+  insertPosition: "before" | "after" | "inside" | null;
+  targetIndex: number | null;
 };
 
 export const COCKPIT_LAYOUT_ZONES: readonly CockpitLayoutZone[] = [

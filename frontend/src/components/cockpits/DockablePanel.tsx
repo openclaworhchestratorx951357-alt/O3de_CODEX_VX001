@@ -1,4 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import type {
+  CSSProperties,
+  DragEvent as ReactDragEvent,
+  ReactNode,
+} from "react";
 
 import type { CockpitLayoutZone } from "./cockpitLayoutTypes";
 
@@ -9,8 +13,14 @@ type DockablePanelProps = {
   truthState?: string;
   collapsed: boolean;
   collapsible: boolean;
+  draggable: boolean;
+  locked?: boolean;
+  allowedZones?: CockpitLayoutZone[];
+  isDragging?: boolean;
   onToggleCollapse: () => void;
   onMoveToZone?: (zone: CockpitLayoutZone) => void;
+  onDragStart?: (panelId: string) => void;
+  onDragEnd?: (panelId: string) => void;
   body: ReactNode;
   footer?: ReactNode;
   actionSlot?: ReactNode;
@@ -35,8 +45,14 @@ export default function DockablePanel({
   truthState,
   collapsed,
   collapsible,
+  draggable,
+  locked = false,
+  allowedZones,
+  isDragging = false,
   onToggleCollapse,
   onMoveToZone,
+  onDragStart,
+  onDragEnd,
   body,
   footer,
   actionSlot,
@@ -48,6 +64,23 @@ export default function DockablePanel({
   const panelHeight = collapsed ? undefined : Math.max(defaultHeight, minHeight);
   const shouldBodyScroll = scrollMode === "content";
   const shouldPanelScroll = scrollMode === "panel";
+  const movableZones = allowedZones ?? zoneChoices;
+  const canDrag = draggable && !locked;
+
+  function handleDragStart(event: ReactDragEvent<HTMLButtonElement>): void {
+    if (!canDrag) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", panelId);
+    event.dataTransfer.setData("application/x-o3de-cockpit-panel-id", panelId);
+    onDragStart?.(panelId);
+  }
+
+  function handleDragEnd(): void {
+    onDragEnd?.(panelId);
+  }
 
   return (
     <article
@@ -59,11 +92,29 @@ export default function DockablePanel({
         minWidth,
         flex: collapsed ? "0 0 auto" : `1 1 ${panelHeight}px`,
         ...(shouldPanelScroll ? panelScrollModeStyle : null),
+        ...(isDragging ? draggingStyle : null),
       }}
     >
       <header style={headerStyle}>
         <div style={titleGroupStyle}>
-          <h3 style={titleStyle}>{title}</h3>
+          <div style={titleRowStyle}>
+            <button
+              type="button"
+              aria-label={`Move panel ${title}`}
+              title={canDrag ? "Drag to dock panel" : "Panel position locked"}
+              draggable={canDrag}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              style={{
+                ...dragHandleStyle,
+                ...(canDrag ? dragHandleEnabledStyle : dragHandleLockedStyle),
+              }}
+              disabled={!canDrag}
+            >
+              Drag
+            </button>
+            <h3 style={titleStyle}>{title}</h3>
+          </div>
           {subtitle ? <p style={subtitleStyle}>{subtitle}</p> : null}
         </div>
         <div style={actionsStyle}>
@@ -73,16 +124,21 @@ export default function DockablePanel({
             <details>
               <summary style={summaryActionStyle}>Move</summary>
               <div style={menuStyle}>
-                {zoneChoices.map((zone) => (
-                  <button
-                    key={zone}
-                    type="button"
-                    onClick={() => onMoveToZone(zone)}
-                    style={menuButtonStyle}
-                  >
-                    {`Send to ${zone}`}
-                  </button>
-                ))}
+                {zoneChoices.map((zone) => {
+                  const allowed = movableZones.includes(zone);
+                  return (
+                    <button
+                      key={zone}
+                      type="button"
+                      onClick={() => onMoveToZone(zone)}
+                      style={menuButtonStyle}
+                      disabled={!allowed}
+                      aria-label={`Move ${title} panel to ${zone}`}
+                    >
+                      {`Send to ${zone}`}
+                    </button>
+                  );
+                })}
               </div>
             </details>
           ) : null}
@@ -135,6 +191,11 @@ const panelScrollModeStyle = {
   overflow: "auto",
 } satisfies CSSProperties;
 
+const draggingStyle = {
+  opacity: 0.68,
+  boxShadow: "var(--app-shadow-strong)",
+} satisfies CSSProperties;
+
 const headerStyle = {
   display: "flex",
   alignItems: "flex-start",
@@ -151,6 +212,34 @@ const titleGroupStyle = {
   display: "grid",
   gap: 4,
   minWidth: 0,
+} satisfies CSSProperties;
+
+const titleRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const dragHandleStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 7,
+  padding: "2px 7px",
+  fontSize: 11,
+  letterSpacing: 0.2,
+  textTransform: "uppercase",
+} satisfies CSSProperties;
+
+const dragHandleEnabledStyle = {
+  cursor: "grab",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const dragHandleLockedStyle = {
+  cursor: "not-allowed",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;
 
 const titleStyle = {
