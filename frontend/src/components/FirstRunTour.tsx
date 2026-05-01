@@ -17,14 +17,14 @@ type FirstRunTourProps = {
 
 const TOUR_STEPS: readonly FirstRunTourStep[] = [
   {
-    workspaceId: "home",
-    workspaceLabel: "Home",
+    workspaceId: "asset-forge",
+    workspaceLabel: "Asset Forge",
     eyebrow: "Step 1 of 4",
-    title: "Start from Home",
-    body: "Home keeps the first decision calm. Use it to see recommended next steps, quick health signals, and the safest place to begin.",
+    title: "Start in Asset Forge",
+    body: "Asset Forge is the primary shell. Use it to launch every major workflow with explicit safety truth and organized cockpit menus.",
     checklist: [
-      "Review Recommended next steps before opening deeper panels.",
-      "Use Launchpad cards when you know the workspace you need.",
+      "Open Create, Prompt, Engine, and Records workflows from the Asset Forge shell menus.",
+      "Use mission-safe templates and proof/read-only labels before any execution request.",
       "Leave Guided mode on while learning the control surface.",
     ],
   },

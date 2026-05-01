@@ -10,14 +10,14 @@ describe("FirstRunTour", () => {
 
     render(
       <FirstRunTour
-        activeWorkspaceId="home"
+        activeWorkspaceId="asset-forge"
         onSelectWorkspace={onSelectWorkspace}
         onComplete={onComplete}
       />,
     );
 
     expect(screen.getByRole("dialog", { name: "First-run guided tour" })).toBeInTheDocument();
-    expect(screen.getByText("Start from Home")).toBeInTheDocument();
+    expect(screen.getByText("Start in Asset Forge")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Workspace open" })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Next: Prompt Studio" }));
@@ -48,8 +48,8 @@ describe("FirstRunTour", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
-    expect(onSelectWorkspace).toHaveBeenCalledWith("home");
+    fireEvent.click(screen.getByRole("button", { name: "Open Asset Forge" }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("asset-forge");
 
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
     expect(onComplete).toHaveBeenCalledTimes(1);
