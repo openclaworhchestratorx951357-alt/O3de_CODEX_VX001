@@ -27,7 +27,6 @@ type Props = {
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
-  onOpenHome?: () => void;
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
   onOpenLoadProject?: () => void;
@@ -319,11 +318,25 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
     label: "App",
     items: [
       {
-        id: "app-home",
-        label: "Home / Start",
+        id: "app-builder",
+        label: "Builder",
         tone: "read-only",
-        action: "open-workspace-home",
-        status: "Opened Home from Asset Forge shell navigation only.",
+        action: "open-workspace-builder",
+        status: "Opened Builder from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations",
+        label: "Operations",
+        tone: "read-only",
+        action: "open-workspace-operations",
+        status: "Opened Operations from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records",
+        label: "Records",
+        tone: "read-only",
+        action: "open-records",
+        status: "Opened Records from Asset Forge shell navigation only.",
       },
     ],
   },
@@ -962,7 +975,6 @@ export default function AssetForgeBlenderCockpit({
   latestExecutionId,
   latestArtifactId,
   latestPlacementProofOnlyReview,
-  onOpenHome,
   onOpenCreateGame,
   onOpenCreateMovie,
   onOpenLoadProject,
@@ -1160,9 +1172,6 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-records") {
       onOpenRecords?.();
-      setStatusMessage(item.status);
-    } else if (item.action === "open-workspace-home") {
-      onOpenHome?.();
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-create-game") {
       onOpenCreateGame?.();
@@ -1491,6 +1500,8 @@ export default function AssetForgeBlenderCockpit({
           <button type="button" onClick={onLaunchInspectTemplate} style={styles.smallButton}>Inspect / Preflight</button>
           <button type="button" onClick={onLaunchPlacementProofTemplate} style={styles.primaryButton}>Load proof-only template</button>
           <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Prompt Studio</button>
+          <button type="button" onClick={onOpenBuilder} style={styles.smallButton}>Builder</button>
+          <button type="button" onClick={onOpenOperations} style={styles.smallButton}>Operations</button>
           <button type="button" onClick={onOpenRecords} style={styles.smallButton}>Records</button>
         </div>
       </section>

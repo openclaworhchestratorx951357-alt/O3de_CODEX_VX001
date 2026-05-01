@@ -23,7 +23,6 @@ import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
 type AIAssetForgePanelProps = {
   projectProfile?: O3DEProjectProfile;
-  onOpenHome?: () => void;
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
   onOpenLoadProject?: () => void;
@@ -157,7 +156,6 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         latestExecutionId={props.latestExecutionId}
         latestArtifactId={props.latestArtifactId}
         latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview}
-        onOpenHome={props.onOpenHome}
         onOpenCreateGame={props.onOpenCreateGame}
         onOpenCreateMovie={props.onOpenCreateMovie}
         onOpenLoadProject={props.onOpenLoadProject}

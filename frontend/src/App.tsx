@@ -9522,25 +9522,21 @@ export default function App() {
                 {operatorGuideShellApp.subtitle}
               </p>
             </div>
-            <button
-              type="button"
-              aria-label="Back to Home"
-              onClick={() => setActiveWorkspaceId("home")}
+            <span
+              aria-label="Asset Forge shell status"
               style={{
-                minHeight: 32,
-                border: "1px solid #61adff",
+                border: "1px solid rgba(97, 173, 255, 0.45)",
                 borderRadius: 8,
-                padding: "0 12px",
+                padding: "6px 10px",
                 background: "var(--app-panel-elevated)",
-                color: "var(--app-text-color)",
+                color: "var(--app-subtle-color)",
+                fontSize: 12,
                 fontWeight: 700,
-                cursor: "pointer",
                 whiteSpace: "nowrap",
-                boxShadow: "0 0 0 1px rgba(97, 173, 255, 0.45), 0 0 14px rgba(44, 138, 255, 0.35)",
               }}
             >
-              Back to Home
-            </button>
+              Asset Forge primary shell
+            </span>
           </div>
         </header>
         <main
@@ -9567,7 +9563,6 @@ export default function App() {
               )}
             >
               <AIAssetForgePanel
-                onOpenHome={() => setActiveWorkspaceId("home")}
                 onOpenCreateGame={() => openAssetForgeDockedWorkspace("create-game")}
                 onOpenCreateMovie={() => openAssetForgeDockedWorkspace("create-movie")}
                 onOpenLoadProject={() => openAssetForgeDockedWorkspace("load-project")}

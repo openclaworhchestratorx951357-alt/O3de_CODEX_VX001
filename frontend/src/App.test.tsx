@@ -1027,18 +1027,17 @@ describe("App desktop smoke", () => {
     expect(screen.queryByLabelText("Mission handoff resume checklist")).not.toBeInTheDocument();
   });
 
-  it("returns to Home from the Asset Forge app header", async () => {
+  it("keeps Asset Forge as the primary shell header surface", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
 
     await screen.findByLabelText("AssetForgeWorkspacePage");
-    const backToHomeButton = screen.getByRole("button", { name: "Back to Home" });
-    fireEvent.click(backToHomeButton);
-
-    expect(await screen.findByText("Home start here")).toBeInTheDocument();
-    expect(getDesktopNavButton(/Home/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
+    expect(screen.getByLabelText("Asset Forge shell status")).toHaveTextContent(
+      "Asset Forge primary shell",
+    );
+    expect(screen.queryByRole("button", { name: "Back to Home" })).toBeNull();
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
   });
 
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {

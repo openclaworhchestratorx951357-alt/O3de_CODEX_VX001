@@ -321,7 +321,6 @@ describe("AssetForgeBlenderCockpit", () => {
 
   it("renders Asset Forge workbench menus that route to existing modules without mutation", () => {
     const callbacks = {
-      onOpenHome: vi.fn(),
       onOpenCreateGame: vi.fn(),
       onOpenCreateMovie: vi.fn(),
       onOpenLoadProject: vi.fn(),
@@ -339,6 +338,14 @@ describe("AssetForgeBlenderCockpit", () => {
     ["App", "Create", "Project", "Prompt", "Engine", "Records", "Safety"].forEach((label) => {
       expect(within(topMenu).getByRole("button", { name: label })).toBeInTheDocument();
     });
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(appMenu).getByRole("menuitem", { name: /Builder/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Operations/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Builder/i }));
+    expect(callbacks.onOpenBuilder).toHaveBeenCalledTimes(1);
 
     fireEvent.click(within(topMenu).getByRole("button", { name: "Create" }));
     const createMenu = screen.getByRole("menu", { name: "Create menu" });
