@@ -355,6 +355,13 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
         status: "Opened Prompt Studio from Asset Forge shell navigation only.",
       },
       {
+        id: "app-runtime",
+        label: "Runtime",
+        tone: "read-only",
+        action: "open-workspace-runtime",
+        status: "Opened Runtime Overview from Asset Forge shell navigation only.",
+      },
+      {
         id: "app-movie-studio",
         label: "Movie Studio Timeline",
         tone: "read-only",

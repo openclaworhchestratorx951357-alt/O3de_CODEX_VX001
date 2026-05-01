@@ -321,6 +321,7 @@ describe("AssetForgeBlenderCockpit", () => {
 
   it("renders Asset Forge workbench menus that route to existing modules without mutation", () => {
     const callbacks = {
+      onOpenHome: vi.fn(),
       onOpenCreateGame: vi.fn(),
       onOpenCreateMovie: vi.fn(),
       onOpenMovieStudioTimeline: vi.fn(),
@@ -342,11 +343,33 @@ describe("AssetForgeBlenderCockpit", () => {
 
     fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
     const appMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(appMenu).getByRole("menuitem", { name: /Home/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Create Game/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Create Movie/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Load Project/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Runtime/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Movie Studio Timeline/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Builder/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Operations/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
-    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Movie Studio Timeline/i }));
+
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Home/i }));
+    expect(callbacks.onOpenHome).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuHomeClosed = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuHomeClosed).getByRole("menuitem", { name: /Prompt Studio/i }));
+    expect(callbacks.onOpenPromptStudio).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRuntime = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRuntime).getByRole("menuitem", { name: /Runtime/i }));
+    expect(callbacks.onOpenRuntimeOverview).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuMovieStudio = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuMovieStudio).getByRole("menuitem", { name: /Movie Studio Timeline/i }));
     expect(callbacks.onOpenMovieStudioTimeline).toHaveBeenCalledTimes(1);
     fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
     const appMenuReopened = screen.getByRole("menu", { name: "App menu" });
@@ -372,7 +395,7 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(within(engineMenu).getByRole("menuitem", { name: /Asset Processor Status/i })).toBeInTheDocument();
 
     fireEvent.click(within(engineMenu).getByRole("menuitem", { name: /Asset Processor Status/i }));
-    expect(callbacks.onOpenRuntimeOverview).not.toHaveBeenCalled();
+    expect(callbacks.onOpenRuntimeOverview).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status")).toHaveTextContent(/Asset Processor status is preflight\/status only/i);
     const properties = screen.getByLabelText("Asset Forge transform and material properties");
     expect(within(properties).getByRole("button", { name: "Safety" })).toHaveAttribute("aria-pressed", "true");
