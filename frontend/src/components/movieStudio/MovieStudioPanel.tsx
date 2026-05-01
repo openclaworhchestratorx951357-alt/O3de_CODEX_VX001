@@ -476,6 +476,16 @@ export default function MovieStudioPanel() {
     }));
   }
 
+  function resetView() {
+    pushHistory("Reset view");
+    setTimelineRange("full");
+    setTimelineZoom(2);
+    setPlaybackRate("1.0x");
+    setTrackFilter("all");
+    setClipFilter("");
+    setSnapMode("off");
+  }
+
   function addMarker() {
     if (!playheadValid) {
       setHandoffStatus("Playhead timecode is invalid");
@@ -774,6 +784,9 @@ export default function MovieStudioPanel() {
                 <option value="marker">Marker</option>
               </select>
             </label>
+            <button type="button" onClick={resetView} style={s.toolbarButton}>
+              Reset View
+            </button>
             <div style={s.markerRow} aria-label="Timeline markers">
               {markers.map((marker) => (
                 <button

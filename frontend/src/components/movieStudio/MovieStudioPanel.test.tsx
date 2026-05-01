@@ -115,6 +115,33 @@ describe("MovieStudioPanel", () => {
     expect(screen.queryByText("Boom Mix")).not.toBeInTheDocument();
   });
 
+  it("resets timeline view controls and supports undo", () => {
+    render(<MovieStudioPanel />);
+
+    fireEvent.change(screen.getByLabelText("Range"), { target: { value: "scene" } });
+    fireEvent.change(screen.getByLabelText("Zoom"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Rate"), { target: { value: "2.0x" } });
+    fireEvent.change(screen.getByLabelText("Tracks"), { target: { value: "audio" } });
+    fireEvent.change(screen.getByLabelText("Find Clip"), { target: { value: "Temp Score" } });
+    fireEvent.change(screen.getByLabelText("Snap"), { target: { value: "marker" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset View" }));
+    expect(screen.getByLabelText("Range")).toHaveValue("full");
+    expect(screen.getByLabelText("Zoom")).toHaveValue("2");
+    expect(screen.getByLabelText("Rate")).toHaveValue("1.0x");
+    expect(screen.getByLabelText("Tracks")).toHaveValue("all");
+    expect(screen.getByLabelText("Find Clip")).toHaveValue("");
+    expect(screen.getByLabelText("Snap")).toHaveValue("off");
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByLabelText("Range")).toHaveValue("scene");
+    expect(screen.getByLabelText("Zoom")).toHaveValue("3");
+    expect(screen.getByLabelText("Rate")).toHaveValue("2.0x");
+    expect(screen.getByLabelText("Tracks")).toHaveValue("audio");
+    expect(screen.getByLabelText("Find Clip")).toHaveValue("Temp Score");
+    expect(screen.getByLabelText("Snap")).toHaveValue("marker");
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
