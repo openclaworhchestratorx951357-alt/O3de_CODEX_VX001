@@ -425,7 +425,11 @@ function makePlacementProofReport(
     approval_state: "approved",
     server_approval_session_id: "approval-session-001",
     server_approval_evaluation: {
+      decision_state: "ready_but_not_admitted",
       decision_code: "approved-intent-only",
+      policy_decision: "allow_if_mutation_admitted",
+      status: "approved",
+      authorization_granted: false,
       policy_would_allow_if_mutation_admitted: true,
     },
     admission_flag_name: "asset_forge_o3de_placement_proof",
@@ -1590,6 +1594,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Proof corridor: asset_forge\.o3de\.placement_proof\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Stage-write evidence ready: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval session id: approval-session-001/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision state: ready_but_not_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision code: approved-intent-only/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Placement proof fail-closed reasons/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime proof gate enabled: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Proof runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_PROOF/i)).toBeInTheDocument();

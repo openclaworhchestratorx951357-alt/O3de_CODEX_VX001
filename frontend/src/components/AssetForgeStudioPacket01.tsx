@@ -3114,6 +3114,12 @@ export default function AssetForgeStudioPacket01({
                 <li>Stage-write readback ready: {placementProofReport.stage_write_readback_ready ? "yes" : "no"}</li>
                 <li>Contract evidence ready: {placementProofReport.contract_evidence_ready ? "yes" : "no"}</li>
                 <li>Revert contract match: {placementProofReport.revert_statement_contract_match ? "yes" : "no"}</li>
+                <li>Server approval session id: {placementProofReport.server_approval_session_id ?? "none"}</li>
+                <li>Server approval decision state: {contractSummaryString(placementProofReport.server_approval_evaluation, "decision_state")}</li>
+                <li>Server approval decision code: {contractSummaryString(placementProofReport.server_approval_evaluation, "decision_code")}</li>
+                <li>Server approval policy decision: {contractSummaryString(placementProofReport.server_approval_evaluation, "policy_decision")}</li>
+                <li>Server approval status: {contractSummaryString(placementProofReport.server_approval_evaluation, "status")}</li>
+                <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementProofReport.server_approval_evaluation, "authorization_granted")}</li>
                 <li>Proof approval required: {placementProofReport.placement_proof_policy["approval_required"] ? "yes" : "no"}</li>
                 <li>Proof runtime gate env: {String(placementProofReport.placement_proof_policy["runtime_gate_env"] ?? "ASSET_FORGE_ENABLE_PLACEMENT_PROOF")}</li>
                 <li>Proof mutation scope: {String(placementProofReport.placement_proof_policy["mutation_scope"] ?? "proof-only-no-scene-mutation")}</li>
