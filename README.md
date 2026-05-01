@@ -17,6 +17,8 @@ them.
   self-merge rules.
 - `docs/BRANCH-AND-PR-HYGIENE.md` - branch, PR, cleanup, and revert hygiene.
 - `docs/VALIDATION-MATRIX.md` - validation commands and proof boundaries.
+- `docs/PRODUCTION-READINESS-CHECKLIST.md` - measurable release gate and ship
+  criteria.
 - `docs/CAPABILITY-MATURITY-MATRIX.md` - conservative capability maturity
   baseline.
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` - stable execution charter and

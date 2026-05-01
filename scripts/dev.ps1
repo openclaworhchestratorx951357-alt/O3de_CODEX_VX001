@@ -34,6 +34,7 @@ param(
         "frontend-smoke",
         "compose-up",
         "compose-build",
+        "production-readiness",
         "checks"
     )]
     [string]$Task = "checks",
@@ -501,6 +502,16 @@ function Invoke-ComposeUp {
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "up", "--build")
 }
 
+function Invoke-ProductionReadiness {
+    Write-Host "Running production-readiness validation gate..."
+    Invoke-BackendLint
+    Invoke-BackendTests
+    Invoke-FrontendLint
+    Invoke-FrontendBuild
+    Invoke-SurfaceMatrixCheck
+    Invoke-ComposeBuild
+}
+
 switch ($Task) {
     "bootstrap-worktree" { Invoke-WorktreeBootstrap }
     "runner-diagnostics" { Invoke-RunnerDiagnostics }
@@ -534,6 +545,7 @@ switch ($Task) {
     "frontend-smoke" { Invoke-FrontendSmoke }
     "compose-build" { Invoke-ComposeBuild }
     "compose-up" { Invoke-ComposeUp }
+    "production-readiness" { Invoke-ProductionReadiness }
     "checks" {
         Invoke-BackendLint
         Invoke-BackendTests
