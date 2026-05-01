@@ -1566,12 +1566,20 @@ export interface AssetForgeO3DEPlacementProofRequest {
   target_component: string;
   approval_state: "not-approved" | "approved";
   approval_note: string;
+  approval_session_id?: string | null;
+  stage_write_corridor_name: string;
+  stage_write_evidence_reference: string;
+  stage_write_readback_reference: string;
+  stage_write_readback_status: "not_run" | "blocked" | "failed" | "succeeded";
 }
 
 export interface AssetForgeO3DEPlacementProofRecord {
   capability_name: string;
+  corridor_name: string;
   maturity: "proof-only";
   proof_status: "approval-required" | "blocked" | "ready-for-runtime-proof";
+  dry_run_only: boolean;
+  execution_admitted: boolean;
   candidate_id: string;
   candidate_label: string;
   staged_source_relative_path: string;
@@ -1580,6 +1588,27 @@ export interface AssetForgeO3DEPlacementProofRecord {
   target_component: string;
   approval_required: boolean;
   approval_state: "not-approved" | "approved";
+  server_approval_session_id: string | null;
+  server_approval_evaluation: Record<string, unknown>;
+  admission_flag_name: string;
+  admission_flag_state: "missing_default_off" | "explicit_off" | "explicit_on" | "invalid_default_off";
+  admission_flag_enabled: boolean;
+  placement_write_admitted: boolean;
+  stage_write_corridor_name: string;
+  stage_write_evidence_reference: string;
+  stage_write_readback_reference: string;
+  stage_write_readback_status: "not_run" | "blocked" | "failed" | "succeeded";
+  stage_write_evidence_ready: boolean;
+  stage_write_readback_ready: boolean;
+  admission_packet_reference: string | null;
+  admission_operator_id: string | null;
+  evidence_bundle_reference: string | null;
+  readback_plan_reference: string | null;
+  revert_statement_contract_key: string | null;
+  revert_statement_contract_match: boolean;
+  operator_note_present: boolean;
+  contract_evidence_ready: boolean;
+  fail_closed_reasons: string[];
   placement_proof_policy: Record<string, unknown>;
   placement_execution_status: "blocked";
   proof_runtime_gate_enabled: boolean;

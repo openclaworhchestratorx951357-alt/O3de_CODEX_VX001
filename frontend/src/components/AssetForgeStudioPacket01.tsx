@@ -39,6 +39,7 @@ import type {
   AssetForgeO3DEPlacementHarnessExecuteRecord,
   AssetForgeO3DEPlacementLiveProofRecord,
   AssetForgePlacementEvidenceIndexRecord,
+  AssetForgeO3DEPlacementProofRequest,
   AssetForgeO3DEPlacementProofRecord,
   AssetForgeBlenderStatusRecord,
   AssetForgeStudioStatusRecord,
@@ -483,6 +484,16 @@ const ASSIGNMENT_DESIGN_STAGE_READBACK_STATUS_OPTIONS: ReadonlyArray<{
   { value: "failed", label: "Failed" },
 ];
 
+const PLACEMENT_PROOF_STAGE_WRITE_READBACK_STATUS_OPTIONS: ReadonlyArray<{
+  value: AssetForgeO3DEPlacementProofRequest["stage_write_readback_status"];
+  label: string;
+}> = [
+  { value: "succeeded", label: "Succeeded" },
+  { value: "not_run", label: "Not run" },
+  { value: "blocked", label: "Blocked" },
+  { value: "failed", label: "Failed" },
+];
+
 function evidenceItemStatusToTruth(status: string | null | undefined): AssetForgeTruthState {
   const normalized = (status ?? "").trim().toLowerCase();
   if (normalized === "succeeded") {
@@ -849,6 +860,18 @@ export default function AssetForgeStudioPacket01({
   const [placementPlanBusy, setPlacementPlanBusy] = useState(false);
   const [placementProofApprovalGranted, setPlacementProofApprovalGranted] = useState(false);
   const [placementProofApprovalNote, setPlacementProofApprovalNote] = useState("");
+  const [placementProofApprovalSessionId, setPlacementProofApprovalSessionId] = useState("");
+  const [placementProofStageWriteCorridorName, setPlacementProofStageWriteCorridorName] = useState(
+    "asset_forge.o3de.stage_write.v1",
+  );
+  const [placementProofStageWriteEvidenceReference, setPlacementProofStageWriteEvidenceReference] = useState(
+    "stage-write://candidate-a/latest",
+  );
+  const [placementProofStageWriteReadbackReference, setPlacementProofStageWriteReadbackReference] = useState(
+    "stage-readback://candidate-a/latest",
+  );
+  const [placementProofStageWriteReadbackStatus, setPlacementProofStageWriteReadbackStatus] =
+    useState<AssetForgeO3DEPlacementProofRequest["stage_write_readback_status"]>("succeeded");
   const [placementProofReport, setPlacementProofReport] = useState<AssetForgeO3DEPlacementProofRecord | null>(null);
   const [placementProofError, setPlacementProofError] = useState<string | null>(null);
   const [placementProofBusy, setPlacementProofBusy] = useState(false);
@@ -1580,10 +1603,26 @@ export default function AssetForgeStudioPacket01({
       setPlacementProofReport(null);
       return;
     }
+    if (!placementProofStageWriteCorridorName.trim()) {
+      setPlacementProofError("Enter a stage-write corridor name before running placement proof gate.");
+      setPlacementProofReport(null);
+      return;
+    }
+    if (!placementProofStageWriteEvidenceReference.trim()) {
+      setPlacementProofError("Enter a stage-write evidence reference before running placement proof gate.");
+      setPlacementProofReport(null);
+      return;
+    }
+    if (!placementProofStageWriteReadbackReference.trim()) {
+      setPlacementProofError("Enter a stage-write readback reference before running placement proof gate.");
+      setPlacementProofReport(null);
+      return;
+    }
 
     setPlacementProofBusy(true);
     setPlacementProofError(null);
     try {
+      const approvalSessionId = placementProofApprovalSessionId.trim();
       const report = await executeAssetForgeO3DEPlacementProof({
         candidate_id: selectedCandidate.id,
         candidate_label: selectedCandidate.name,
@@ -1593,6 +1632,11 @@ export default function AssetForgeStudioPacket01({
         target_component: placementPlanReport.target_component,
         approval_state: placementProofApprovalGranted ? "approved" : "not-approved",
         approval_note: placementProofApprovalNote.trim(),
+        approval_session_id: approvalSessionId.length > 0 ? approvalSessionId : undefined,
+        stage_write_corridor_name: placementProofStageWriteCorridorName.trim(),
+        stage_write_evidence_reference: placementProofStageWriteEvidenceReference.trim(),
+        stage_write_readback_reference: placementProofStageWriteReadbackReference.trim(),
+        stage_write_readback_status: placementProofStageWriteReadbackStatus,
       });
       setPlacementProofReport(report);
       if (report.proof_status !== "ready-for-runtime-proof") {
@@ -2960,6 +3004,64 @@ export default function AssetForgeStudioPacket01({
               style={s.input}
             />
           </label>
+          <label style={s.labelBlock}>
+            Placement proof approval session id (optional)
+            <input
+              type="text"
+              value={placementProofApprovalSessionId}
+              onChange={(event) => setPlacementProofApprovalSessionId(event.target.value)}
+              placeholder="approval-session://placement-proof/candidate-a"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Placement proof stage-write corridor name
+            <input
+              type="text"
+              value={placementProofStageWriteCorridorName}
+              onChange={(event) => setPlacementProofStageWriteCorridorName(event.target.value)}
+              placeholder="asset_forge.o3de.stage_write.v1"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Placement proof stage-write evidence reference
+            <input
+              type="text"
+              value={placementProofStageWriteEvidenceReference}
+              onChange={(event) => setPlacementProofStageWriteEvidenceReference(event.target.value)}
+              placeholder="stage-write://candidate-a/latest"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Placement proof stage-write readback reference
+            <input
+              type="text"
+              value={placementProofStageWriteReadbackReference}
+              onChange={(event) => setPlacementProofStageWriteReadbackReference(event.target.value)}
+              placeholder="stage-readback://candidate-a/latest"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Placement proof stage-write readback status
+            <select
+              value={placementProofStageWriteReadbackStatus}
+              onChange={(event) => {
+                setPlacementProofStageWriteReadbackStatus(
+                  event.target.value as AssetForgeO3DEPlacementProofRequest["stage_write_readback_status"],
+                );
+              }}
+              style={s.input}
+            >
+              {PLACEMENT_PROOF_STAGE_WRITE_READBACK_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <div style={s.actionWrap}>
             <button
               type="button"
@@ -2974,15 +3076,39 @@ export default function AssetForgeStudioPacket01({
             <p style={s.errorText}>{placementProofError}</p>
           ) : null}
           {placementProofReport ? (
-            <ul style={s.list}>
-              <li>Proof status: {placementProofReport.proof_status}</li>
-              <li>Placement execution status: {placementProofReport.placement_execution_status}</li>
-              <li>Runtime proof gate enabled: {placementProofReport.proof_runtime_gate_enabled ? "yes" : "no"}</li>
-              <li>Proof approval required: {placementProofReport.placement_proof_policy["approval_required"] ? "yes" : "no"}</li>
-              <li>Proof runtime gate env: {String(placementProofReport.placement_proof_policy["runtime_gate_env"] ?? "ASSET_FORGE_ENABLE_PLACEMENT_PROOF")}</li>
-              <li>Proof mutation scope: {String(placementProofReport.placement_proof_policy["mutation_scope"] ?? "proof-only-no-scene-mutation")}</li>
-              <li>Write occurred: {placementProofReport.write_occurred ? "yes" : "no"}</li>
-            </ul>
+            <>
+              <ul style={s.list}>
+                <li>Proof status: {placementProofReport.proof_status}</li>
+                <li>Proof corridor: {placementProofReport.corridor_name}</li>
+                <li>Placement execution status: {placementProofReport.placement_execution_status}</li>
+                <li>Runtime proof gate enabled: {placementProofReport.proof_runtime_gate_enabled ? "yes" : "no"}</li>
+                <li>Execution admitted: {placementProofReport.execution_admitted ? "yes" : "no"}</li>
+                <li>Placement writes admitted: {placementProofReport.placement_write_admitted ? "yes" : "no"}</li>
+                <li>Dry-run only: {placementProofReport.dry_run_only ? "yes" : "no"}</li>
+                <li>Stage-write corridor: {placementProofReport.stage_write_corridor_name}</li>
+                <li>Stage-write evidence ref: {placementProofReport.stage_write_evidence_reference || "missing"}</li>
+                <li>Stage-write readback ref: {placementProofReport.stage_write_readback_reference || "missing"}</li>
+                <li>Stage-write readback status: {placementProofReport.stage_write_readback_status}</li>
+                <li>Stage-write evidence ready: {placementProofReport.stage_write_evidence_ready ? "yes" : "no"}</li>
+                <li>Stage-write readback ready: {placementProofReport.stage_write_readback_ready ? "yes" : "no"}</li>
+                <li>Contract evidence ready: {placementProofReport.contract_evidence_ready ? "yes" : "no"}</li>
+                <li>Revert contract match: {placementProofReport.revert_statement_contract_match ? "yes" : "no"}</li>
+                <li>Proof approval required: {placementProofReport.placement_proof_policy["approval_required"] ? "yes" : "no"}</li>
+                <li>Proof runtime gate env: {String(placementProofReport.placement_proof_policy["runtime_gate_env"] ?? "ASSET_FORGE_ENABLE_PLACEMENT_PROOF")}</li>
+                <li>Proof mutation scope: {String(placementProofReport.placement_proof_policy["mutation_scope"] ?? "proof-only-no-scene-mutation")}</li>
+                <li>Write occurred: {placementProofReport.write_occurred ? "yes" : "no"}</li>
+              </ul>
+              {placementProofReport.fail_closed_reasons.length ? (
+                <>
+                  <h4 style={s.subheading}>Placement proof fail-closed reasons</h4>
+                  <ul style={s.list}>
+                    {placementProofReport.fail_closed_reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </>
           ) : null}
           <div style={s.panelHeader}>
             <h4 style={s.subheading}>Placement evidence preflight (Packet 11)</h4>

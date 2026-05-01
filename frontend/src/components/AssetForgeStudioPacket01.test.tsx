@@ -407,8 +407,11 @@ function makePlacementProofReport(
 ): AssetForgeO3DEPlacementProofRecord {
   return {
     capability_name: "asset_forge.o3de.placement.execute",
+    corridor_name: "asset_forge.o3de.placement_proof.v1",
     maturity: "proof-only",
     proof_status: "blocked",
+    dry_run_only: true,
+    execution_admitted: false,
     candidate_id: "candidate-a",
     candidate_label: "Weathered Ivy Arch",
     staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
@@ -417,6 +420,33 @@ function makePlacementProofReport(
     target_component: "Mesh",
     approval_required: true,
     approval_state: "approved",
+    server_approval_session_id: "approval-session-001",
+    server_approval_evaluation: {
+      decision_code: "approved-intent-only",
+      policy_would_allow_if_mutation_admitted: true,
+    },
+    admission_flag_name: "asset_forge_o3de_placement_proof",
+    admission_flag_state: "explicit_off",
+    admission_flag_enabled: false,
+    placement_write_admitted: false,
+    stage_write_corridor_name: "asset_forge.o3de.stage_write.v1",
+    stage_write_evidence_reference: "stage-write://candidate-a/latest",
+    stage_write_readback_reference: "stage-readback://candidate-a/latest",
+    stage_write_readback_status: "succeeded",
+    stage_write_evidence_ready: true,
+    stage_write_readback_ready: true,
+    admission_packet_reference: null,
+    admission_operator_id: null,
+    evidence_bundle_reference: null,
+    readback_plan_reference: null,
+    revert_statement_contract_key: null,
+    revert_statement_contract_match: false,
+    operator_note_present: true,
+    contract_evidence_ready: false,
+    fail_closed_reasons: [
+      "admission_flag_disabled_or_missing",
+      "placement_proof_execution_not_admitted",
+    ],
     placement_proof_policy: {
       approval_required: true,
       approval_note_required_when_approved: true,
@@ -1396,14 +1426,41 @@ describe("AssetForgeStudioPacket01", () => {
           approval_state: "approved",
           approval_note: "Operator approved exact Packet 11 proof gate.",
           target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+          stage_write_corridor_name: "asset_forge.o3de.stage_write.v1",
+          stage_write_evidence_reference: "stage-write://candidate-a/latest",
+          stage_write_readback_reference: "stage-readback://candidate-a/latest",
+          stage_write_readback_status: "succeeded",
         }),
       );
     });
 
     expect(await screen.findByText(/Proof status: blocked/i)).toBeInTheDocument();
+    expect(screen.getByText(/Proof corridor: asset_forge\.o3de\.placement_proof\.v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stage-write evidence ready: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Placement proof fail-closed reasons/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime proof gate enabled: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Proof runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_PROOF/i)).toBeInTheDocument();
     expect(screen.getByText(/Write occurred: no/i)).toBeInTheDocument();
+  });
+
+  it("guards placement proof gate when stage-write evidence reference is missing", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Placement proof stage-write evidence reference"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run narrow placement proof gate (Packet 11)" }));
+
+    expect(
+      await screen.findByText(/Enter a stage-write evidence reference before running placement proof gate\./i),
+    ).toBeInTheDocument();
+    expect(apiMocks.executeAssetForgeO3DEPlacementProof).not.toHaveBeenCalled();
   });
 
   it("shows policy-loading status for provider lane while registry data is pending", () => {
