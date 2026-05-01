@@ -519,6 +519,10 @@ describe("AssetForgeBlenderCockpit", () => {
     fireEvent.click(within(properties).getByRole("button", { name: "Copy template" }));
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("placement proof-only candidate"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Editor context snapshot (prefill-only; no mutation admitted):"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Selected tool: Transform"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Selected object: Asset Root"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Mesh preview: frontend fallback placeholder (read-only)"));
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent(/Placement proof-only copied\. autoExecute=false/i);
     });
@@ -540,15 +544,22 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(within(properties).getAllByText("Backend Transform Plan").length).toBeGreaterThan(0);
     fireEvent.click(within(properties).getByRole("button", { name: "Load template" }));
 
-    expect(onLaunchPromptTemplate).toHaveBeenCalledWith({
+    const handoff = onLaunchPromptTemplate.mock.calls[0]?.[0];
+    expect(handoff).toEqual(expect.objectContaining({
       template_id: "backend-transform-plan",
       label: "Backend Transform Plan",
-      description: "Backend supplied transform plan template.",
-      text: "Plan a transform update from backend model values. Do not mutate content.",
+      description: expect.stringContaining("Backend supplied transform plan template."),
+      text: expect.stringContaining("Plan a transform update from backend model values. Do not mutate content."),
       truth_state: "plan-only",
-      safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
+      safety_labels: expect.arrayContaining(["plan-only", "autoExecute=false", "no mutation", "editor-context-prefill", "mesh-preview-read-only"]),
       auto_execute: false,
-    });
+    }));
+    expect(handoff?.description).toContain("Includes editor context snapshot metadata for prefill-only Prompt Studio review.");
+    expect(handoff?.text).toContain("Editor context snapshot (prefill-only; no mutation admitted):");
+    expect(handoff?.text).toContain("Selected tool: Transform");
+    expect(handoff?.text).toContain("Selected object: Backend Root");
+    expect(handoff?.text).toContain("Viewport mode: Solid");
+    expect(handoff?.text).toContain("Mesh preview: Backend Mesh_LOD0");
   });
 
   it("opens Prompt Studio from the proof tab with the selected template handoff", () => {
@@ -568,15 +579,20 @@ describe("AssetForgeBlenderCockpit", () => {
 
     fireEvent.click(within(properties).getByRole("button", { name: "Open Prompt Studio" }));
 
-    expect(onLaunchPromptTemplate).toHaveBeenCalledWith({
+    const handoff = onLaunchPromptTemplate.mock.calls[0]?.[0];
+    expect(handoff).toEqual(expect.objectContaining({
       template_id: "backend-transform-plan",
       label: "Backend Transform Plan",
-      description: "Backend supplied transform plan template.",
-      text: "Plan a transform update from backend model values. Do not mutate content.",
+      description: expect.stringContaining("Backend supplied transform plan template."),
+      text: expect.stringContaining("Plan a transform update from backend model values. Do not mutate content."),
       truth_state: "plan-only",
-      safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
+      safety_labels: expect.arrayContaining(["plan-only", "autoExecute=false", "no mutation", "editor-context-prefill", "mesh-preview-read-only"]),
       auto_execute: false,
-    });
+    }));
+    expect(handoff?.text).toContain("Editor context snapshot (prefill-only; no mutation admitted):");
+    expect(handoff?.text).toContain("Selected tool: Transform");
+    expect(handoff?.text).toContain("Selected object: Backend Root");
+    expect(handoff?.text).toContain("Mesh preview: Backend Mesh_LOD0");
     expect(onOpenPromptStudio).not.toHaveBeenCalled();
   });
 
@@ -593,6 +609,8 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(handoffSummary).toHaveTextContent("autoExecute=false");
     expect(handoffSummary).toHaveTextContent("no mutation");
     expect(handoffSummary).toHaveTextContent("Prompt Studio opens this as a dry-run editable draft");
+    expect(within(properties).getByText(/Editor context snapshot \(prefill-only; no mutation admitted\):/i)).toBeInTheDocument();
+    expect(within(properties).getByText(/Selected object: Backend Root/i)).toBeInTheDocument();
   });
 
   it("renders tools and outliner rows from backend editor model when provided", () => {

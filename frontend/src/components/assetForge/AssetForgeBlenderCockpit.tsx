@@ -90,6 +90,15 @@ type DisplayPropertyRow = {
   tone?: string;
 };
 
+type PromptTemplateContext = {
+  selectedTool: EditorTool | undefined;
+  selectedOutlinerNode: OutlinerNode | undefined;
+  selectedObjectLabel: string;
+  selectedViewportMode: string;
+  transformDraft: TransformDraft;
+  meshPreview: AssetForgeEditorModelRecord["mesh_preview"] | null | undefined;
+};
+
 type MenuItem = {
   id: string;
   label: string;
@@ -670,6 +679,42 @@ function getMeshRows(model?: AssetForgeEditorModelRecord | null): DisplayPropert
   ];
 }
 
+function formatTransformDraftAxisValues(values: Record<Axis, string>): string {
+  return `X=${values.x}, Y=${values.y}, Z=${values.z}`;
+}
+
+function buildPromptTemplateContextLines({
+  selectedTool,
+  selectedOutlinerNode,
+  selectedObjectLabel,
+  selectedViewportMode,
+  transformDraft,
+  meshPreview,
+}: PromptTemplateContext): string[] {
+  const lines = [
+    `Selected tool: ${selectedTool?.label ?? "unknown"} (${selectedTool?.truth ?? "unknown"})`,
+    `Selected object: ${selectedObjectLabel} (${selectedOutlinerNode?.truth ?? "unknown"})`,
+    `Viewport mode: ${selectedViewportMode}`,
+    `Transform draft Location: ${formatTransformDraftAxisValues(transformDraft.location)}`,
+    `Transform draft Rotation: ${formatTransformDraftAxisValues(transformDraft.rotation)}`,
+    `Transform draft Scale: ${formatTransformDraftAxisValues(transformDraft.scale)}`,
+    `Transform draft Dimensions: ${formatTransformDraftAxisValues(transformDraft.dimensions)}`,
+  ];
+
+  if (meshPreview) {
+    lines.push(
+      `Mesh preview: ${meshPreview.mesh_label}`,
+      `Mesh topology: ${meshPreview.topology_status}`,
+      `Mesh UV layers: ${meshPreview.uv_layers.join(", ") || "none"}`,
+      `Mesh material slots: ${meshPreview.material_slots.join(", ") || "none"}`,
+    );
+  } else {
+    lines.push("Mesh preview: frontend fallback placeholder (read-only)");
+  }
+
+  return lines;
+}
+
 function getSafetyRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
   const baseRows: DisplayPropertyRow[] = [
     ["execution_admitted", "false", "read-only"],
@@ -1087,6 +1132,29 @@ export default function AssetForgeBlenderCockpit({
   const selectedStatusStripTab = statusStripTabs.find((tab) => tab.label === selectedBottomTab);
   const activePropertiesTab = propertyTabs.includes(selectedPropertiesTab) ? selectedPropertiesTab : (propertyTabs[0] ?? "Transform");
   const activeMaterialSubTab = materialTabs.includes(selectedMaterialSubTab) ? selectedMaterialSubTab : (materialTabs[0] ?? "Surface");
+  const promptTemplateContextLines = useMemo(() => buildPromptTemplateContextLines({
+    selectedTool,
+    selectedOutlinerNode,
+    selectedObjectLabel,
+    selectedViewportMode,
+    transformDraft,
+    meshPreview,
+  }), [
+    meshPreview,
+    selectedObjectLabel,
+    selectedOutlinerNode,
+    selectedTool,
+    selectedViewportMode,
+    transformDraft,
+  ]);
+  const promptTemplateContextSummary = useMemo(
+    () => ["Editor context snapshot (prefill-only; no mutation admitted):", ...promptTemplateContextLines].join("\n"),
+    [promptTemplateContextLines],
+  );
+
+  function buildPromptTemplateHandoffText(baseText: string): string {
+    return [baseText, "", promptTemplateContextSummary].join("\n");
+  }
 
   useEffect(() => {
     if (!transformDirty) {
@@ -1149,7 +1217,7 @@ export default function AssetForgeBlenderCockpit({
   }
 
   function copyPromptTemplate() {
-    const text = selectedPromptTemplate?.text ?? "";
+    const text = buildPromptTemplateHandoffText(selectedPromptTemplate?.text ?? "");
     if (navigator.clipboard?.writeText) {
       void navigator.clipboard.writeText(text).then(
         () => setStatusMessage(`${selectedPromptTemplate?.label ?? "Prompt template"} copied. autoExecute=false.`),
@@ -1161,19 +1229,26 @@ export default function AssetForgeBlenderCockpit({
   }
 
   function toPromptTemplateRecord(template: PromptTemplate): AssetForgePromptTemplateRecord {
+    const safetyLabels = Array.from(new Set([
+      ...template.safetyLabels,
+      "editor-context-prefill",
+      meshPreview ? "mesh-preview-read-only" : "mesh-preview-fallback",
+      "autoExecute=false",
+      "non-mutating",
+    ]));
     return {
       template_id: template.id,
       label: template.label,
-      description: template.description,
-      text: template.text,
+      description: `${template.description} Includes editor context snapshot metadata for prefill-only Prompt Studio review.`,
+      text: buildPromptTemplateHandoffText(template.text),
       truth_state: template.truth as AssetForgePromptTemplateRecord["truth_state"],
-      safety_labels: template.safetyLabels,
+      safety_labels: safetyLabels,
       auto_execute: false,
     };
   }
 
   function loadPromptTemplate() {
-    setStatusMessage(`${selectedPromptTemplate?.label ?? "Prompt template"} loaded for user-controlled Prompt Studio handoff. autoExecute=false.`);
+    setStatusMessage(`${selectedPromptTemplate?.label ?? "Prompt template"} loaded with editor context snapshot for user-controlled Prompt Studio handoff. autoExecute=false.`);
     if (selectedPromptTemplate && onLaunchPromptTemplate) {
       onLaunchPromptTemplate(toPromptTemplateRecord(selectedPromptTemplate));
       return;
@@ -1382,6 +1457,7 @@ export default function AssetForgeBlenderCockpit({
           <Badge tone={selectedPromptTemplate?.truth ?? "read-only"} />
         </div>
         <div style={styles.promptPreview}>{selectedPromptTemplate?.text}</div>
+        <div style={styles.promptContextPreview}>{promptTemplateContextSummary}</div>
         <div
           aria-label="Prompt template handoff safety summary"
           style={styles.promptTemplateSafetySummary}
@@ -2462,6 +2538,18 @@ const styles = {
     padding: 4,
     fontSize: 10,
     lineHeight: 1.35,
+  },
+  promptContextPreview: {
+    minHeight: 72,
+    maxHeight: 110,
+    overflow: "auto",
+    border: "1px solid #9aa0a8",
+    background: "#f1f5f9",
+    color: "#101820",
+    padding: 4,
+    fontSize: 10,
+    lineHeight: 1.35,
+    whiteSpace: "pre-wrap",
   },
   promptTemplateSafetySummary: {
     display: "grid",
