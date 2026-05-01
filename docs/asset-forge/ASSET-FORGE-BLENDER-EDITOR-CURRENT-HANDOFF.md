@@ -9,25 +9,25 @@ capability.
 
 ## Current branch and savepoints
 
-- Current integration branch: `codex/asset-forge-prompt-prefill-polish`
-- Current integration commit: `375800c Refresh Asset Forge Blender editor handoff`
+- Current integration branch: `codex/asset-forge-movie-studio-shell-stack-clean`
+- Current integration commit: `f4d16dd Add Records Events routing in Asset Forge app menu`
 - Protected visual savepoint tag: `asset-forge-blender-layout-polished`
 - Protected visual savepoint commit: `821710a Polish Asset Forge Blender-like editor layout`
-- Draft PR note: PR #188 was opened for the cockpit registry slice and then
-  closed after the commit was fast-forwarded into the integration branch.
+- Active draft PR note: PR #191 tracks this integration branch against
+  `codex/asset-forge-prompt-prefill-polish`.
 
 Before editing, verify:
 
 ```powershell
 git fetch origin --prune --tags
-git switch codex/asset-forge-prompt-prefill-polish
-git pull --ff-only origin codex/asset-forge-prompt-prefill-polish
+git switch codex/asset-forge-movie-studio-shell-stack-clean
+git pull --ff-only origin codex/asset-forge-movie-studio-shell-stack-clean
 git status --short --untracked-files=no
 git rev-parse --short HEAD
 git rev-parse --short asset-forge-blender-layout-polished
 ```
 
-Expected current head at this handoff is `375800c`. If the branch has moved,
+Expected current head at this handoff is `f4d16dd`. If the branch has moved,
 read the newer commits before choosing a packet.
 
 ## Current product truth
@@ -51,6 +51,10 @@ Current implemented behavior:
 - Material, Proof, Safety, and bottom status tabs switch locally.
 - Prompt templates can be previewed/copied/opened in Prompt Studio without
   auto-execution.
+- The App menu now includes direct shell routes for Home, Create Game, Create
+  Movie, Load Project, Runtime lanes, Builder, Movie Studio Timeline, and
+  Records lanes (Runs/Executions/Artifacts/Events), all as navigation-only
+  handoff actions.
 - Backend `/asset-forge/editor-model` supplies editor-model contract data for
   tools, menus, workflow stages, status strip tabs, outliner, transform,
   properties, material preview, prompt templates, and blocked capabilities.
@@ -95,6 +99,14 @@ Blender itself is admitted as an execution dependency.
 
 The important recent commits, newest first:
 
+- `f4d16dd` - adds App-menu `Records Events` route wiring from Asset Forge
+  shell to Records Events.
+- `d3d764d` - adds cross-thread open-PR scan workflow gate via
+  `scripts/dev.ps1 pr-open-list`.
+- `c52bbd5` - adds App-menu Records lane routes (Runs/Executions/Artifacts).
+- `13ba256` - adds App-menu Runtime Overview route from Asset Forge shell.
+- `ee4dce4` - integrates Movie Studio shell stack cleanup into the Asset Forge
+  integration branch.
 - `375800c` - refreshes the durable Asset Forge Blender editor handoff and
   links it in the status/docs entry points.
 - `4d5bc42` - adds typed frontend cockpit app registry foundation and marks
@@ -141,7 +153,7 @@ Most recent green validation on the integration branch:
 
 ```powershell
 cd frontend
-npm test -- --run src/lib/cockpitAppRegistry.test.ts src/components/HomeCockpitLaunchPanel.test.tsx src/components/AppControlCommandCenter.test.tsx src/App.test.tsx
+npm test -- --run src/components/assetForge/AssetForgeBlenderCockpit.test.tsx src/components/AIAssetForgePanel.test.tsx src/App.test.tsx
 npm run build
 npm test -- --run
 cd ..
@@ -150,9 +162,9 @@ git diff --check
 
 Results from the latest slice:
 
-- targeted frontend suite passed: 4 files, 28 tests
+- targeted frontend suite passed: 3 files, 43 tests
 - frontend build passed
-- full frontend suite passed: 69 files, 347 tests
+- full frontend suite passed: 70 files, 368 tests
 - `git diff --check` passed
 
 Recent backend editor-model validation also passed:
