@@ -1,53 +1,24 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Editor placement proof-only implementation
-(`codex/editor-placement-proof-only-implementation`).
+Validation intake endpoint-candidate admission audit/review packet.
 
 ## Why this is next
-- GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
-  complete and stable under explicit server-owned authorization truth language.
-- Shared boundary labels and status-chip linkage cues are now deterministic
-  across capability, audit, approval/session, evidence timeline, workspace,
-  and recommendation surfaces.
-- Validation workflow hold/no-go posture remains explicit, fail-closed, and
-  unchanged across app-wide guidance.
-- Asset Forge stage-write admission-flag verification refresh is now
-  checkpointed with passing targeted backend and frontend evidence.
-- AI Asset Forge operator review packet implementation plus boundary regression
-  refresh is now checkpointed under explicit proof-only/non-admitting
-  constraints.
-- Asset Forge placement readiness matrix refresh recommendation roll-forward is
-  now complete, and that packet explicitly handed off to placement proof-only
-  admission-flag design.
-- Placement proof-only admission-flag verification hardening is now complete
-  with explicit placement/editor missing/off/invalid/on fail-closed coverage,
-  while provider generation, Blender execution, Asset Processor admission,
-  assignment, and placement runtime execution remain unadmitted.
-- Placement proof-only admission-flag release-readiness decision is now
-  complete with an explicit hold/no-go posture and no runtime broadening.
-- Placement proof-only admission-flag long-hold checkpoint is now complete and
-  explicitly hands off the stream to the next editor-lane planning packet.
-- Editor placement plan matrix baseline audit is now complete and confirms
-  current plan-only placement truth plus cross-lane dependency boundaries.
-- Editor placement proof-only design is now complete with explicit candidate
-  scope, fail-closed gates, and no-admission boundaries.
-- The next highest-value gate is implementing one bounded proof-only corridor
-  from the audited gates while preserving explicit non-admitting defaults.
+- Capability, audit, evidence timeline, approval/session, and workspace-status
+  shells now exist.
+- Validation intake endpoint-candidate dry-run implementation now exists behind
+  a server-owned default-off admission flag.
+- The next safest move is an explicit admission audit/review packet that proves
+  gate semantics, refusal coverage, and operator-facing truth labels before any
+  broader read-only admission claim.
 
 ## Scope
-- implement one bounded editor placement proof-only corridor packet
-- wire the explicit route/model/service/planner touchpoints identified by the
-  readiness audit into a fail-closed, non-admitting path
-- preserve explicit blocked-status language for assignment/placement execution
-  beyond this proof-only corridor
-- keep recommendation surfaces aligned to this next packet across capability,
-  audit, workspace, timeline, and shell guidance
-- preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in placement proof-only guidance
-- keep provider/stage-plan/stage-write/readback/placement corridors explicitly
-  non-broadened and fail-closed in this packet
-- preserve no-touch runtime zones and no-broadening posture
+- docs+tests focused packet (optional small backend metadata only)
+- audit endpoint gate states (`missing_default_off`, `explicit_off`,
+  `explicit_on`, `invalid_default_off`)
+- verify fail-closed refusal matrix on malformed/auth-tainted payloads
+- define and verify operator-facing review/status fields for endpoint outcomes
+- no execution or mutation admission changes
 
 ## Safety constraints
 - no provider generation
@@ -62,28 +33,16 @@ Editor placement proof-only implementation
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Editor placement proof-only implementation recommendation wording is
-  deterministic and aligned across shell recommendation surfaces
-- explicit hold gates remain reviewable and non-admitting:
-  assignment/placement execution stays blocked without a separate future
-  admission packet
-- structured review-packet boundaries remain explicit: bounded candidate review
-  emphasis, non-authorizing client fields, and no assignment/placement/production
-  admission broadening
-- canonical validation command set, command-to-evidence ownership,
-  hold-boundary consistency checkpoints, operator-safe examples, wording audit,
-  review-status parity, taxonomy, chronology, and progression-integrity remain
-  explicit and unchanged
-- editor restore/readback hold boundaries remain explicit
-- Flow Trigger runtime-admission hold posture remains explicit and unchanged
-- blocked and hold/no-go boundaries remain explicit in recommendation surfaces
-- targeted frontend shell/fixture checks still pass
-- docs remain aligned with runtime/test truth
+- endpoint remains blocked for missing/invalid/explicit-off flag states
+- explicit-on path remains dry-run-only with write/execution flags false
+- dispatch path for `validation.report.intake` remains unadmitted
+- review/status output remains truthful and fail-closed
+- no mutation/execution admission changes
+- targeted backend tests cover refusal matrix and gate-state transitions
 
 ## Alternative considered
-Direct placement runtime-admission broadening without first tightening
-editor placement proof-only implementation boundaries.
+Flow Trigger Suite productization plan.
 
-This remains deferred for safety. Keep editor placement proof-only
-implementation strictly bounded and non-admitting first, then consider any
-future runtime-admission revisit.
+This remains valid, but validation-intake admission audit/review is recommended
+first to harden the new endpoint-candidate boundary before broader workflow
+automation work.

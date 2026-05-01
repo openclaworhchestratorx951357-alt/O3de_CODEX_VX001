@@ -1,117 +1,97 @@
-export type WorkspaceStatusTaxonomy =
-  | "admitted-real"
-  | "proof-only"
-  | "dry-run only"
-  | "plan-only"
-  | "demo"
-  | "hold-default-off"
-  | "blocked";
+import type { CapabilityMaturity, CapabilityRisk } from "./appCapabilityDashboardFixture";
 
-export type WorkspaceStatusChipRow = {
+export type WorkspaceStatusChip = {
+  id: string;
   workspace: string;
-  capabilityWindow: string;
-  taxonomy: WorkspaceStatusTaxonomy;
-  summary: string;
-  boundary: string;
-  nextGate: string;
+  label: string;
+  maturity: CapabilityMaturity;
+  risk: CapabilityRisk;
+  status: "blocked" | "watch" | "ready";
+  evidenceLink: string;
+  note: string;
 };
 
-export const appWorkspaceStatusChipsFixtureGeneratedAt = "2026-04-30";
+export const appWorkspaceStatusChipsGeneratedAt = "2026-04-29";
 
-export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
+export const appWorkspaceStatusChips: readonly WorkspaceStatusChip[] = [
   {
-    workspace: "Home review shells",
-    capabilityWindow: "capability + audit + approval + evidence",
-    taxonomy: "demo",
-    summary: "Fixture-first dashboard shells improve operator truth visibility without changing backend admission.",
-    boundary: "display-only",
-    nextGate: "dashboard truth refresh + shared taxonomy alignment",
+    id: "workspace-home-capability",
+    workspace: "Home",
+    label: "capability dashboard",
+    maturity: "GUI/demo only",
+    risk: "Medium",
+    status: "ready",
+    evidenceLink: "app.capability.dashboard",
+    note: "Static-fixture truth labels are available with no execution admission changes.",
   },
   {
-    workspace: "Validation intake endpoint candidate",
-    capabilityWindow: "validation.report.intake",
-    taxonomy: "hold-default-off",
-    summary:
-      "Server-owned gate states keep endpoint blocked by default; explicit_on still remains dry-run-only with write_status=blocked.",
-    boundary: "no execution admission",
-    nextGate: "long-hold maintenance unless explicit future admission is approved",
+    id: "workspace-home-audit",
+    workspace: "Home",
+    label: "audit review",
+    maturity: "GUI/demo only",
+    risk: "Medium",
+    status: "ready",
+    evidenceLink: "audit.review.dashboard",
+    note: "Cross-domain audit verdict visibility is active in the shell-only lane.",
   },
   {
-    workspace: "Editor authoring readback review lane",
-    capabilityWindow: "editor.component.property.get",
-    taxonomy: "admitted-real",
-    summary:
-      "Read-only editor property readback long-hold posture remains explicit while write/restore scope stays exact and narrow.",
-    boundary: "read-only review only",
-    nextGate: "Editor placement proof-only implementation",
+    id: "workspace-home-evidence",
+    workspace: "Home",
+    label: "evidence timeline",
+    maturity: "GUI/demo only",
+    risk: "Medium",
+    status: "ready",
+    evidenceLink: "evidence.timeline",
+    note: "Cross-domain chronology surface is available as static fixture evidence.",
   },
   {
-    workspace: "Settings inspect review lane",
-    capabilityWindow: "settings.inspect (via project.inspect)",
-    taxonomy: "admitted-real",
-    summary:
-      "Read-only settings inspection remains admitted through project.inspect include_settings with explicit requested/matched/missing settings evidence wording.",
-    boundary: "read-only only",
-    nextGate: "Editor placement proof-only implementation",
+    id: "workspace-home-approval",
+    workspace: "Home",
+    label: "approval/session truth",
+    maturity: "GUI/demo only",
+    risk: "Medium",
+    status: "ready",
+    evidenceLink: "approval.session.dashboard",
+    note: "Client intent vs server authorization truth is surfaced with fail-closed status labels.",
   },
   {
-    workspace: "Build configure preflight review lane",
-    capabilityWindow: "build.configure.preflight",
-    taxonomy: "admitted-real",
-    summary:
-      "Real configure preflight remains dry_run-only with plan/provenance evidence; configure command execution is still not admitted in this lane.",
-    boundary: "no configure mutation or build execute admission",
-    nextGate: "Editor placement proof-only implementation",
+    id: "workspace-validation-intake",
+    workspace: "Records",
+    label: "validation intake endpoint",
+    maturity: "dry-run only",
+    risk: "Medium",
+    status: "watch",
+    evidenceLink: "validation.report.intake",
+    note: "Contract and parser matrix exist, but endpoint admission remains blocked.",
   },
   {
-    workspace: "Build execution long-hold lane",
-    capabilityWindow: "build.execute.real",
-    taxonomy: "admitted-real",
-    summary:
-      "Long-hold checkpoint keeps hold/no-go posture explicit for build.execute.real broadening while preserving named-target execution controls and timeout/log/result evidence boundaries.",
-    boundary: "explicit named-target gated execution only",
-    nextGate: "Editor placement proof-only implementation",
+    id: "workspace-asset-forge-stage-write",
+    workspace: "Asset Forge",
+    label: "stage write corridor",
+    maturity: "proof-only",
+    risk: "High",
+    status: "watch",
+    evidenceLink: "asset_forge.o3de.stage_write.v1",
+    note: "Bounded proof corridor exists; broad mutation remains blocked and audit-gated.",
   },
   {
-    workspace: "Asset Forge stage write",
-    capabilityWindow: "asset_forge.o3de.stage_write.v1",
-    taxonomy: "proof-only",
-    summary: "Exact proof corridor remains bounded by admission-flag and evidence gates.",
-    boundary: "no broad mutation admission",
-    nextGate: "admission-flag verification refresh",
+    id: "workspace-editor-placement",
+    workspace: "Runtime",
+    label: "placement proof",
+    maturity: "plan-only",
+    risk: "High",
+    status: "blocked",
+    evidenceLink: "editor.placement.proof_only",
+    note: "Placement proof-only admission is not implemented and remains blocked.",
   },
   {
-    workspace: "Project config patch corridor",
-    capabilityWindow: "settings.patch.narrow",
-    taxonomy: "admitted-real",
-    summary:
-      "Narrow mutation path stays admitted only for explicit manifest-backed patch scope; rollback remains bounded by class identity, backup linkage, and post-rollback readback evidence expectations.",
-    boundary: "exact corridor only",
-    nextGate: "Editor placement proof-only implementation",
+    id: "workspace-automation-productized",
+    workspace: "Builder",
+    label: "flow trigger productized",
+    maturity: "missing",
+    risk: "High",
+    status: "blocked",
+    evidenceLink: "codex.flow.trigger.productized",
+    note: "Local helpers are active, but productized automation remains unadmitted.",
   },
-  {
-    workspace: "Automation productization",
-    capabilityWindow: "codex.flow.trigger.productized",
-    taxonomy: "proof-only",
-    summary:
-      "Productization plan, audit-gate checklist, bounded productization design, security-review controls, operator-approval semantics, runtime-admission readiness audit, runtime-admission contract design, proof-only implementation, operator-examples checkpoint, release-readiness hold/no-go decision, and long-hold checkpoint are now documented; helper automation remains non-admitted.",
-    boundary: "local helper only",
-    nextGate: "Editor placement proof-only implementation",
-  },
-  {
-    workspace: "Editor broad mutation",
-    capabilityWindow: "generic component/property writes",
-    taxonomy: "blocked",
-    summary: "Broad editor mutation remains blocked outside exact admitted corridors.",
-    boundary: "no generic write corridor",
-    nextGate: "Editor placement proof-only implementation",
-  },
-  {
-    workspace: "Placement execution",
-    capabilityWindow: "asset_forge placement execute",
-    taxonomy: "dry-run only",
-    summary: "Placement planning and readiness stay dry-run-focused; execution remains unadmitted.",
-    boundary: "no placement execution",
-    nextGate: "Editor placement proof-only implementation",
-  },
-];
+] as const;
