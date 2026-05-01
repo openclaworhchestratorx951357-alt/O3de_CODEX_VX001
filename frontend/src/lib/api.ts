@@ -26,6 +26,8 @@ import type {
   AssetForgeO3DEStagePlanRecord,
   AssetForgeO3DEReadbackRequest,
   AssetForgeO3DEReadbackRecord,
+  AssetForgeO3DEReviewPacketRequest,
+  AssetForgeO3DEReviewPacketRecord,
   AssetForgeO3DEPlacementPlanRequest,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementEvidenceRequest,
@@ -1078,6 +1080,16 @@ export async function readAssetForgeO3DEIngestEvidence(
     "/asset-forge/o3de/readback",
     request,
     "Asset Forge O3DE ingest readback",
+  );
+}
+
+export async function createAssetForgeO3DEOperatorReviewPacket(
+  request: AssetForgeO3DEReviewPacketRequest,
+): Promise<AssetForgeO3DEReviewPacketRecord> {
+  return postJson<AssetForgeO3DEReviewPacketRequest, AssetForgeO3DEReviewPacketRecord>(
+    "/asset-forge/o3de/review-packet",
+    request,
+    "Asset Forge O3DE operator review packet",
   );
 }
 

@@ -5,6 +5,7 @@ import AssetForgeStudioPacket01 from "./AssetForgeStudioPacket01";
 import type {
   AssetForgeBlenderInspectReport,
   AssetForgeO3DEReadbackRecord,
+  AssetForgeO3DEReviewPacketRecord,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementProofRecord,
   AssetForgeBlenderStatusRecord,
@@ -26,6 +27,7 @@ const apiMocks = vi.hoisted(() => ({
   executeAssetForgeO3DEPlacementLiveProof: vi.fn(),
   getAssetForgeO3DEPlacementLiveProofEvidenceIndex: vi.fn(),
   readAssetForgeO3DEIngestEvidence: vi.fn(),
+  createAssetForgeO3DEOperatorReviewPacket: vi.fn(),
   executeAssetForgeO3DEStageWrite: vi.fn(),
   inspectAssetForgeBlenderArtifact: vi.fn(),
   fetchAssetForgeTask: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock("../lib/api", () => ({
   executeAssetForgeO3DEPlacementLiveProof: apiMocks.executeAssetForgeO3DEPlacementLiveProof,
   getAssetForgeO3DEPlacementLiveProofEvidenceIndex: apiMocks.getAssetForgeO3DEPlacementLiveProofEvidenceIndex,
   readAssetForgeO3DEIngestEvidence: apiMocks.readAssetForgeO3DEIngestEvidence,
+  createAssetForgeO3DEOperatorReviewPacket: apiMocks.createAssetForgeO3DEOperatorReviewPacket,
   executeAssetForgeO3DEStageWrite: apiMocks.executeAssetForgeO3DEStageWrite,
   inspectAssetForgeBlenderArtifact: apiMocks.inspectAssetForgeBlenderArtifact,
   fetchAssetForgeTask: apiMocks.fetchAssetForgeTask,
@@ -265,6 +268,52 @@ function makeReadbackReport(
     ],
     safest_next_step: "Review evidence and continue with placement planning gate.",
     source: "asset-forge-o3de-ingest-readback",
+    ...overrides,
+  };
+}
+
+function makeReviewPacketReport(
+  overrides: Partial<AssetForgeO3DEReviewPacketRecord> = {},
+): AssetForgeO3DEReviewPacketRecord {
+  return {
+    capability_name: "asset_forge.o3de.operator_review_packet",
+    maturity: "proof-only",
+    review_packet_version: "asset-forge-o3de-review-packet/v1",
+    candidate_id: "candidate-a",
+    candidate_label: "Weathered Ivy Arch",
+    asset_slug: "candidate_a_weathered_ivy_arch",
+    project_root: "C:\\Users\\topgu\\O3DE\\Projects\\McpSandbox",
+    project_name: "McpSandbox",
+    selected_platform: "pc",
+    source_asset_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+    provenance_metadata_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+    source_asset_sha256: "source-hash",
+    read_only: true,
+    mutation_occurred: false,
+    review_status: "ready_for_operator_decision",
+    blocked_reason: null,
+    operator_decision: "pending",
+    next_safest_step: "Record an operator decision while keeping assignment/placement execution blocked.",
+    provenance: {
+      license_name: "CC-BY-4.0",
+      commercial_use_allowed: true,
+    },
+    o3de_source: {
+      project_root: "C:\\Users\\topgu\\O3DE\\Projects\\McpSandbox",
+    },
+    asset_processor: {
+      asset_processor_completed: true,
+      asset_processor_warnings: 0,
+    },
+    phase9_readback: {
+      product_count: 1,
+      dependency_count: 1,
+    },
+    quality_review: {
+      mesh_quality_review: "pass",
+    },
+    warnings: ["Packet remains read-only and non-authorizing."],
+    source: "asset-forge-o3de-operator-review-packet",
     ...overrides,
   };
 }
@@ -1097,6 +1146,59 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Assetdb last write \(UTC\): 2026-04-28T00:00:00\+00:00/i)).toBeInTheDocument();
     expect(screen.getByText(/Catalog presence: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Asset Processor job evidence/i)).toBeInTheDocument();
+  });
+
+  it("creates Packet 09.5 operator review packet and renders review details", async () => {
+    apiMocks.createAssetForgeO3DEOperatorReviewPacket.mockResolvedValueOnce(
+      makeReviewPacketReport({
+        operator_decision: "approve_assignment_design_only",
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.change(screen.getByLabelText("Operator decision"), {
+      target: { value: "approve_assignment_design_only" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create operator review packet (Packet 09.5)" }));
+
+    await waitFor(() => {
+      expect(apiMocks.createAssetForgeO3DEOperatorReviewPacket).toHaveBeenCalledWith({
+        candidate_id: "candidate-a",
+        candidate_label: "Weathered Ivy Arch",
+        source_asset_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+        provenance_metadata_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+        selected_platform: "pc",
+        operator_decision: "approve_assignment_design_only",
+      });
+    });
+
+    expect(await screen.findByText(/Review status: ready_for_operator_decision/i)).toBeInTheDocument();
+    expect(screen.getByText(/Operator decision: approve_assignment_design_only/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review packet version: asset-forge-o3de-review-packet\/v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Read-only: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mutation occurred: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/License name: CC-BY-4\.0/i)).toBeInTheDocument();
+  });
+
+  it("surfaces review-packet gate errors for blocked review status", async () => {
+    apiMocks.createAssetForgeO3DEOperatorReviewPacket.mockResolvedValueOnce(
+      makeReviewPacketReport({
+        review_status: "missing_provenance",
+        blocked_reason: "Provenance metadata is missing or invalid for the selected generated-asset candidate.",
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create operator review packet (Packet 09.5)" }));
+
+    expect(
+      await screen.findByText(
+        /Review packet is blocked by missing readback evidence gates\. Resolve ingestion evidence and rerun\./i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Blocked reason: Provenance metadata is missing or invalid/i)).toBeInTheDocument();
   });
 
   it("creates Packet 10 placement plan and renders plan-only placement details", async () => {

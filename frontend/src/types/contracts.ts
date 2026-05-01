@@ -1412,6 +1412,72 @@ export interface AssetForgeO3DEReadbackRecord {
   source: string;
 }
 
+export type AssetForgeO3DEReviewOperatorDecision =
+  | "pending"
+  | "reject"
+  | "request_regeneration"
+  | "request_cleanup"
+  | "request_license_review"
+  | "approve_internal_prototype"
+  | "approve_assignment_design_only";
+
+export interface AssetForgeO3DEReviewPacketRequest {
+  candidate_id: string;
+  candidate_label: string;
+  source_asset_relative_path: string;
+  provenance_metadata_relative_path: string;
+  selected_platform: string;
+  operator_decision: AssetForgeO3DEReviewOperatorDecision;
+}
+
+export type AssetForgeO3DEReviewPacketStatus =
+  | "missing_provenance"
+  | "missing_source_asset"
+  | "asset_processor_not_run"
+  | "asset_processor_failed"
+  | "asset_processor_warnings_need_review"
+  | "asset_database_missing"
+  | "source_not_found"
+  | "product_not_found"
+  | "dependency_rows_missing"
+  | "catalog_presence_missing"
+  | "license_review_required"
+  | "quality_review_required"
+  | "ready_for_operator_decision"
+  | "operator_rejected"
+  | "operator_requested_regeneration"
+  | "operator_requested_cleanup"
+  | "operator_approved_internal_prototype"
+  | "operator_approved_assignment_design";
+
+export interface AssetForgeO3DEReviewPacketRecord {
+  capability_name: string;
+  maturity: "proof-only";
+  review_packet_version: string;
+  candidate_id: string;
+  candidate_label: string;
+  asset_slug: string | null;
+  project_root: string | null;
+  project_name: string | null;
+  selected_platform: string;
+  source_asset_path: string;
+  provenance_metadata_path: string;
+  source_asset_sha256: string | null;
+  read_only: boolean;
+  mutation_occurred: boolean;
+  review_status: AssetForgeO3DEReviewPacketStatus;
+  blocked_reason: string | null;
+  operator_decision: AssetForgeO3DEReviewOperatorDecision;
+  next_safest_step: string;
+  provenance: Record<string, unknown>;
+  o3de_source: Record<string, unknown>;
+  asset_processor: Record<string, unknown>;
+  phase9_readback: Record<string, unknown>;
+  quality_review: Record<string, unknown>;
+  warnings: string[];
+  source: string;
+}
+
 export interface AssetForgeO3DEPlacementPlanRequest {
   candidate_id: string;
   candidate_label: string;

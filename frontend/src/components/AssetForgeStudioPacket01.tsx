@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { assetForgeStudioDemoState } from "../fixtures/assetForgeStudioDemoState";
 import {
   createAssetForgeO3DEStagePlan,
+  createAssetForgeO3DEOperatorReviewPacket,
   createAssetForgeO3DEPlacementPlan,
   executeAssetForgeO3DEPlacementProof,
   readAssetForgeO3DEPlacementEvidence,
@@ -27,6 +28,8 @@ import type {
   AdaptersResponse,
   AssetForgeBlenderInspectReport,
   AssetForgeO3DEReadbackRecord,
+  AssetForgeO3DEReviewPacketRecord,
+  AssetForgeO3DEReviewPacketRequest,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementEvidenceRecord,
   AssetForgeO3DEPlacementHarnessRecord,
@@ -394,6 +397,61 @@ function readbackStatusToTruth(status: AssetForgeO3DEReadbackRecord["readback_st
   return "blocked";
 }
 
+function reviewPacketStatusToTruth(status: AssetForgeO3DEReviewPacketRecord["review_status"]): AssetForgeTruthState {
+  if (
+    status === "ready_for_operator_decision"
+    || status === "operator_approved_internal_prototype"
+    || status === "operator_approved_assignment_design"
+  ) {
+    return "preflight-only";
+  }
+  if (
+    status === "operator_rejected"
+    || status === "operator_requested_regeneration"
+    || status === "operator_requested_cleanup"
+  ) {
+    return "plan-only";
+  }
+  return "blocked";
+}
+
+function reviewPacketStatusErrorMessage(status: AssetForgeO3DEReviewPacketRecord["review_status"]): string | null {
+  if (
+    status === "missing_provenance"
+    || status === "missing_source_asset"
+    || status === "asset_processor_not_run"
+    || status === "asset_processor_failed"
+    || status === "asset_processor_warnings_need_review"
+    || status === "asset_database_missing"
+    || status === "source_not_found"
+    || status === "product_not_found"
+    || status === "dependency_rows_missing"
+    || status === "catalog_presence_missing"
+  ) {
+    return "Review packet is blocked by missing readback evidence gates. Resolve ingestion evidence and rerun.";
+  }
+  if (status === "license_review_required") {
+    return "Review packet requires license/commercial-use review before approval movement.";
+  }
+  if (status === "quality_review_required") {
+    return "Review packet requires quality review fields before approval movement.";
+  }
+  return null;
+}
+
+const REVIEW_PACKET_OPERATOR_DECISION_OPTIONS: ReadonlyArray<{
+  value: AssetForgeO3DEReviewPacketRequest["operator_decision"];
+  label: string;
+}> = [
+  { value: "pending", label: "Pending (no decision yet)" },
+  { value: "approve_assignment_design_only", label: "Approve assignment design only" },
+  { value: "approve_internal_prototype", label: "Approve internal prototype" },
+  { value: "request_cleanup", label: "Request cleanup" },
+  { value: "request_regeneration", label: "Request regeneration" },
+  { value: "request_license_review", label: "Request license review" },
+  { value: "reject", label: "Reject candidate" },
+];
+
 function evidenceItemStatusToTruth(status: string | null | undefined): AssetForgeTruthState {
   const normalized = (status ?? "").trim().toLowerCase();
   if (normalized === "succeeded") {
@@ -726,6 +784,14 @@ export default function AssetForgeStudioPacket01({
   const [readbackReport, setReadbackReport] = useState<AssetForgeO3DEReadbackRecord | null>(null);
   const [readbackError, setReadbackError] = useState<string | null>(null);
   const [readbackBusy, setReadbackBusy] = useState(false);
+  const [reviewPacketProvenanceRelativePath, setReviewPacketProvenanceRelativePath] = useState(
+    "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+  );
+  const [reviewPacketOperatorDecision, setReviewPacketOperatorDecision] =
+    useState<AssetForgeO3DEReviewPacketRequest["operator_decision"]>("pending");
+  const [reviewPacketReport, setReviewPacketReport] = useState<AssetForgeO3DEReviewPacketRecord | null>(null);
+  const [reviewPacketError, setReviewPacketError] = useState<string | null>(null);
+  const [reviewPacketBusy, setReviewPacketBusy] = useState(false);
   const [placementLevelPath, setPlacementLevelPath] = useState("Levels/BridgeLevel01/BridgeLevel01.prefab");
   const [placementEntityName, setPlacementEntityName] = useState("AssetForgeCandidateA");
   const [placementComponent, setPlacementComponent] = useState("Mesh");
@@ -855,6 +921,9 @@ export default function AssetForgeStudioPacket01({
     : "blocked";
   const readbackTruth = readbackReport
     ? readbackStatusToTruth(readbackReport.readback_status)
+    : "plan-only";
+  const reviewPacketTruth = reviewPacketReport
+    ? reviewPacketStatusToTruth(reviewPacketReport.review_status)
     : "plan-only";
   const placementPlanTruth = placementPlanReport
     ? stagePlanStatusToTruth(placementPlanReport.plan_status)
@@ -1191,6 +1260,8 @@ export default function AssetForgeStudioPacket01({
       setStageWriteReport(report);
       setReadbackReport(null);
       setReadbackError(null);
+      setReviewPacketReport(null);
+      setReviewPacketError(null);
       if (report.write_status !== "succeeded") {
         setStageWriteError(
           report.write_status === "approval-required"
@@ -1231,6 +1302,8 @@ export default function AssetForgeStudioPacket01({
 
     setReadbackBusy(true);
     setReadbackError(null);
+    setReviewPacketReport(null);
+    setReviewPacketError(null);
     try {
       const report = await readAssetForgeO3DEIngestEvidence({
         candidate_id: selectedCandidate.id,
@@ -1250,6 +1323,55 @@ export default function AssetForgeStudioPacket01({
       setReadbackError(message);
     } finally {
       setReadbackBusy(false);
+    }
+  }
+
+  async function createOperatorReviewPacket() {
+    if (packet01DemoLock) {
+      setReviewPacketReport(null);
+      setReviewPacketError("Packet 01 demo shell: operator review packet runtime calls are blocked.");
+      return;
+    }
+    if (!selectedCandidate) {
+      setReviewPacketError("Select a candidate before creating an operator review packet.");
+      setReviewPacketReport(null);
+      return;
+    }
+    if (!readbackSourceRelativePath.trim()) {
+      setReviewPacketError("Enter a staged source relative path before creating an operator review packet.");
+      setReviewPacketReport(null);
+      return;
+    }
+    if (!reviewPacketProvenanceRelativePath.trim()) {
+      setReviewPacketError("Enter a provenance metadata relative path before creating an operator review packet.");
+      setReviewPacketReport(null);
+      return;
+    }
+    if (!readbackPlatform.trim()) {
+      setReviewPacketError("Enter a target platform (for example: pc) before creating an operator review packet.");
+      setReviewPacketReport(null);
+      return;
+    }
+
+    setReviewPacketBusy(true);
+    setReviewPacketError(null);
+    try {
+      const report = await createAssetForgeO3DEOperatorReviewPacket({
+        candidate_id: selectedCandidate.id,
+        candidate_label: selectedCandidate.name,
+        source_asset_relative_path: readbackSourceRelativePath.trim(),
+        provenance_metadata_relative_path: reviewPacketProvenanceRelativePath.trim(),
+        selected_platform: readbackPlatform.trim(),
+        operator_decision: reviewPacketOperatorDecision,
+      });
+      setReviewPacketReport(report);
+      setReviewPacketError(reviewPacketStatusErrorMessage(report.review_status));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown operator review packet failure.";
+      setReviewPacketReport(null);
+      setReviewPacketError(message);
+    } finally {
+      setReviewPacketBusy(false);
     }
   }
 
@@ -2403,6 +2525,83 @@ export default function AssetForgeStudioPacket01({
                   <ul style={s.list}>
                     {readbackReport.catalog_product_path_presence.map((row) => (
                       <li key={row}>{row}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+        <div style={s.inspectCard}>
+          <div style={s.panelHeader}>
+            <h4 style={s.subheading}>Operator review packet (Packet 09.5)</h4>
+            <TruthBadge truth={reviewPacketTruth} />
+          </div>
+          <p style={s.panelDetail}>
+            Packet 09.5 composes a read-only operator review packet using Packet 09 evidence plus provenance metadata.
+          </p>
+          <label style={s.labelBlock}>
+            Provenance metadata relative path
+            <input
+              type="text"
+              value={reviewPacketProvenanceRelativePath}
+              onChange={(event) => setReviewPacketProvenanceRelativePath(event.target.value)}
+              placeholder="Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Operator decision
+            <select
+              value={reviewPacketOperatorDecision}
+              onChange={(event) => {
+                setReviewPacketOperatorDecision(event.target.value as AssetForgeO3DEReviewPacketRequest["operator_decision"]);
+              }}
+              style={s.input}
+            >
+              {REVIEW_PACKET_OPERATOR_DECISION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div style={s.actionWrap}>
+            <button
+              type="button"
+              onClick={createOperatorReviewPacket}
+              disabled={reviewPacketBusy}
+              style={s.secondaryButton}
+            >
+              {reviewPacketBusy ? "Building..." : "Create operator review packet (Packet 09.5)"}
+            </button>
+          </div>
+          {reviewPacketError ? (
+            <p style={s.errorText}>{reviewPacketError}</p>
+          ) : null}
+          {reviewPacketReport ? (
+            <>
+              <ul style={s.list}>
+                <li>Review status: {reviewPacketReport.review_status}</li>
+                <li>Operator decision: {reviewPacketReport.operator_decision}</li>
+                <li>Review packet version: {reviewPacketReport.review_packet_version}</li>
+                <li>Project name: {reviewPacketReport.project_name ?? "unknown"}</li>
+                <li>Source asset path: {reviewPacketReport.source_asset_path}</li>
+                <li>Provenance metadata path: {reviewPacketReport.provenance_metadata_path}</li>
+                <li>Source SHA256: {reviewPacketReport.source_asset_sha256 ?? "unknown"}</li>
+                <li>Read-only: {reviewPacketReport.read_only ? "yes" : "no"}</li>
+                <li>Mutation occurred: {reviewPacketReport.mutation_occurred ? "yes" : "no"}</li>
+                <li>License name: {String(reviewPacketReport.provenance["license_name"] ?? "unknown")}</li>
+                <li>Mesh quality review: {String(reviewPacketReport.quality_review["mesh_quality_review"] ?? "unknown")}</li>
+                <li>Next safest step: {reviewPacketReport.next_safest_step}</li>
+                <li>Blocked reason: {reviewPacketReport.blocked_reason ?? "none"}</li>
+              </ul>
+              {reviewPacketReport.warnings.length ? (
+                <>
+                  <h4 style={s.subheading}>Review packet warnings</h4>
+                  <ul style={s.list}>
+                    {reviewPacketReport.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
                     ))}
                   </ul>
                 </>
