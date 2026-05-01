@@ -1707,6 +1707,38 @@ describe("AssetForgeStudioPacket01", () => {
     expect(await screen.findByText(/Server approval authorization granted: unknown/i)).toBeInTheDocument();
   });
 
+  it("renders placement-proof approval string summaries as n/a when optional fields are absent", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementProof.mockResolvedValueOnce(
+      makePlacementProofReport({
+        server_approval_evaluation: {
+          decision_state: undefined as unknown as string,
+          decision_code: undefined as unknown as string,
+          policy_decision: undefined as unknown as string,
+          status: undefined as unknown as string,
+          authorization_granted: false,
+          policy_would_allow_if_mutation_admitted: true,
+        },
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for narrow placement proof gate"));
+    fireEvent.change(screen.getByLabelText("Placement proof approval note"), {
+      target: { value: "Operator approved exact Packet 11 proof gate." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run narrow placement proof gate (Packet 11)" }));
+
+    expect(await screen.findByText(/Server approval decision state: n\/a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision code: n\/a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval policy decision: n\/a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval status: n\/a/i)).toBeInTheDocument();
+  });
+
   it("guards placement proof gate when stage-write evidence reference is missing", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
 
