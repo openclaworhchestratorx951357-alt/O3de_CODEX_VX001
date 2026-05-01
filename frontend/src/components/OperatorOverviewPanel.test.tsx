@@ -81,7 +81,7 @@ describe("OperatorOverviewPanel", () => {
     expect(screen.getAllByText("waiting_approval: 2").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Refresh overview" })).toHaveAttribute(
       "title",
-      "Refresh the home overview when the persisted aggregate may be stale.",
+      "Refresh the legacy mission overview when the persisted aggregate may be stale.",
     );
     expect(screen.getByRole("button", { name: "1" })).toHaveAttribute(
       "title",

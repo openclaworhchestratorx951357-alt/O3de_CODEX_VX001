@@ -118,7 +118,7 @@ describe("layout header navigation help", () => {
     );
     expect(screen.getByRole("button", { name: "Refresh dashboard" })).toHaveAttribute(
       "title",
-      "Refresh the home overview when the persisted aggregate may be stale. Refresh the full desktop shell summary so home, runtime, operations, and records signals stay aligned.",
+      "Refresh the legacy mission overview when the persisted aggregate may be stale. Refresh the full desktop shell summary so home, runtime, operations, and records signals stay aligned.",
     );
     expect(screen.getByRole("button", { name: "Simulated only" })).toHaveAttribute(
       "title",

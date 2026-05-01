@@ -86,11 +86,11 @@ const quickStats: OperatorGuideShellQuickStat[] = [
 const workspaces: OperatorGuideShellWorkspace[] = [
   {
     id: "home",
-    navLabel: "Home",
-    navSubtitle: "Overview and launchpad",
-    workspaceTitle: "Home",
-    workspaceSubtitle: "Mission control, review memory, guidebook, and launch surfaces.",
-    tooltip: "Open Home first to refresh the operator picture, recover lane context, and launch into the deeper workspaces intentionally.",
+    navLabel: "Legacy Mission Desk",
+    navSubtitle: "Compatibility overview and launchpad",
+    workspaceTitle: "Legacy Mission Desk",
+    workspaceSubtitle: "Compatibility mission control, review memory, guidebook, and launch surfaces.",
+    tooltip: "Open Legacy Mission Desk when you need compatibility context, recover lane memory, or launch into deeper workspaces from the Asset Forge shell.",
     operatorChecklist: [
       "Refresh the dashboard when you need a current top-level read of approvals, warnings, runs, and bridge health.",
       "Use Launchpad to move into a purpose-built workspace instead of staying on a continuous scrolling surface.",
@@ -314,7 +314,7 @@ const panelControls: OperatorGuideShellPanelControl[] = [
     panelId: "operator-overview",
     controlId: "refresh",
     label: "Refresh overview",
-    tooltip: "Refresh the home overview when the persisted aggregate may be stale.",
+    tooltip: "Refresh the legacy mission overview when the persisted aggregate may be stale.",
   },
   {
     panelId: "operator-overview",
@@ -444,7 +444,7 @@ const panels: OperatorGuideShellPanel[] = [
     label: "Operator Overview",
     tooltip: "Use Operator Overview for a compact persisted summary of approvals, runs, executions, artifacts, events, locks, executors, and workspace pressure before handoff or closeout.",
     checklist: [
-      "Refresh overview first when the home workspace may be stale.",
+      "Refresh overview first when the legacy mission workspace may be stale.",
       "Use the status chips as filter shortcuts into the deeper workspaces instead of treating them as the full investigation surface.",
       "Read pinned-lane actions and review posture before you summarize work as complete.",
     ],
@@ -482,7 +482,7 @@ const panels: OperatorGuideShellPanel[] = [
   {
     id: "overview-context-strip",
     label: "Active Overview Context",
-    tooltip: "Use Active Overview Context to keep track of which lane is currently being driven from a home-overview drilldown or browser-local preset.",
+    tooltip: "Use Active Overview Context to keep track of which lane is currently being driven from a legacy-mission-overview drilldown or browser-local preset.",
     checklist: [
       "Read the active focus and origin before assuming the current lane opened itself naturally.",
       "Use local preset and history controls to keep browser-session navigation memory deliberate.",
@@ -526,7 +526,7 @@ const panels: OperatorGuideShellPanel[] = [
     checklist: [
       "Read the focus label and priority detail before reopening a saved context.",
       "Use the queue as a browser-session review aid only; it does not persist server-side triage.",
-      "Mark, snooze, or keep entries in queue so the home overview reflects your actual review state.",
+      "Mark, snooze, or keep entries in queue so the legacy mission overview reflects your actual review state.",
     ],
   },
   {
