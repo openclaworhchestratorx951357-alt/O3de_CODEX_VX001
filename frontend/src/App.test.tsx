@@ -12,6 +12,7 @@ import {
 import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 
 const LAZY_SURFACE_TIMEOUT_MS = 5000;
+const MULTI_WORKSPACE_SMOKE_TIMEOUT_MS = 15000;
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -607,7 +608,11 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "View latest run" }));
     await waitFor(() => expect(apiMocks.fetchRun).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Run Detail", {}, { timeout: LAZY_SURFACE_TIMEOUT_MS })).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Run Detail",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
@@ -615,7 +620,11 @@ describe("App desktop smoke", () => {
     apiMocks.fetchExecution.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "View execution" }));
     await waitFor(() => expect(apiMocks.fetchExecution).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Execution Detail", {}, { timeout: LAZY_SURFACE_TIMEOUT_MS })).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Execution Detail",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
@@ -623,7 +632,11 @@ describe("App desktop smoke", () => {
     apiMocks.fetchArtifact.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "View artifact" }));
     await waitFor(() => expect(apiMocks.fetchArtifact).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Artifact Detail", {}, { timeout: LAZY_SURFACE_TIMEOUT_MS })).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Artifact Detail",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
@@ -671,7 +684,7 @@ describe("App desktop smoke", () => {
     expect(promptEvidenceFromRecords).toHaveTextContent("Prompt session: prompt-proof-1");
     expect(promptEvidenceFromRecords).toHaveTextContent("Source workspace: Records");
     expect(promptEvidenceFromRecords).toHaveTextContent("Source surface: Records mission truth rail");
-  }, 15000);
+  }, MULTI_WORKSPACE_SMOKE_TIMEOUT_MS);
 
   it("opens Asset Forge as its own workspace and shows the Blender-like editor shell", async () => {
     render(<App />);
