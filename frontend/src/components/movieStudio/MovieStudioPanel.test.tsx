@@ -20,7 +20,9 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByRole("heading", { name: "Movie Studio" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Master Timeline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh O3DE" })).toBeInTheDocument();
+    expect(screen.getByText((content) => content.startsWith("O3DE Health:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Last check:"))).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes("Consecutive failures:"))).toBeInTheDocument();
     expect(screen.getByText("Ripple Trim")).toBeInTheDocument();
     expect(screen.getAllByText("Scene 01 Wide").length).toBeGreaterThan(0);
   });
