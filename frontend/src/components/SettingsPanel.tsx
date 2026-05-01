@@ -4,6 +4,11 @@ import { createPortal } from "react-dom";
 import { useSettings } from "../lib/settings/hooks";
 import { normalizeSettings, areSettingsEqual } from "../lib/settings/migrations";
 import { exportSettingsProfile, importSettingsProfile } from "../lib/settings/storage";
+import {
+  clearAllCockpitLayoutState,
+  clearCockpitLayoutState,
+  dispatchCockpitLayoutReset,
+} from "./cockpits/cockpitLayoutStore";
 import type { AppSettings } from "../types/settings";
 import {
   CARD_RADIUS_VALUES,
@@ -69,11 +74,13 @@ function getSettingsPortalHost(): HTMLElement | null {
 type SettingsPanelProps = {
   buttonLabel?: string;
   compactLauncher?: boolean;
+  activeCockpitId?: string | null;
 };
 
 export default function SettingsPanel({
   buttonLabel = "Settings",
   compactLauncher = false,
+  activeCockpitId = null,
 }: SettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -202,6 +209,26 @@ export default function SettingsPanel({
     resetDraftFromSettings(nextProfile.settings);
     setStatusMessage("Guided tour restarted.");
     closeSettings();
+  }
+
+  function handleResetCurrentCockpitLayout(): void {
+    if (!activeCockpitId) {
+      setStatusMessage("No active cockpit is selected for layout reset.");
+      return;
+    }
+
+    clearCockpitLayoutState(activeCockpitId);
+    dispatchCockpitLayoutReset({
+      scope: "cockpit",
+      cockpitId: activeCockpitId,
+    });
+    setStatusMessage(`Layout reset to recommended defaults for ${activeCockpitId}.`);
+  }
+
+  function handleResetAllCockpitLayouts(): void {
+    clearAllCockpitLayoutState();
+    dispatchCockpitLayoutReset({ scope: "all" });
+    setStatusMessage("All cockpit layouts reset to recommended defaults.");
   }
 
   function handleSave(): void {
@@ -560,6 +587,32 @@ export default function SettingsPanel({
                 >
                   Restart Guided Tour
                 </button>
+
+                <div style={layoutResetControlsStyle}>
+                  <p style={helperTextStyle}>
+                    Layout restore controls reset cockpit presets and split sizes.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResetCurrentCockpitLayout}
+                    disabled={!activeCockpitId}
+                    style={secondaryButtonStyle}
+                  >
+                    Reset Current Cockpit Layout
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetAllCockpitLayouts}
+                    style={secondaryButtonStyle}
+                  >
+                    Reset All Cockpit Layouts
+                  </button>
+                  <p style={helperTextStyle}>
+                    {activeCockpitId
+                      ? `Active cockpit: ${activeCockpitId}`
+                      : "Open a cockpit workspace to reset only the current layout."}
+                  </p>
+                </div>
               </section>
 
               <section style={cardStyle}>
@@ -862,6 +915,12 @@ const helperTextStyle = {
   color: "var(--app-muted-color)",
   lineHeight: 1.5,
   fontSize: 12,
+} satisfies CSSProperties;
+
+const layoutResetControlsStyle = {
+  display: "grid",
+  gap: 8,
+  marginTop: 6,
 } satisfies CSSProperties;
 
 const footerStyle = {

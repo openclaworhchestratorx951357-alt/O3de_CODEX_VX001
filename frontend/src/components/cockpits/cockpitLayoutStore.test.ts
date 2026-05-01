@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  clearAllCockpitLayoutState,
   clearCockpitLayoutState,
   createCockpitLayoutStateFromPreset,
   moveCockpitPanelToZone,
@@ -109,6 +110,17 @@ describe("cockpitLayoutStore", () => {
     const parsed = JSON.parse(raw ?? "{}") as Record<string, unknown>;
     expect(parsed["create-game"]).toBeUndefined();
     expect(parsed["load-project"]).toBeDefined();
+  });
+
+  it("clears all cockpit layout state entries", () => {
+    const createGameLayout = createCockpitLayoutStateFromPreset("create-game", panels, "balanced");
+    const loadProjectLayout = createCockpitLayoutStateFromPreset("load-project", panels, "review");
+    writeCockpitLayoutState(createGameLayout);
+    writeCockpitLayoutState(loadProjectLayout);
+
+    clearAllCockpitLayoutState();
+
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
   it("reset path clears persisted moved layout for a cockpit", () => {

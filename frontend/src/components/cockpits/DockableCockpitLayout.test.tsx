@@ -1,7 +1,8 @@
-import { createEvent, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, createEvent, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import DockableCockpitLayout from "./DockableCockpitLayout";
+import { dispatchCockpitLayoutReset } from "./cockpitLayoutStore";
 import type { CockpitPanelDefinition } from "./cockpitLayoutTypes";
 
 const STORAGE_KEY = "o3de.appos.cockpit-layouts.v1";
@@ -345,6 +346,51 @@ describe("DockableCockpitLayout", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
     const leftZone = screen.getByTestId("reset-test-left-zone");
     expect(within(leftZone).getByLabelText("Panel A panel")).toBeInTheDocument();
+  });
+
+  it("applies targeted reset events for the active cockpit immediately", () => {
+    render(
+      <DockableCockpitLayout
+        cockpitId="settings-current-reset"
+        panels={basePanels}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByText("Move")[0] as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "Move Panel A panel to right" }));
+    expect(
+      within(screen.getByTestId("settings-current-reset-right-zone")).getByLabelText("Panel A panel"),
+    ).toBeInTheDocument();
+
+    act(() => {
+      dispatchCockpitLayoutReset({
+        scope: "cockpit",
+        cockpitId: "settings-current-reset",
+      });
+    });
+
+    expect(
+      within(screen.getByTestId("settings-current-reset-left-zone")).getByLabelText("Panel A panel"),
+    ).toBeInTheDocument();
+  });
+
+  it("applies reset-all events immediately", () => {
+    render(
+      <DockableCockpitLayout
+        cockpitId="settings-reset-all"
+        panels={basePanels}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByText("Move")[0] as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "Move Panel A panel to right" }));
+    expect(within(screen.getByTestId("settings-reset-all-right-zone")).getByLabelText("Panel A panel")).toBeInTheDocument();
+
+    act(() => {
+      dispatchCockpitLayoutReset({ scope: "all" });
+    });
+
+    expect(within(screen.getByTestId("settings-reset-all-left-zone")).getByLabelText("Panel A panel")).toBeInTheDocument();
   });
 
   it("persists moved layout state per cockpit id across remount", () => {

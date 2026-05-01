@@ -5,6 +5,9 @@ import { SettingsProvider } from "../lib/settings/context";
 import { createDefaultSettings, createSettingsProfile } from "../lib/settings/defaults";
 import SettingsPanel from "./SettingsPanel";
 import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
+import { COCKPIT_LAYOUT_RESET_EVENT } from "./cockpits/cockpitLayoutStore";
+
+const COCKPIT_LAYOUT_STORAGE_KEY = "o3de.appos.cockpit-layouts.v1";
 
 describe("SettingsPanel", () => {
   beforeEach(() => {
@@ -221,5 +224,66 @@ describe("SettingsPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
 
     expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"workspaceTreeDefaultMode":"all"');
+  });
+
+  it("resets only the active cockpit layout and dispatches a targeted reset event", () => {
+    window.localStorage.setItem(COCKPIT_LAYOUT_STORAGE_KEY, JSON.stringify({
+      "create-game": { cockpitId: "create-game", zones: { left: ["panel-a"] } },
+      runtime: { cockpitId: "runtime", zones: { left: ["panel-b"] } },
+    }));
+    const resetEvents: unknown[] = [];
+    const handleResetEvent = (event: Event) => {
+      resetEvents.push((event as CustomEvent).detail);
+    };
+    window.addEventListener(COCKPIT_LAYOUT_RESET_EVENT, handleResetEvent);
+
+    render(
+      <SettingsProvider>
+        <SettingsPanel activeCockpitId="create-game" />
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset Current Cockpit Layout" }));
+
+    const rawSnapshot = window.localStorage.getItem(COCKPIT_LAYOUT_STORAGE_KEY);
+    expect(rawSnapshot).toBeTruthy();
+    const parsedSnapshot = JSON.parse(rawSnapshot ?? "{}") as Record<string, unknown>;
+    expect(parsedSnapshot["create-game"]).toBeUndefined();
+    expect(parsedSnapshot.runtime).toBeDefined();
+    expect(resetEvents).toContainEqual({
+      scope: "cockpit",
+      cockpitId: "create-game",
+    });
+    expect(screen.getByText("Layout reset to recommended defaults for create-game.")).toBeInTheDocument();
+
+    window.removeEventListener(COCKPIT_LAYOUT_RESET_EVENT, handleResetEvent);
+  });
+
+  it("resets all cockpit layouts and dispatches a global reset event", () => {
+    window.localStorage.setItem(COCKPIT_LAYOUT_STORAGE_KEY, JSON.stringify({
+      "create-game": { cockpitId: "create-game", zones: { left: ["panel-a"] } },
+      runtime: { cockpitId: "runtime", zones: { left: ["panel-b"] } },
+    }));
+    const resetEvents: unknown[] = [];
+    const handleResetEvent = (event: Event) => {
+      resetEvents.push((event as CustomEvent).detail);
+    };
+    window.addEventListener(COCKPIT_LAYOUT_RESET_EVENT, handleResetEvent);
+
+    render(
+      <SettingsProvider>
+        <SettingsPanel activeCockpitId="create-game" />
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset All Cockpit Layouts" }));
+
+    expect(window.localStorage.getItem(COCKPIT_LAYOUT_STORAGE_KEY)).toBeNull();
+    expect(resetEvents).toContainEqual({ scope: "all" });
+    expect(screen.getByText("All cockpit layouts reset to recommended defaults.")).toBeInTheDocument();
+
+    window.removeEventListener(COCKPIT_LAYOUT_RESET_EVENT, handleResetEvent);
   });
 });

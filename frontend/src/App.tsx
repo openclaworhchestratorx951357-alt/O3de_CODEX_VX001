@@ -9205,7 +9205,7 @@ export default function App() {
               activeWorkspaceId={activeWorkspaceId}
               onSelectWorkspace={selectDesktopNavigation}
             />
-            <SettingsPanel compactLauncher />
+            <SettingsPanel compactLauncher activeCockpitId={activeWorkspaceId} />
           </>
         )}
         onSelectWorkspace={selectDesktopNavigation}

@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -15,6 +16,7 @@ import {
   moveCockpitPanelToZone,
   readCockpitLayoutState,
   reorderCockpitPanelInZone,
+  subscribeCockpitLayoutReset,
   writeCockpitLayoutState,
 } from "./cockpitLayoutStore";
 import {
@@ -157,6 +159,22 @@ export default function DockableCockpitLayout({
     return new Set(layoutState.collapsedPanelIds);
   }, [layoutState.collapsedPanelIds]);
 
+  const resetLayoutToDefault = useCallback(() => {
+    skipPersistOnceRef.current = true;
+    setLayoutState(createCockpitLayoutStateFromPreset(cockpitId, panels, defaultPresetId));
+    setSelectedPresetId(defaultPresetId);
+    setDragState(null);
+    dragHoverRef.current = null;
+  }, [cockpitId, defaultPresetId, panels]);
+
+  useEffect(() => {
+    return subscribeCockpitLayoutReset((request) => {
+      if (request.scope === "all" || request.cockpitId === cockpitId) {
+        resetLayoutToDefault();
+      }
+    });
+  }, [cockpitId, resetLayoutToDefault]);
+
   function togglePanelCollapse(panelId: string): void {
     const panel = panelById.get(panelId);
     if (!panel || panel.collapsible === false) {
@@ -183,11 +201,7 @@ export default function DockableCockpitLayout({
 
   function resetLayout(): void {
     clearCockpitLayoutState(cockpitId);
-    skipPersistOnceRef.current = true;
-    setLayoutState(createCockpitLayoutStateFromPreset(cockpitId, panels, defaultPresetId));
-    setSelectedPresetId(defaultPresetId);
-    setDragState(null);
-    dragHoverRef.current = null;
+    resetLayoutToDefault();
   }
 
   function applyPreset(presetId: CockpitLayoutPresetId): void {

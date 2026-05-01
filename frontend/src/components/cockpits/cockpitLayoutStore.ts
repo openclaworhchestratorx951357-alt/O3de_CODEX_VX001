@@ -12,8 +12,23 @@ import {
 } from "./cockpitLayoutReducer";
 
 const STORAGE_KEY = "o3de.appos.cockpit-layouts.v1";
+export const COCKPIT_LAYOUT_RESET_EVENT = "o3de.appos.cockpit-layout-reset";
 
 type PersistedLayouts = Record<string, CockpitLayoutState>;
+export type CockpitLayoutResetRequest =
+  | { scope: "cockpit"; cockpitId: string }
+  | { scope: "all" };
+
+function isCockpitLayoutResetRequest(value: unknown): value is CockpitLayoutResetRequest {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as Partial<CockpitLayoutResetRequest>;
+  if (candidate.scope === "all") {
+    return true;
+  }
+  return candidate.scope === "cockpit" && typeof candidate.cockpitId === "string";
+}
 
 function readStorageSnapshot(): PersistedLayouts {
   if (typeof window === "undefined") {
@@ -61,6 +76,43 @@ export function clearCockpitLayoutState(cockpitId: string): void {
   }
   delete snapshot[cockpitId];
   writeStorageSnapshot(snapshot);
+}
+
+export function clearAllCockpitLayoutState(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(STORAGE_KEY);
+}
+
+export function dispatchCockpitLayoutReset(request: CockpitLayoutResetRequest): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent<CockpitLayoutResetRequest>(COCKPIT_LAYOUT_RESET_EVENT, {
+    detail: request,
+  }));
+}
+
+export function subscribeCockpitLayoutReset(
+  listener: (request: CockpitLayoutResetRequest) => void,
+): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleReset = (event: Event) => {
+    const request = (event as CustomEvent<CockpitLayoutResetRequest>).detail;
+    if (!isCockpitLayoutResetRequest(request)) {
+      return;
+    }
+    listener(request);
+  };
+
+  window.addEventListener(COCKPIT_LAYOUT_RESET_EVENT, handleReset);
+  return () => {
+    window.removeEventListener(COCKPIT_LAYOUT_RESET_EVENT, handleReset);
+  };
 }
 
 export function createCockpitLayoutStateFromPreset(
