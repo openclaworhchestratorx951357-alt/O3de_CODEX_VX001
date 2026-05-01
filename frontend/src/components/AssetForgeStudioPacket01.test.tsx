@@ -1600,6 +1600,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval contract keys: 6/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Server approval contract preview: decision_state, decision_code, policy_decision \(\+3 more\)/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Admission packet reference: packet:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Admission operator id: operator-123/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
@@ -1664,6 +1670,8 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract keys: 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract preview: corridor_name, runtime_gate_env, bridge_required/i)).toBeInTheDocument();
   });
 
   it("submits runtime harness execute with optional approval session id and renders fail-closed details", async () => {
@@ -1703,6 +1711,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval contract keys: 6/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Server approval contract preview: decision_state, decision_code, policy_decision \(\+3 more\)/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Admission packet reference: packet:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Admission operator id: operator-789/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
@@ -1720,6 +1734,8 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract keys: 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract preview: corridor_name, runtime_gate_env, bridge_required/i)).toBeInTheDocument();
     expect(screen.getByText("Runtime harness fail-closed reasons")).toBeInTheDocument();
     expect(screen.getByText("runtime_gate_disabled")).toBeInTheDocument();
   });
@@ -1761,6 +1777,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval contract keys: 6/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Server approval contract preview: decision_state, decision_code, policy_decision \(\+3 more\)/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Admission packet reference: packet:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Admission operator id: operator-999/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
@@ -1778,6 +1800,8 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.live_proof\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract keys: 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract preview: corridor_name, runtime_gate_env, bridge_required/i)).toBeInTheDocument();
     expect(screen.getByText("Live proof fail-closed reasons")).toBeInTheDocument();
     expect(screen.getByText("placement_live_proof_execution_not_admitted")).toBeInTheDocument();
   });

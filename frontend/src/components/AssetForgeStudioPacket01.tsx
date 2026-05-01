@@ -3136,6 +3136,8 @@ export default function AssetForgeStudioPacket01({
                 <li>Server approval policy decision: {contractSummaryString(placementProofReport.server_approval_evaluation, "policy_decision")}</li>
                 <li>Server approval status: {contractSummaryString(placementProofReport.server_approval_evaluation, "status")}</li>
                 <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementProofReport.server_approval_evaluation, "authorization_granted")}</li>
+                <li>Server approval contract keys: {contractSummaryKeyCount(placementProofReport.server_approval_evaluation)}</li>
+                <li>Server approval contract preview: {contractSummaryKeyPreview(placementProofReport.server_approval_evaluation)}</li>
                 <li>Admission packet reference: {placementProofReport.admission_packet_reference ?? "none"}</li>
                 <li>Admission operator id: {placementProofReport.admission_operator_id ?? "none"}</li>
                 <li>Evidence bundle reference: {placementProofReport.evidence_bundle_reference ?? "none"}</li>
@@ -3221,6 +3223,8 @@ export default function AssetForgeStudioPacket01({
               <li>Bridge contract corridor: {contractSummaryString(placementHarnessReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessReport.bridge_readiness_contract, "bridge_required")}</li>
+              <li>Bridge contract keys: {contractSummaryKeyCount(placementHarnessReport.bridge_readiness_contract)}</li>
+              <li>Bridge contract preview: {contractSummaryKeyPreview(placementHarnessReport.bridge_readiness_contract)}</li>
               <li>Execution performed: {placementHarnessReport.execution_performed ? "yes" : "no"}</li>
               <li>Read-only: {placementHarnessReport.read_only ? "yes" : "no"}</li>
             </ul>
@@ -3289,6 +3293,8 @@ export default function AssetForgeStudioPacket01({
               <li>Server approval policy decision: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "policy_decision")}</li>
               <li>Server approval status: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "status")}</li>
               <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementHarnessExecuteReport.server_approval_evaluation, "authorization_granted")}</li>
+              <li>Server approval contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.server_approval_evaluation)}</li>
+              <li>Server approval contract preview: {contractSummaryKeyPreview(placementHarnessExecuteReport.server_approval_evaluation)}</li>
               <li>Admission packet reference: {placementHarnessExecuteReport.admission_packet_reference ?? "none"}</li>
               <li>Admission operator id: {placementHarnessExecuteReport.admission_operator_id ?? "none"}</li>
               <li>Evidence bundle reference: {placementHarnessExecuteReport.evidence_bundle_reference ?? "none"}</li>
@@ -3306,6 +3312,8 @@ export default function AssetForgeStudioPacket01({
               <li>Bridge contract corridor: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessExecuteReport.bridge_readiness_contract, "bridge_required")}</li>
+              <li>Bridge contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.bridge_readiness_contract)}</li>
+              <li>Bridge contract preview: {contractSummaryKeyPreview(placementHarnessExecuteReport.bridge_readiness_contract)}</li>
               <li>Read-only: {placementHarnessExecuteReport.read_only ? "yes" : "no"}</li>
             </ul>
           ) : null}
@@ -3353,6 +3361,8 @@ export default function AssetForgeStudioPacket01({
               <li>Server approval policy decision: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "policy_decision")}</li>
               <li>Server approval status: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "status")}</li>
               <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementLiveProofReport.server_approval_evaluation, "authorization_granted")}</li>
+              <li>Server approval contract keys: {contractSummaryKeyCount(placementLiveProofReport.server_approval_evaluation)}</li>
+              <li>Server approval contract preview: {contractSummaryKeyPreview(placementLiveProofReport.server_approval_evaluation)}</li>
               <li>Admission packet reference: {placementLiveProofReport.admission_packet_reference ?? "none"}</li>
               <li>Admission operator id: {placementLiveProofReport.admission_operator_id ?? "none"}</li>
               <li>Evidence bundle reference: {placementLiveProofReport.evidence_bundle_reference ?? "none"}</li>
@@ -3370,6 +3380,8 @@ export default function AssetForgeStudioPacket01({
               <li>Bridge contract corridor: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementLiveProofReport.bridge_readiness_contract, "bridge_required")}</li>
+              <li>Bridge contract keys: {contractSummaryKeyCount(placementLiveProofReport.bridge_readiness_contract)}</li>
+              <li>Bridge contract preview: {contractSummaryKeyPreview(placementLiveProofReport.bridge_readiness_contract)}</li>
               <li>Revert statement: {placementLiveProofReport.revert_statement}</li>
             </ul>
           ) : null}
