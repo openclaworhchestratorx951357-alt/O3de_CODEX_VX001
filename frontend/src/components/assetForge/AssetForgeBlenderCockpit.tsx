@@ -1836,75 +1836,77 @@ export default function AssetForgeBlenderCockpit({
           </header>
 
           <div style={styles.viewportCanvas}>
-            {gridVisible ? <div style={styles.gridLayer} /> : null}
-            <div style={styles.meshPreview} aria-label="demo wireframe asset preview">
-              <div style={styles.selectionOutline} />
-              <div style={styles.headShape} />
-              <div style={styles.neckShape} />
-              <div style={styles.torsoShape} />
-              {Array.from({ length: 14 }).map((_, index) => (
-                <span
-                  key={`hair-top-${index}`}
-                  style={{
-                    ...styles.hairStroke,
-                    top: `${6 + index * 1.5}%`,
-                    left: `${25 + index * 3.3}%`,
-                    width: `${58 + (index % 4) * 14}px`,
-                    transform: `rotate(${index % 2 === 0 ? -24 + index : 18 - index}deg)`,
-                  }}
-                />
-              ))}
-              {Array.from({ length: 8 }).map((_, index) => (
-                <span
-                  key={`hair-side-${index}`}
-                  style={{
-                    ...styles.hairStroke,
-                    top: `${21 + index * 4.1}%`,
-                    left: index < 4 ? "20%" : "69%",
-                    width: `${40 + (index % 3) * 18}px`,
-                    transform: `rotate(${index < 4 ? -38 + index * 6 : 34 - index * 4}deg)`,
-                  }}
-                />
-              ))}
-              {Array.from({ length: 24 }).map((_, index) => (
-                <span
-                  key={`wire-h-${index}`}
-                  style={{
-                    ...styles.wireLine,
-                    ...(selectedViewportMode === "Wireframe" ? styles.activeWireLine : {}),
-                    top: `${7 + index * 3.6}%`,
-                    left: "14%",
-                    width: "72%",
-                    transform: `rotate(${index % 2 === 0 ? 2 : -2}deg)`,
-                  }}
-                />
-              ))}
-              {Array.from({ length: 22 }).map((_, index) => (
-                <span
-                  key={`wire-v-${index}`}
-                  style={{
-                    ...styles.wireLineVertical,
-                    ...(selectedViewportMode === "Wireframe" ? styles.activeWireLineVertical : {}),
-                    left: `${15 + index * 3.25}%`,
-                    top: "7%",
-                    height: "76%",
-                    transform: `rotate(${index % 2 === 0 ? 7 : -7}deg)`,
-                  }}
-                />
-              ))}
-            </div>
-            <div style={styles.overlayTopLeft}>{editorModel?.viewport?.label ?? "Front Ortho"}</div>
-            <div style={styles.overlayTopRight}>{editorModel?.viewport?.mode ?? "Object Mode"}</div>
-            <ul style={styles.overlayList}>
-              <li>Active tool: {selectedTool?.label ?? "Transform"}</li>
-              <li>Selected object: {selectedObjectLabel}</li>
-              <li>Viewport mode: {selectedViewportMode}</li>
-              {overlays.map((overlay) => (
-                <li key={overlay}>{overlay}</li>
-              ))}
-            </ul>
-            <div style={styles.overlayBottom}>
-              {editorModel?.viewport?.preview_status ?? "demo_no_real_model_loaded"} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
+            <div style={styles.viewportSceneFrame}>
+              {gridVisible ? <div style={styles.gridLayer} /> : null}
+              <div style={styles.meshPreview} aria-label="demo wireframe asset preview">
+                <div style={styles.selectionOutline} />
+                <div style={styles.headShape} />
+                <div style={styles.neckShape} />
+                <div style={styles.torsoShape} />
+                {Array.from({ length: 14 }).map((_, index) => (
+                  <span
+                    key={`hair-top-${index}`}
+                    style={{
+                      ...styles.hairStroke,
+                      top: `${6 + index * 1.5}%`,
+                      left: `${25 + index * 3.3}%`,
+                      width: `${58 + (index % 4) * 14}px`,
+                      transform: `rotate(${index % 2 === 0 ? -24 + index : 18 - index}deg)`,
+                    }}
+                  />
+                ))}
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <span
+                    key={`hair-side-${index}`}
+                    style={{
+                      ...styles.hairStroke,
+                      top: `${21 + index * 4.1}%`,
+                      left: index < 4 ? "20%" : "69%",
+                      width: `${40 + (index % 3) * 18}px`,
+                      transform: `rotate(${index < 4 ? -38 + index * 6 : 34 - index * 4}deg)`,
+                    }}
+                  />
+                ))}
+                {Array.from({ length: 24 }).map((_, index) => (
+                  <span
+                    key={`wire-h-${index}`}
+                    style={{
+                      ...styles.wireLine,
+                      ...(selectedViewportMode === "Wireframe" ? styles.activeWireLine : {}),
+                      top: `${7 + index * 3.6}%`,
+                      left: "14%",
+                      width: "72%",
+                      transform: `rotate(${index % 2 === 0 ? 2 : -2}deg)`,
+                    }}
+                  />
+                ))}
+                {Array.from({ length: 22 }).map((_, index) => (
+                  <span
+                    key={`wire-v-${index}`}
+                    style={{
+                      ...styles.wireLineVertical,
+                      ...(selectedViewportMode === "Wireframe" ? styles.activeWireLineVertical : {}),
+                      left: `${15 + index * 3.25}%`,
+                      top: "7%",
+                      height: "76%",
+                      transform: `rotate(${index % 2 === 0 ? 7 : -7}deg)`,
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={styles.overlayTopLeft}>{editorModel?.viewport?.label ?? "Front Ortho"}</div>
+              <div style={styles.overlayTopRight}>{editorModel?.viewport?.mode ?? "Object Mode"}</div>
+              <ul style={styles.overlayList}>
+                <li>Active tool: {selectedTool?.label ?? "Transform"}</li>
+                <li>Selected object: {selectedObjectLabel}</li>
+                <li>Viewport mode: {selectedViewportMode}</li>
+                {overlays.map((overlay) => (
+                  <li key={overlay}>{overlay}</li>
+                ))}
+              </ul>
+              <div style={styles.overlayBottom}>
+                {editorModel?.viewport?.preview_status ?? "demo_no_real_model_loaded"} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
+              </div>
             </div>
           </div>
 
@@ -2018,7 +2020,7 @@ const styles = {
     width: "100%",
     minWidth: 0,
     display: "grid",
-    gridTemplateRows: "22px 26px 28px minmax(0, 1fr) 42px",
+    gridTemplateRows: "20px 23px 22px minmax(0, 1fr) 38px",
     overflow: "hidden",
     background: "#7a7f86",
     color: "#101820",
@@ -2144,7 +2146,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 3,
-    padding: "3px 5px",
+    padding: "1px 5px",
     overflowX: "auto",
     background: "#9ea4ac",
     borderBottom: border,
@@ -2156,7 +2158,7 @@ const styles = {
     border: "1px solid #717780",
     borderRadius: 2,
     background: "#d5d9de",
-    padding: "1px 5px",
+    padding: "0 4px",
     fontSize: 10,
     whiteSpace: "nowrap",
   },
@@ -2283,6 +2285,18 @@ const styles = {
     minWidth: 0,
     overflow: "hidden",
     background: "#2f343b",
+    display: "grid",
+    placeItems: "center",
+  },
+  viewportSceneFrame: {
+    position: "relative",
+    width: "min(calc(100% - 10px), 82vh)",
+    maxWidth: "calc(100% - 10px)",
+    aspectRatio: "1 / 1",
+    border: "1px solid #404854",
+    borderRadius: 8,
+    overflow: "hidden",
+    background: "#2f343b",
   },
   gridLayer: {
     position: "absolute",
@@ -2295,8 +2309,8 @@ const styles = {
     position: "absolute",
     left: "50%",
     top: "50%",
-    width: "min(64vw, 620px)",
-    height: "min(70vh, 620px)",
+    width: "88%",
+    height: "88%",
     transform: "translate(-50%, -50%)",
   },
   selectionOutline: {
@@ -2694,7 +2708,7 @@ const styles = {
     minWidth: 0,
     minHeight: 0,
     display: "grid",
-    gridTemplateRows: "18px 24px",
+    gridTemplateRows: "16px 22px",
     background: "#9ea4ac",
     borderTop: border,
     overflow: "hidden",
@@ -2702,7 +2716,7 @@ const styles = {
   timelineTabs: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     padding: "0 6px",
     background: "#b9bec5",
     borderBottom: border,
