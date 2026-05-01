@@ -30,6 +30,7 @@ type Props = {
   onOpenHome?: () => void;
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
+  onOpenMovieStudioTimeline?: () => void;
   onOpenLoadProject?: () => void;
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
@@ -313,75 +314,225 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-const appShellMenuGroup: MenuGroup = {
-  id: "app",
-  label: "App",
-  items: [
-    {
-      id: "app-home",
-      label: "Home / Start",
-      tone: "read-only",
-      action: "open-workspace-home",
-      status: "Opened Home from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-create-game",
-      label: "Create Game",
-      tone: "plan-only",
-      action: "open-workspace-create-game",
-      status: "Opened Create Game from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-create-movie",
-      label: "Create Movie",
-      tone: "plan-only",
-      action: "open-workspace-create-movie",
-      status: "Opened Create Movie from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-load-project",
-      label: "Load Project",
-      tone: "read-only",
-      action: "open-workspace-load-project",
-      status: "Opened Load Project from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-prompt",
-      label: "Prompt Studio",
-      tone: "read-only",
-      action: "open-prompt-studio",
-      status: "Opened Prompt Studio from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-builder",
-      label: "Builder",
-      tone: "plan-only",
-      action: "open-workspace-builder",
-      status: "Opened Builder from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-operations",
-      label: "Operations",
-      tone: "read-only",
-      action: "open-workspace-operations",
-      status: "Opened Operations from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-runtime",
-      label: "Runtime Overview",
-      tone: "read-only",
-      action: "open-workspace-runtime",
-      status: "Opened Runtime Overview from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-records",
-      label: "Records",
-      tone: "read-only",
-      action: "open-records",
-      status: "Opened Records from Asset Forge shell navigation only.",
-    },
-  ],
-};
+const assetForgeShellMenuGroups: MenuGroup[] = [
+  {
+    id: "app",
+    label: "App",
+    items: [
+      {
+        id: "app-home",
+        label: "Home",
+        tone: "read-only",
+        action: "open-workspace-home",
+        status: "Returned to Home from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-create-game",
+        label: "Create Game",
+        tone: "plan-only",
+        action: "open-workspace-create-game",
+        status: "Opened Create Game from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-create-movie",
+        label: "Create Movie",
+        tone: "plan-only",
+        action: "open-workspace-create-movie",
+        status: "Opened Create Movie from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-load-project",
+        label: "Load Project",
+        tone: "read-only",
+        action: "open-workspace-load-project",
+        status: "Opened Load Project from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-prompt-studio",
+        label: "Prompt Studio",
+        tone: "read-only",
+        action: "open-prompt-studio",
+        status: "Opened Prompt Studio from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-movie-studio",
+        label: "Movie Studio Timeline",
+        tone: "read-only",
+        action: "open-workspace-movie-studio-timeline",
+        status: "Switched to Movie Studio Timeline inside Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-builder",
+        label: "Builder",
+        tone: "read-only",
+        action: "open-workspace-builder",
+        status: "Opened Builder from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations",
+        label: "Operations",
+        tone: "read-only",
+        action: "open-workspace-operations",
+        status: "Opened Operations from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records",
+        label: "Records",
+        tone: "read-only",
+        action: "open-records",
+        status: "Opened Records from Asset Forge shell navigation only.",
+      },
+    ],
+  },
+  {
+    id: "create",
+    label: "Create",
+    items: [
+      {
+        id: "create-game",
+        label: "Game",
+        tone: "plan-only",
+        action: "open-workspace-create-game",
+        status: "Opened Create Game from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "create-movie",
+        label: "Movie",
+        tone: "plan-only",
+        action: "open-workspace-create-movie",
+        status: "Opened Create Movie from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "create-generate-asset",
+        label: "Generate Asset",
+        tone: "blocked",
+        action: "blocked",
+        status: "Provider generation is blocked. Use Prompt Studio planning or proof-only templates until generation is separately admitted.",
+      },
+    ],
+  },
+  {
+    id: "project",
+    label: "Project",
+    items: [
+      {
+        id: "project-load",
+        label: "Load Project",
+        tone: "read-only",
+        action: "open-workspace-load-project",
+        status: "Opened Load Project from Asset Forge workbench navigation only. No project file write occurred.",
+      },
+      {
+        id: "project-status",
+        label: "Project / Bridge Status",
+        tone: "read-only",
+        action: "safety-tab",
+        status: "Project and bridge status are shown as read-only safety context.",
+      },
+    ],
+  },
+  {
+    id: "prompt",
+    label: "Prompt",
+    items: [
+      {
+        id: "prompt-studio",
+        label: "Prompt Studio",
+        tone: "read-only",
+        action: "open-prompt-studio",
+        status: "Opened Prompt Studio from Asset Forge workbench navigation only. No prompt auto-executes.",
+      },
+      {
+        id: "prompt-inspect",
+        label: "Inspect Candidate Template",
+        tone: "read-only",
+        action: "select-template-inspect-candidate",
+        status: "Inspect candidate template selected for preview only.",
+      },
+      {
+        id: "prompt-proof",
+        label: "Placement Proof-Only Template",
+        tone: "proof-only",
+        action: "select-template-placement-proof-only",
+        status: "Placement proof-only template selected. No placement write is admitted.",
+      },
+    ],
+  },
+  {
+    id: "engine",
+    label: "Engine",
+    items: [
+      {
+        id: "engine-runtime",
+        label: "Runtime Overview",
+        tone: "read-only",
+        action: "open-workspace-runtime",
+        status: "Opened Runtime Overview from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "engine-asset-processor",
+        label: "Asset Processor Status",
+        tone: "preflight-only",
+        action: "safety-tab",
+        status: "Asset Processor status is preflight/status only. Asset Processor execution is not admitted.",
+      },
+      {
+        id: "engine-o3de-mutation",
+        label: "O3DE Mutation Gates",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "O3DE project, level, material, prefab, and placement mutation remain blocked without a separate admission packet.",
+      },
+    ],
+  },
+  {
+    id: "records",
+    label: "Records",
+    items: [
+      {
+        id: "records-evidence",
+        label: "Evidence Explorer",
+        tone: "read-only",
+        action: "open-records",
+        status: "Opened Records from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "records-latest-run",
+        label: "Latest Run",
+        tone: "read-only",
+        action: "view-run",
+        status: "Latest run opened as read-only evidence.",
+      },
+      {
+        id: "records-latest-artifact",
+        label: "Latest Artifact",
+        tone: "read-only",
+        action: "view-artifact",
+        status: "Latest artifact opened as read-only evidence.",
+      },
+    ],
+  },
+  {
+    id: "safety",
+    label: "Safety",
+    items: [
+      {
+        id: "safety-gates",
+        label: "Admission Gates",
+        tone: "read-only",
+        action: "safety-tab",
+        status: "Safety gates shown. Execution and mutation flags remain false for this shell packet.",
+      },
+      {
+        id: "safety-blocked",
+        label: "Blocked Capabilities",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "Blocked capabilities shown with next-unlock guidance.",
+      },
+    ],
+  },
+];
 
 function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
   if (!model?.context_menu_groups?.length) {
@@ -871,6 +1022,7 @@ export default function AssetForgeBlenderCockpit({
   onOpenHome,
   onOpenCreateGame,
   onOpenCreateMovie,
+  onOpenMovieStudioTimeline,
   onOpenLoadProject,
   onOpenPromptStudio,
   onLaunchInspectTemplate,
@@ -890,7 +1042,10 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
-  const editorMenuGroups = useMemo(() => [appShellMenuGroup, ...getMenuGroups(editorModel)], [editorModel]);
+  const editorMenuGroups = useMemo(
+    () => [...assetForgeShellMenuGroups, ...getMenuGroups(editorModel)],
+    [editorModel],
+  );
   const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
   const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
@@ -1072,6 +1227,9 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-create-movie") {
       onOpenCreateMovie?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-movie-studio-timeline") {
+      onOpenMovieStudioTimeline?.();
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-load-project") {
       onOpenLoadProject?.();
@@ -1394,6 +1552,8 @@ export default function AssetForgeBlenderCockpit({
           <button type="button" onClick={onLaunchInspectTemplate} style={styles.smallButton}>Inspect / Preflight</button>
           <button type="button" onClick={onLaunchPlacementProofTemplate} style={styles.primaryButton}>Load proof-only template</button>
           <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Prompt Studio</button>
+          <button type="button" onClick={onOpenBuilder} style={styles.smallButton}>Builder</button>
+          <button type="button" onClick={onOpenOperations} style={styles.smallButton}>Operations</button>
           <button type="button" onClick={onOpenRecords} style={styles.smallButton}>Records</button>
         </div>
       </section>
