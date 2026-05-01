@@ -222,6 +222,22 @@ function loadEditorSessionState(): EditorSessionState | null {
   }
 }
 
+function contractSummaryString(contract: Record<string, unknown>, key: string, fallback: string = "n/a"): string {
+  const value = contract[key];
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  return fallback;
+}
+
+function contractSummaryBooleanLabel(contract: Record<string, unknown>, key: string): "yes" | "no" | "unknown" {
+  const value = contract[key];
+  if (typeof value === "boolean") {
+    return value ? "yes" : "no";
+  }
+  return "unknown";
+}
+
 function truthTone(truth: AssetForgeTruthState): CSSProperties {
   switch (truth) {
     case "demo":
@@ -3172,6 +3188,9 @@ export default function AssetForgeStudioPacket01({
               <li>Bridge configured: {placementHarnessReport.bridge_configured ? "yes" : "no"}</li>
               <li>Bridge heartbeat fresh: {placementHarnessReport.bridge_heartbeat_fresh ? "yes" : "no"}</li>
               <li>Runtime gate enabled: {placementHarnessReport.runtime_gate_enabled ? "yes" : "no"}</li>
+              <li>Bridge contract corridor: {contractSummaryString(placementHarnessReport.bridge_readiness_contract, "corridor_name")}</li>
+              <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessReport.bridge_readiness_contract, "runtime_gate_env")}</li>
+              <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessReport.bridge_readiness_contract, "bridge_required")}</li>
               <li>Execution performed: {placementHarnessReport.execution_performed ? "yes" : "no"}</li>
               <li>Read-only: {placementHarnessReport.read_only ? "yes" : "no"}</li>
             </ul>
@@ -3235,6 +3254,9 @@ export default function AssetForgeStudioPacket01({
               <li>Contract evidence ready: {placementHarnessExecuteReport.contract_evidence_ready ? "yes" : "no"}</li>
               <li>Revert contract match: {placementHarnessExecuteReport.revert_statement_contract_match ? "yes" : "no"}</li>
               <li>Server approval session id: {placementHarnessExecuteReport.server_approval_session_id ?? "none"}</li>
+              <li>Bridge contract corridor: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "corridor_name")}</li>
+              <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "runtime_gate_env")}</li>
+              <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessExecuteReport.bridge_readiness_contract, "bridge_required")}</li>
               <li>Read-only: {placementHarnessExecuteReport.read_only ? "yes" : "no"}</li>
             </ul>
           ) : null}
@@ -3277,6 +3299,9 @@ export default function AssetForgeStudioPacket01({
               <li>Contract evidence ready: {placementLiveProofReport.contract_evidence_ready ? "yes" : "no"}</li>
               <li>Revert contract match: {placementLiveProofReport.revert_statement_contract_match ? "yes" : "no"}</li>
               <li>Server approval session id: {placementLiveProofReport.server_approval_session_id ?? "none"}</li>
+              <li>Bridge contract corridor: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "corridor_name")}</li>
+              <li>Bridge contract runtime gate env: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "runtime_gate_env")}</li>
+              <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementLiveProofReport.bridge_readiness_contract, "bridge_required")}</li>
               <li>Revert statement: {placementLiveProofReport.revert_statement}</li>
             </ul>
           ) : null}

@@ -7,6 +7,7 @@ import type {
   AssetForgeO3DEReadbackRecord,
   AssetForgeO3DEReviewPacketRecord,
   AssetForgeO3DEAssignmentDesignRecord,
+  AssetForgeO3DEPlacementHarnessRecord,
   AssetForgeO3DEPlacementHarnessExecuteRecord,
   AssetForgeO3DEPlacementLiveProofRecord,
   AssetForgeO3DEPlacementPlanRecord,
@@ -463,6 +464,37 @@ function makePlacementProofReport(
     warnings: ["Runtime proof gate is disabled."],
     safest_next_step: "Enable runtime gate in controlled proof environment.",
     source: "asset-forge-o3de-placement-proof",
+    ...overrides,
+  };
+}
+
+function makePlacementHarnessReport(
+  overrides: Partial<AssetForgeO3DEPlacementHarnessRecord> = {},
+): AssetForgeO3DEPlacementHarnessRecord {
+  return {
+    capability_name: "asset_forge.o3de.placement.runtime_harness.prepare",
+    maturity: "plan-only",
+    harness_status: "ready-for-admitted-runtime-harness",
+    candidate_id: "candidate-a",
+    candidate_label: "Weathered Ivy Arch",
+    staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+    target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    target_entity_name: "AssetForgeCandidateA",
+    target_component: "Mesh",
+    selected_platform: "pc",
+    bridge_configured: true,
+    bridge_heartbeat_fresh: true,
+    runtime_gate_enabled: true,
+    bridge_readiness_contract: {
+      corridor_name: "asset_forge.o3de.placement.runtime_harness.v1",
+      runtime_gate_env: "ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS",
+      bridge_required: true,
+    },
+    execution_performed: false,
+    read_only: true,
+    warnings: ["Readiness evidence only; no placement execution performed."],
+    safest_next_step: "Use runtime harness execute gate if all approvals are ready.",
+    source: "asset-forge-o3de-placement-runtime-harness-prepare",
     ...overrides,
   };
 }
@@ -1575,6 +1607,35 @@ describe("AssetForgeStudioPacket01", () => {
     expect(apiMocks.executeAssetForgeO3DEPlacementProof).not.toHaveBeenCalled();
   });
 
+  it("renders runtime harness readiness bridge contract summary fields", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.prepareAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(makePlacementHarnessReport());
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Prepare bounded runtime harness (plan-only)" }));
+
+    await waitFor(() => {
+      expect(apiMocks.prepareAssetForgeO3DEPlacementRuntimeHarness).toHaveBeenCalledWith({
+        candidate_id: "candidate-a",
+        candidate_label: "Weathered Ivy Arch",
+        staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+        target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        target_entity_name: "AssetForgeCandidateA",
+        target_component: "Mesh",
+        selected_platform: "pc",
+      });
+    });
+
+    expect(await screen.findByText(/Harness status: ready-for-admitted-runtime-harness/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
+  });
+
   it("submits runtime harness execute with optional approval session id and renders fail-closed details", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
     apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(makePlacementHarnessExecuteReport());
@@ -1607,6 +1668,9 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert contract match: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval session id: approval-session-runtime-001/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
     expect(screen.getByText("Runtime harness fail-closed reasons")).toBeInTheDocument();
     expect(screen.getByText("runtime_gate_disabled")).toBeInTheDocument();
   });
@@ -1643,6 +1707,9 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert contract match: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval session id: approval-session-live-001/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.live_proof\.v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
     expect(screen.getByText("Live proof fail-closed reasons")).toBeInTheDocument();
     expect(screen.getByText("placement_live_proof_execution_not_admitted")).toBeInTheDocument();
   });
