@@ -3128,6 +3128,8 @@ export default function AssetForgeStudioPacket01({
                 <li>Admission operator id: {placementProofReport.admission_operator_id ?? "none"}</li>
                 <li>Evidence bundle reference: {placementProofReport.evidence_bundle_reference ?? "none"}</li>
                 <li>Readback plan reference: {placementProofReport.readback_plan_reference ?? "none"}</li>
+                <li>Revert contract key: {placementProofReport.revert_statement_contract_key ?? "none"}</li>
+                <li>Operator note present: {placementProofReport.operator_note_present ? "yes" : "no"}</li>
                 <li>Proof approval required: {placementProofReport.placement_proof_policy["approval_required"] ? "yes" : "no"}</li>
                 <li>Proof runtime gate env: {String(placementProofReport.placement_proof_policy["runtime_gate_env"] ?? "ASSET_FORGE_ENABLE_PLACEMENT_PROOF")}</li>
                 <li>Proof mutation scope: {String(placementProofReport.placement_proof_policy["mutation_scope"] ?? "proof-only-no-scene-mutation")}</li>
@@ -3277,6 +3279,8 @@ export default function AssetForgeStudioPacket01({
               <li>Admission operator id: {placementHarnessExecuteReport.admission_operator_id ?? "none"}</li>
               <li>Evidence bundle reference: {placementHarnessExecuteReport.evidence_bundle_reference ?? "none"}</li>
               <li>Readback plan reference: {placementHarnessExecuteReport.readback_plan_reference ?? "none"}</li>
+              <li>Revert contract key: {placementHarnessExecuteReport.revert_statement_contract_key ?? "none"}</li>
+              <li>Operator note present: {placementHarnessExecuteReport.operator_note_present ? "yes" : "no"}</li>
               <li>Runtime command contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.runtime_command_contract)}</li>
               <li>Runtime result contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.runtime_result_contract)}</li>
               <li>Post-run verification contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.post_run_verification_contract)}</li>
@@ -3335,6 +3339,8 @@ export default function AssetForgeStudioPacket01({
               <li>Admission operator id: {placementLiveProofReport.admission_operator_id ?? "none"}</li>
               <li>Evidence bundle reference: {placementLiveProofReport.evidence_bundle_reference ?? "none"}</li>
               <li>Readback plan reference: {placementLiveProofReport.readback_plan_reference ?? "none"}</li>
+              <li>Revert contract key: {placementLiveProofReport.revert_statement_contract_key ?? "none"}</li>
+              <li>Operator note present: {placementLiveProofReport.operator_note_present ? "yes" : "no"}</li>
               <li>Runtime command contract keys: {contractSummaryKeyCount(placementLiveProofReport.runtime_command_contract)}</li>
               <li>Runtime result contract keys: {contractSummaryKeyCount(placementLiveProofReport.runtime_result_contract)}</li>
               <li>Post-run verification contract keys: {contractSummaryKeyCount(placementLiveProofReport.post_run_verification_contract)}</li>

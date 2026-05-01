@@ -446,7 +446,7 @@ function makePlacementProofReport(
     admission_operator_id: "operator-123",
     evidence_bundle_reference: "evidence://placement-proof/candidate-a",
     readback_plan_reference: "readback-plan://placement-proof/candidate-a",
-    revert_statement_contract_key: null,
+    revert_statement_contract_key: "revert-contract://placement-proof/v1",
     revert_statement_contract_match: false,
     operator_note_present: true,
     contract_evidence_ready: false,
@@ -539,7 +539,7 @@ function makePlacementHarnessExecuteReport(
     admission_operator_id: "operator-789",
     evidence_bundle_reference: "evidence://runtime-harness/candidate-a",
     readback_plan_reference: "readback-plan://runtime-harness/candidate-a",
-    revert_statement_contract_key: null,
+    revert_statement_contract_key: "revert-contract://runtime-harness/v1",
     revert_statement_contract_match: false,
     runtime_command_contract: { command_id: "bridge-command-runtime-001" },
     runtime_result_contract: { result_kind: "no-op" },
@@ -595,7 +595,7 @@ function makePlacementLiveProofReport(
     admission_operator_id: "operator-999",
     evidence_bundle_reference: "evidence://live-proof/candidate-a",
     readback_plan_reference: "readback-plan://live-proof/candidate-a",
-    revert_statement_contract_key: null,
+    revert_statement_contract_key: "revert-contract://live-proof/v1",
     revert_statement_contract_match: false,
     runtime_command_contract: { command_id: "bridge-command-live-001" },
     runtime_result_contract: { result_kind: "no-op" },
@@ -1604,6 +1604,8 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Admission operator id: operator-123/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Readback plan reference: readback-plan:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert contract key: revert-contract:\/\/placement-proof\/v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Operator note present: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Placement proof fail-closed reasons/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime proof gate enabled: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Proof runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_PROOF/i)).toBeInTheDocument();
@@ -1699,6 +1701,8 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Admission operator id: operator-789/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Readback plan reference: readback-plan:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert contract key: revert-contract:\/\/runtime-harness\/v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Operator note present: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime command contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime result contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Post-run verification contract keys: 1/i)).toBeInTheDocument();
@@ -1751,6 +1755,8 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Admission operator id: operator-999/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence bundle reference: evidence:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Readback plan reference: readback-plan:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert contract key: revert-contract:\/\/live-proof\/v1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Operator note present: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime command contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime result contract keys: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Post-run verification contract keys: 1/i)).toBeInTheDocument();
