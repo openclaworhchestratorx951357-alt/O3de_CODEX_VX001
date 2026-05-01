@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import { goldSelectedShadow, raisedControlShadow, toneStyles } from "./sharedStyles";
 import type { DesktopShellNavSection, DesktopShellQuickStat } from "./types";
@@ -23,6 +23,19 @@ export default function WorkspaceHeader({
   onSelectWorkspace,
 }: WorkspaceHeaderProps) {
   const currentNavItemId = activeNavItemId ?? activeWorkspaceId;
+  const activePeerNavButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const activeButton = activePeerNavButtonRef.current;
+    if (!activeButton || typeof activeButton.scrollIntoView !== "function") {
+      return;
+    }
+    activeButton.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [currentNavItemId, activeNavSection]);
 
   return (
     <div style={workspaceChromeStyle}>
@@ -48,6 +61,7 @@ export default function WorkspaceHeader({
               return (
                 <button
                   key={`peer-${item.id}`}
+                  ref={active ? activePeerNavButtonRef : null}
                   type="button"
                   aria-pressed={active}
                   onClick={() => onSelectWorkspace(item.id)}
@@ -136,6 +150,8 @@ const workspacePeerNavStyle = {
   maxWidth: "100%",
   minWidth: 0,
   overflowX: "auto",
+  overflowY: "hidden",
+  scrollSnapType: "x proximity" as const,
   padding: "5px",
   border: "1px solid var(--app-panel-border-strong)",
   borderRadius: "var(--app-pill-radius)",
@@ -169,6 +185,7 @@ const workspacePeerNavPillStyle = {
   fontSize: 11,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,
+  scrollSnapAlign: "center" as const,
   boxShadow: "var(--app-raised-shadow)",
   transform: "translateY(-1px)",
 } satisfies CSSProperties;

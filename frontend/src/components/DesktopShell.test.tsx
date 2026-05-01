@@ -234,6 +234,9 @@ describe("DesktopShell", () => {
     expect(workspaceTabs).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Game" })).toHaveAttribute("aria-pressed", "true");
+    const tabButtons = workspaceTabs.querySelectorAll("button");
+    expect(tabButtons.item(0)).toHaveTextContent("Create Game");
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("home");
   });

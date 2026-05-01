@@ -38,12 +38,20 @@ export default function DesktopShell({
   const activeNavSection = navSections.find((section) => (
     section.items.some((item) => item.id === currentNavItemId)
   ));
+  const standaloneNavItems = navSections.flatMap((section) => section.items);
+  const activeStandaloneNavItem = standaloneNavItems.find((item) => item.id === currentNavItemId);
+  const prioritizedStandaloneNavItems = activeStandaloneNavItem
+    ? [
+      activeStandaloneNavItem,
+      ...standaloneNavItems.filter((item) => item.id !== currentNavItemId),
+    ]
+    : standaloneNavItems;
   const headerNavSection = hideWorkspaceTree
     ? {
       id: "workspaces",
       label: "Workspaces",
       detail: "Standalone cockpit tabs",
-      items: navSections.flatMap((section) => section.items),
+      items: prioritizedStandaloneNavItems,
     }
     : activeNavSection;
   const timestampLabel = new Date().toLocaleString([], {
