@@ -619,6 +619,29 @@ export default function MovieStudioPanel() {
     }
   }
 
+  async function copyHandoffBundle() {
+    if (!playheadValid) {
+      setHandoffStatus("Playhead timecode is invalid");
+      return;
+    }
+    const bundle = [
+      "=== Handoff Summary ===",
+      handoffSummary,
+      "",
+      "=== Handoff JSON ===",
+      handoffJson,
+      "",
+      "=== O3DE Status ===",
+      o3deStatusPacket,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(bundle);
+      setHandoffStatus("Copied handoff bundle");
+    } catch {
+      setHandoffStatus("Bundle copy failed");
+    }
+  }
+
   function clearO3deStatusLog() {
     setO3deStatusLog([]);
     setHandoffStatus("Cleared O3DE log");
@@ -1023,6 +1046,14 @@ export default function MovieStudioPanel() {
                   disabled={!playheadValid}
                 >
                   Copy JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void copyHandoffBundle()}
+                  style={playheadValid ? s.toolbarButton : s.toolbarButtonDisabled}
+                  disabled={!playheadValid}
+                >
+                  Copy Bundle
                 </button>
                 <button
                   type="button"

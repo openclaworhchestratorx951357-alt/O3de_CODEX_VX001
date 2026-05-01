@@ -352,6 +352,8 @@ describe("MovieStudioPanel", () => {
     await screen.findByText("Copied to clipboard");
     fireEvent.click(screen.getByRole("button", { name: "Copy JSON" }));
     await screen.findByText("Copied JSON packet");
+    fireEvent.click(screen.getByRole("button", { name: "Copy Bundle" }));
+    await screen.findByText("Copied handoff bundle");
 
     fireEvent.click(screen.getByRole("button", { name: "Download .txt" }));
     expect(screen.getByText("Downloaded packet")).toBeInTheDocument();
