@@ -15,7 +15,7 @@ describe("MissionCardDeck", () => {
     expect(screen.getByText("Placement proof-only")).toBeInTheDocument();
     expect(screen.getByText("Review latest run")).toBeInTheDocument();
 
-    expect(screen.getByText(/proof-only \/ fail-closed/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/proof-only \/ fail-closed/i).length).toBeGreaterThan(0);
     expect(
       screen.getAllByText(/Prefill only\. Open Prompt Studio, preview plan, then execute manually if admitted\./i).length,
     ).toBeGreaterThan(0);
@@ -88,5 +88,23 @@ describe("MissionCardDeck", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open Records" })[0]);
     expect(onOpenRecords).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses registry-driven template action handlers when provided", () => {
+    const onLegacyInspect = vi.fn();
+    const onRegistryInspect = vi.fn();
+
+    render(
+      <MissionCardDeck
+        onLaunchInspectTemplate={onLegacyInspect}
+        promptTemplateActionHandlers={{
+          "inspect-project": onRegistryInspect,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
+    expect(onRegistryInspect).toHaveBeenCalledTimes(1);
+    expect(onLegacyInspect).toHaveBeenCalledTimes(0);
   });
 });

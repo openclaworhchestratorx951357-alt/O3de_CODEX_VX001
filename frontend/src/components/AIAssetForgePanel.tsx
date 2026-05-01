@@ -28,6 +28,7 @@ type AIAssetForgePanelProps = {
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  promptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
   reviewPacketData?: unknown;
@@ -154,8 +155,12 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
           taskModel={taskModel}
           providerStatus={providerStatus}
           onOpenPromptStudio={props.onOpenPromptStudio}
-          onLaunchInspectTemplate={props.onLaunchInspectTemplate}
-          onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+          onLaunchInspectTemplate={
+            props.promptTemplateActionHandlers?.["inspect-project"] ?? props.onLaunchInspectTemplate
+          }
+          onLaunchPlacementProofTemplate={
+            props.promptTemplateActionHandlers?.["placement-proof-only"] ?? props.onLaunchPlacementProofTemplate
+          }
         />
       ),
     },
@@ -261,6 +266,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
             onOpenPromptStudio={props.onOpenPromptStudio}
             onLaunchInspectTemplate={props.onLaunchInspectTemplate}
             onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+            promptTemplateActionHandlers={props.promptTemplateActionHandlers}
             onOpenRuntimeOverview={props.onOpenRuntimeOverview}
             onOpenRecords={props.onOpenRecords}
             onViewEvidence={props.onViewEvidence}
@@ -313,6 +319,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
     props.latestRunId,
     props.onLaunchInspectTemplate,
     props.onLaunchPlacementProofTemplate,
+    props.promptTemplateActionHandlers,
     props.onOpenArtifactDetail,
     props.onOpenBuilder,
     props.onOpenExecutionDetail,

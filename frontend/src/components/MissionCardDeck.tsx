@@ -1,11 +1,7 @@
 import type { CSSProperties } from "react";
 
-import {
-  addAllowlistedMeshMissionPromptDraft,
-  createGameEntityMissionPromptDraft,
-  inspectProjectMissionPromptDraft,
-  placementProofOnlyMissionPromptDraft,
-} from "../lib/missionPromptTemplates";
+import CockpitPromptTemplatePanel from "./cockpits/CockpitPromptTemplatePanel";
+import { getCockpitDefinition } from "./cockpits/registry/cockpitRegistry";
 
 type MissionCardDeckProps = {
   latestRunId?: string | null;
@@ -23,6 +19,7 @@ type MissionCardDeckProps = {
   onLaunchCreateEntityTemplate?: () => void;
   onLaunchAddMeshTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  promptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
 };
 
 type MissionCard = {
@@ -109,6 +106,8 @@ const cards: MissionCard[] = [
   },
 ];
 
+const homePromptTemplates = getCockpitDefinition("home")?.promptTemplates ?? [];
+
 function destinationAction(
   destination: MissionCard["destination"],
   actions: MissionCardDeckProps,
@@ -128,33 +127,72 @@ function destinationAction(
 function templateAction(
   cardId: MissionCard["id"],
   actions: MissionCardDeckProps,
-): { label: string; promptText: string; onClick?: () => void } | null {
+): { id: string; label: string; truthLabel: string; promptText: string; actionLabel: string; note?: string; onClick?: () => void } | null {
+  const templateIdByCard: Partial<Record<MissionCard["id"], string>> = {
+    "inspect-project": "inspect-project",
+    "create-safe-entity": "create-safe-entity",
+    "add-allowlisted-component": "add-allowlisted-mesh",
+    "placement-proof-only": "placement-proof-only",
+  };
+  const templateId = templateIdByCard[cardId];
+  if (!templateId) {
+    return null;
+  }
+  const template = homePromptTemplates.find((entry) => entry.id === templateId);
+  if (!template) {
+    return null;
+  }
+  const fallbackActionsByTemplateId: Partial<Record<string, (() => void) | undefined>> = {
+    "inspect-project": actions.onLaunchInspectTemplate,
+    "create-safe-entity": actions.onLaunchCreateEntityTemplate,
+    "add-allowlisted-mesh": actions.onLaunchAddMeshTemplate,
+    "placement-proof-only": actions.onLaunchPlacementProofTemplate,
+  };
+  const actionLabelByTemplateId: Partial<Record<string, string>> = {
+    "inspect-project": "Load inspect template in Prompt Studio",
+    "create-safe-entity": "Load create-entity template in Prompt Studio",
+    "add-allowlisted-mesh": "Load add-component template in Prompt Studio",
+    "placement-proof-only": "Load placement proof-only template in Prompt Studio",
+  };
   if (cardId === "inspect-project") {
     return {
-      label: "Load inspect template in Prompt Studio",
-      promptText: inspectProjectMissionPromptDraft.promptText,
-      onClick: actions.onLaunchInspectTemplate,
+      id: template.id,
+      label: template.label,
+      truthLabel: template.safetyLabels.join(" / "),
+      promptText: template.text,
+      actionLabel: actionLabelByTemplateId[template.id] ?? "Load template in Prompt Studio",
+      onClick: actions.promptTemplateActionHandlers?.[template.id] ?? fallbackActionsByTemplateId[template.id],
     };
   }
   if (cardId === "create-safe-entity") {
     return {
-      label: "Load create-entity template in Prompt Studio",
-      promptText: createGameEntityMissionPromptDraft.promptText,
-      onClick: actions.onLaunchCreateEntityTemplate,
+      id: template.id,
+      label: template.label,
+      truthLabel: template.safetyLabels.join(" / "),
+      promptText: template.text,
+      actionLabel: actionLabelByTemplateId[template.id] ?? "Load template in Prompt Studio",
+      onClick: actions.promptTemplateActionHandlers?.[template.id] ?? fallbackActionsByTemplateId[template.id],
     };
   }
   if (cardId === "add-allowlisted-component") {
     return {
-      label: "Load add-component template in Prompt Studio",
-      promptText: addAllowlistedMeshMissionPromptDraft.promptText,
-      onClick: actions.onLaunchAddMeshTemplate,
+      id: template.id,
+      label: template.label,
+      truthLabel: template.safetyLabels.join(" / "),
+      promptText: template.text,
+      actionLabel: actionLabelByTemplateId[template.id] ?? "Load template in Prompt Studio",
+      onClick: actions.promptTemplateActionHandlers?.[template.id] ?? fallbackActionsByTemplateId[template.id],
     };
   }
   if (cardId === "placement-proof-only") {
     return {
-      label: "Load placement proof-only template in Prompt Studio",
-      promptText: placementProofOnlyMissionPromptDraft.promptText,
-      onClick: actions.onLaunchPlacementProofTemplate,
+      id: template.id,
+      label: template.label,
+      truthLabel: template.safetyLabels.join(" / "),
+      promptText: template.text,
+      actionLabel: actionLabelByTemplateId[template.id] ?? "Load template in Prompt Studio",
+      note: "Explicit truth: placement execution is non-admitted, placement write is non-admitted, and no mutation occurred.",
+      onClick: actions.promptTemplateActionHandlers?.[template.id] ?? fallbackActionsByTemplateId[template.id],
     };
   }
   return null;
@@ -197,24 +235,22 @@ export default function MissionCardDeck(props: MissionCardDeckProps) {
               <p style={styles.detail}><strong>Next unlock:</strong> {card.nextUnlock}</p>
 
               {contextualTemplateAction ? (
-                <div style={styles.templateBox}>
-                  <strong>Suggested prompt template</strong>
-                  <p style={styles.detail}>Prefill only. Open Prompt Studio, preview plan, then execute manually if admitted.</p>
-                  <pre style={styles.template}>{contextualTemplateAction.promptText}</pre>
-                  {card.id === "placement-proof-only" ? (
-                    <p style={styles.detail}>
-                      Explicit truth: placement execution is non-admitted, placement write is non-admitted, and no mutation occurred.
-                    </p>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={contextualTemplateAction.onClick}
-                    disabled={!contextualTemplateAction.onClick}
-                    style={styles.templateButton}
-                  >
-                    {contextualTemplateAction.label}
-                  </button>
-                </div>
+                <CockpitPromptTemplatePanel
+                  title="Suggested prompt template"
+                  detail="Prefill only. Open Prompt Studio, preview plan, then execute manually if admitted."
+                  templates={[
+                    {
+                      id: contextualTemplateAction.id,
+                      label: contextualTemplateAction.label,
+                      truthLabel: contextualTemplateAction.truthLabel,
+                      promptText: contextualTemplateAction.promptText,
+                      actionLabel: contextualTemplateAction.actionLabel,
+                      note: contextualTemplateAction.note,
+                      onAction: contextualTemplateAction.onClick,
+                    },
+                  ]}
+                  dataTestId={`mission-card-template-${card.id}`}
+                />
               ) : null}
 
               <button
@@ -281,29 +317,6 @@ const styles = {
     padding: "2px 9px",
     fontSize: 11,
     textTransform: "uppercase",
-  },
-  templateBox: {
-    border: "1px solid rgba(173, 204, 238, 0.55)",
-    borderRadius: 8,
-    padding: "8px 10px",
-    background: "rgba(24, 40, 62, 0.45)",
-    display: "grid",
-    gap: 6,
-  },
-  template: {
-    margin: 0,
-    whiteSpace: "pre-wrap",
-    fontSize: 12,
-    overflowWrap: "anywhere",
-  },
-  templateButton: {
-    border: "1px solid #5faeff",
-    borderRadius: 8,
-    padding: "6px 10px",
-    background: "rgba(19, 33, 49, 0.85)",
-    color: "var(--app-text-color)",
-    cursor: "pointer",
-    fontWeight: 700,
   },
   button: {
     border: "1px solid var(--app-panel-border)",

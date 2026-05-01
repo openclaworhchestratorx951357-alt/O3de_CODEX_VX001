@@ -1,14 +1,13 @@
 import type { CSSProperties } from "react";
 
-import {
-  inspectProjectMissionPromptDraft,
-  placementProofOnlyMissionPromptDraft,
-} from "../lib/missionPromptTemplates";
+import CockpitPromptTemplatePanel from "./cockpits/CockpitPromptTemplatePanel";
+import { getCockpitDefinition } from "./cockpits/registry/cockpitRegistry";
 
 type AssetForgeGuidedPipelineProps = {
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  promptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
   onViewEvidence?: () => void;
@@ -127,10 +126,23 @@ export default function AssetForgeGuidedPipeline({
   onOpenPromptStudio,
   onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
+  promptTemplateActionHandlers,
   onOpenRuntimeOverview,
   onOpenRecords,
   onViewEvidence,
 }: AssetForgeGuidedPipelineProps) {
+  const promptTemplates = (getCockpitDefinition("asset-forge")?.promptTemplates ?? []).map((template) => ({
+    id: template.id,
+    label: template.label,
+    truthLabel: template.safetyLabels.join(" / "),
+    promptText: template.text,
+    actionLabel: template.id === "placement-proof-only"
+      ? "Load placement proof-only template in Prompt Studio"
+      : "Load inspect template in Prompt Studio",
+    onAction: promptTemplateActionHandlers?.[template.id]
+      ?? (template.id === "placement-proof-only" ? onLaunchPlacementProofTemplate : onLaunchInspectTemplate),
+  }));
+
   return (
     <section aria-label="Asset Forge guided pipeline" style={styles.shell} data-testid="asset-forge-guided-pipeline">
       <header style={styles.header}>
@@ -147,42 +159,12 @@ export default function AssetForgeGuidedPipeline({
         <button type="button" onClick={onViewEvidence} disabled={!onViewEvidence} style={styles.button}>View evidence</button>
       </div>
 
-      <section style={styles.templateSection} aria-label="Asset Forge contextual prompt templates">
-        <strong>Contextual prompt templates (prefill only)</strong>
-        <p style={styles.detail}>Templates load into Prompt Studio for preview. They do not auto-execute or bypass admission gates.</p>
-        <div style={styles.grid}>
-          <article style={styles.stepCard}>
-            <div style={styles.stepHeader}>
-              <strong>Inspect project template</strong>
-              <span style={styles.truth}>read-only</span>
-            </div>
-            <pre style={styles.template}>{inspectProjectMissionPromptDraft.promptText}</pre>
-            <button
-              type="button"
-              onClick={onLaunchInspectTemplate}
-              disabled={!onLaunchInspectTemplate}
-              style={styles.button}
-            >
-              Load inspect template in Prompt Studio
-            </button>
-          </article>
-          <article style={styles.stepCard}>
-            <div style={styles.stepHeader}>
-              <strong>Placement proof-only template</strong>
-              <span style={styles.truth}>proof-only / fail-closed</span>
-            </div>
-            <pre style={styles.template}>{placementProofOnlyMissionPromptDraft.promptText}</pre>
-            <button
-              type="button"
-              onClick={onLaunchPlacementProofTemplate}
-              disabled={!onLaunchPlacementProofTemplate}
-              style={styles.button}
-            >
-              Load placement proof-only template in Prompt Studio
-            </button>
-          </article>
-        </div>
-      </section>
+      <CockpitPromptTemplatePanel
+        title="Contextual prompt templates (prefill only)"
+        detail="Templates load into Prompt Studio for preview. They do not auto-execute or bypass admission gates."
+        templates={promptTemplates}
+        dataTestId="asset-forge-template-panel"
+      />
 
       <div style={styles.grid}>
         {pipelineSteps.map((step) => (
@@ -280,20 +262,6 @@ const styles = {
     padding: "8px 10px",
     display: "grid",
     gap: 6,
-  },
-  templateSection: {
-    border: "1px solid rgba(173, 204, 238, 0.55)",
-    borderRadius: 8,
-    background: "rgba(24, 40, 62, 0.45)",
-    padding: "8px 10px",
-    display: "grid",
-    gap: 8,
-  },
-  template: {
-    margin: 0,
-    whiteSpace: "pre-wrap",
-    overflowWrap: "anywhere",
-    fontSize: 12,
   },
   list: {
     margin: 0,

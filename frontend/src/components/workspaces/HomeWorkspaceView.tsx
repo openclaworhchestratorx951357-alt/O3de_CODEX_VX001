@@ -26,6 +26,7 @@ type HomeWorkspaceViewProps = {
   onLaunchCreateEntityTemplate?: () => void;
   onLaunchAddMeshTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  missionPromptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -84,6 +85,7 @@ export default function HomeWorkspaceView({
   onLaunchCreateEntityTemplate,
   onLaunchAddMeshTemplate,
   onLaunchPlacementProofTemplate,
+  missionPromptTemplateActionHandlers,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -174,6 +176,7 @@ export default function HomeWorkspaceView({
             onLaunchCreateEntityTemplate={onLaunchCreateEntityTemplate}
             onLaunchAddMeshTemplate={onLaunchAddMeshTemplate}
             onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
+            promptTemplateActionHandlers={missionPromptTemplateActionHandlers}
           />
           <HomeCockpitLaunchPanel
             onOpenCockpit={onOpenCockpit}

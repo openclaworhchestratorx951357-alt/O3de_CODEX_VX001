@@ -5361,6 +5361,8 @@ export default function App() {
   const createGameToolActionHandlers = buildCockpitToolActionHandlers("create-game");
   const createMovieToolActionHandlers = buildCockpitToolActionHandlers("create-movie");
   const loadProjectToolActionHandlers = buildCockpitToolActionHandlers("load-project");
+  const homePromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("home");
+  const assetForgePromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("asset-forge");
   const createGamePromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("create-game");
   const createMoviePromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("create-movie");
   const loadProjectPromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("load-project");
@@ -8980,6 +8982,7 @@ export default function App() {
               onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
               onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
               onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromHome}
+              missionPromptTemplateActionHandlers={homePromptTemplateActionHandlers}
               onViewLatestRun={openLatestRunEvidence}
               onViewExecution={openLatestExecutionEvidence}
               onViewArtifact={openLatestArtifactEvidence}
@@ -9015,6 +9018,7 @@ export default function App() {
                 onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
+                promptTemplateActionHandlers={assetForgePromptTemplateActionHandlers}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}

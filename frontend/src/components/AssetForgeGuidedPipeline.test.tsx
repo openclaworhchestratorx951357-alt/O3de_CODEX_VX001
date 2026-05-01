@@ -58,4 +58,22 @@ describe("AssetForgeGuidedPipeline", () => {
     expect(onOpenRecords).toHaveBeenCalledTimes(1);
     expect(onViewEvidence).toHaveBeenCalledTimes(1);
   });
+
+  it("prefers registry-driven template action handlers when provided", () => {
+    const onLegacyInspect = vi.fn();
+    const onRegistryInspect = vi.fn();
+
+    render(
+      <AssetForgeGuidedPipeline
+        onLaunchInspectTemplate={onLegacyInspect}
+        promptTemplateActionHandlers={{
+          "inspect-project": onRegistryInspect,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
+    expect(onRegistryInspect).toHaveBeenCalledTimes(1);
+    expect(onLegacyInspect).toHaveBeenCalledTimes(0);
+  });
 });
