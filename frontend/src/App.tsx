@@ -5262,30 +5262,6 @@ export default function App() {
     openPromptStudioFromCockpitTemplateRegistry(sourceWorkspaceId);
   }
 
-  function openPromptStudioWithPlacementProofTemplateFromHome(): void {
-    openPromptStudioWithRegistryTemplate("home", "placement-proof-only");
-  }
-
-  function openPromptStudioWithPlacementProofTemplateFromAssetForge(): void {
-    openPromptStudioWithRegistryTemplate("asset-forge", "placement-proof-only");
-  }
-
-  function openPromptStudioWithInspectProjectTemplateFromHome(): void {
-    openPromptStudioWithRegistryTemplate("home", "inspect-project");
-  }
-
-  function openPromptStudioWithInspectProjectTemplateFromAssetForge(): void {
-    openPromptStudioWithRegistryTemplate("asset-forge", "inspect-project");
-  }
-
-  function openPromptStudioWithCreateGameEntityTemplate(): void {
-    openPromptStudioWithRegistryTemplate("create-game", "create-safe-entity");
-  }
-
-  function openPromptStudioWithAddAllowlistedMeshTemplate(): void {
-    openPromptStudioWithRegistryTemplate("create-game", "add-allowlisted-mesh");
-  }
-
   function resolveCockpitUiActionHandler(
     cockpitId: CockpitId,
     actionId: CockpitUiActionId | undefined,
@@ -8978,10 +8954,10 @@ export default function App() {
                 }
                 setActiveWorkspaceId(resolveRegisteredWorkspaceId(cockpitId));
               }}
-              onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromHome}
-              onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
-              onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
-              onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromHome}
+              onLaunchInspectTemplate={homePromptTemplateActionHandlers["inspect-project"]}
+              onLaunchCreateEntityTemplate={homePromptTemplateActionHandlers["create-safe-entity"]}
+              onLaunchAddMeshTemplate={homePromptTemplateActionHandlers["add-allowlisted-mesh"]}
+              onLaunchPlacementProofTemplate={homePromptTemplateActionHandlers["placement-proof-only"]}
               missionPromptTemplateActionHandlers={homePromptTemplateActionHandlers}
               onViewLatestRun={openLatestRunEvidence}
               onViewExecution={openLatestExecutionEvidence}
@@ -9016,8 +8992,8 @@ export default function App() {
             >
               <AIAssetForgePanel
                 onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
-                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
-                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
+                onLaunchInspectTemplate={assetForgePromptTemplateActionHandlers["inspect-project"]}
+                onLaunchPlacementProofTemplate={assetForgePromptTemplateActionHandlers["placement-proof-only"]}
                 promptTemplateActionHandlers={assetForgePromptTemplateActionHandlers}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
