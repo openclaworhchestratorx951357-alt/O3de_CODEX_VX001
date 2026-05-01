@@ -117,6 +117,7 @@ def root() -> RootStatus:
         "/asset-forge/approval-sessions/{session_id}/revoke",
         "/asset-forge/provider/status",
         "/asset-forge/blender/status",
+        "/asset-forge/editor-model",
         "/asset-forge/studio/status",
         "/asset-forge/blender/inspect",
         "/asset-forge/o3de/stage-plan",

@@ -308,6 +308,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/asset-forge/approval-sessions/{session_id}/revoke" in payload["routes"]
         assert "/asset-forge/provider/status" in payload["routes"]
         assert "/asset-forge/blender/status" in payload["routes"]
+        assert "/asset-forge/editor-model" in payload["routes"]
         assert "/asset-forge/studio/status" in payload["routes"]
         assert "/asset-forge/blender/inspect" in payload["routes"]
         assert "/asset-forge/o3de/stage-plan" in payload["routes"]
@@ -374,6 +375,82 @@ def test_asset_forge_task_route_returns_plan_only_demo_candidates() -> None:
         assert len(payload["candidates"]) == 4
         assert all(candidate["status"] == "demo" for candidate in payload["candidates"])
         assert all("O3DE readiness placeholder" in candidate["readiness_placeholder"] for candidate in payload["candidates"])
+
+
+def test_asset_forge_editor_model_route_returns_read_only_contract() -> None:
+    with isolated_client() as client:
+        response = client.get("/asset-forge/editor-model")
+        assert response.status_code == 200
+        payload = response.json()
+
+    assert payload["source"] == "asset-forge-editor-model"
+    assert payload["inspection_surface"] == "read_only"
+    assert payload["editor_model_status"] == "available"
+    assert payload["execution_admitted"] is False
+    assert payload["mutation_admitted"] is False
+    assert payload["provider_generation_admitted"] is False
+    assert payload["blender_execution_admitted"] is False
+    assert payload["asset_processor_execution_admitted"] is False
+    assert payload["placement_write_admitted"] is False
+
+    tool_labels = {tool["label"] for tool in payload["tools"]}
+    for required_label in {
+        "Transform",
+        "Translate",
+        "Rotate",
+        "Scale",
+        "Origin",
+        "Duplicate",
+        "Delete",
+        "Join",
+        "Split",
+        "Grease Pencil",
+    }:
+        assert required_label in tool_labels
+
+    assert all(tool["execution_admitted"] is False for tool in payload["tools"])
+    assert all(tool["mutation_admitted"] is False for tool in payload["tools"])
+    blocked_tools = [tool for tool in payload["tools"] if tool["truth_state"] == "blocked"]
+    assert blocked_tools
+    assert all(tool["blocked_reason"] for tool in blocked_tools)
+    assert all(tool["next_unlock"] for tool in blocked_tools)
+
+    assert payload["viewport"]["mode"] == "Object Mode"
+    assert payload["viewport"]["label"] == "Front Ortho"
+    assert "No provider/Blender/Asset Processor/O3DE mutation admitted" in payload["viewport"]["overlays"]
+
+    outliner_labels = {node["label"] for node in payload["outliner"]}
+    for required_node in {"Asset Root", "Mesh_LOD0", "Materials", "Textures"}:
+        assert required_node in outliner_labels
+
+    assert payload["transform"]["edit_status"] in {"blocked", "preflight-only"}
+    assert payload["transform"]["location"]["admitted"] is False
+    assert payload["transform"]["rotation"]["admitted"] is False
+    assert payload["transform"]["scale"]["admitted"] is False
+    assert payload["transform"]["dimensions"]["admitted"] is False
+
+    property_labels = {row["label"] for row in payload["properties"]["rows"]}
+    for required_row in {
+        "Location X/Y/Z",
+        "Rotation X/Y/Z",
+        "Scale X/Y/Z",
+        "Dimensions X/Y/Z",
+        "Provider generation",
+        "Blender execution",
+        "Placement write",
+    }:
+        assert required_row in property_labels
+
+    assert payload["material_preview"]["mutation_admitted"] is False
+    assert all(template["auto_execute"] is False for template in payload["prompt_templates"])
+    assert payload["blocked_capabilities"]
+    assert all(blocked["reason"] for blocked in payload["blocked_capabilities"])
+    assert all(blocked["next_unlock"] for blocked in payload["blocked_capabilities"])
+
+    serialized = json.dumps(payload).lower()
+    assert "mutation succeeded" not in serialized
+    assert "execution succeeded" not in serialized
+    assert '"write_status": "succeeded"' not in serialized
 
 
 def test_asset_forge_task_plan_route_returns_typed_plan_only_task() -> None:
