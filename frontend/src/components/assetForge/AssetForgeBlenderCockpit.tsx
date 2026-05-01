@@ -29,6 +29,7 @@ type Props = {
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
+  onOpenMovieStudioTimeline?: () => void;
   onOpenLoadProject?: () => void;
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
@@ -317,6 +318,13 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
     id: "app",
     label: "App",
     items: [
+      {
+        id: "app-movie-studio",
+        label: "Movie Studio Timeline",
+        tone: "read-only",
+        action: "open-workspace-movie-studio-timeline",
+        status: "Switched to Movie Studio Timeline inside Asset Forge shell navigation only.",
+      },
       {
         id: "app-builder",
         label: "Builder",
@@ -977,6 +985,7 @@ export default function AssetForgeBlenderCockpit({
   latestPlacementProofOnlyReview,
   onOpenCreateGame,
   onOpenCreateMovie,
+  onOpenMovieStudioTimeline,
   onOpenLoadProject,
   onOpenPromptStudio,
   onLaunchInspectTemplate,
@@ -1178,6 +1187,9 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-create-movie") {
       onOpenCreateMovie?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-movie-studio-timeline") {
+      onOpenMovieStudioTimeline?.();
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-load-project") {
       onOpenLoadProject?.();

@@ -197,6 +197,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
           latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview}
           onOpenCreateGame={props.onOpenCreateGame}
           onOpenCreateMovie={props.onOpenCreateMovie}
+          onOpenMovieStudioTimeline={() => setWorkspaceMode("movie_studio")}
           onOpenLoadProject={props.onOpenLoadProject}
           onOpenPromptStudio={props.onOpenPromptStudio}
           onLaunchInspectTemplate={props.onLaunchInspectTemplate}

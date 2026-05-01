@@ -323,6 +323,7 @@ describe("AssetForgeBlenderCockpit", () => {
     const callbacks = {
       onOpenCreateGame: vi.fn(),
       onOpenCreateMovie: vi.fn(),
+      onOpenMovieStudioTimeline: vi.fn(),
       onOpenLoadProject: vi.fn(),
       onOpenPromptStudio: vi.fn(),
       onOpenBuilder: vi.fn(),
@@ -341,10 +342,15 @@ describe("AssetForgeBlenderCockpit", () => {
 
     fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
     const appMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(appMenu).getByRole("menuitem", { name: /Movie Studio Timeline/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Builder/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Operations/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
-    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Builder/i }));
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Movie Studio Timeline/i }));
+    expect(callbacks.onOpenMovieStudioTimeline).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuReopened = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuReopened).getByRole("menuitem", { name: /Builder/i }));
     expect(callbacks.onOpenBuilder).toHaveBeenCalledTimes(1);
 
     fireEvent.click(within(topMenu).getByRole("button", { name: "Create" }));

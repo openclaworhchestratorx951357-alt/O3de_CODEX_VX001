@@ -13,7 +13,14 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("../lib/api", () => apiMocks);
 
 vi.mock("./assetForge/AssetForgeBlenderCockpit", () => ({
-  default: () => <div>AssetForgeBlenderCockpit stub</div>,
+  default: (props: { onOpenMovieStudioTimeline?: () => void }) => (
+    <div>
+      <div>AssetForgeBlenderCockpit stub</div>
+      <button type="button" onClick={() => props.onOpenMovieStudioTimeline?.()}>
+        Open Movie Studio via cockpit menu
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("./movieStudio/MovieStudioPanel", () => ({
@@ -44,5 +51,13 @@ describe("AIAssetForgePanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Asset Forge Studio" }));
     expect(await screen.findByText("AssetForgeBlenderCockpit stub")).toBeInTheDocument();
+  });
+
+  it("switches to Movie Studio when the cockpit requests mode handoff", async () => {
+    render(<AIAssetForgePanel />);
+    expect(await screen.findByText("AssetForgeBlenderCockpit stub")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Movie Studio via cockpit menu" }));
+    expect(await screen.findByText("MovieStudioPanel stub")).toBeInTheDocument();
   });
 });
