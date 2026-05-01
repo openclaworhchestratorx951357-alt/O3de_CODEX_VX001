@@ -56,8 +56,8 @@ export type OperatorGuideShellPanel = {
 };
 
 export const operatorGuideShellApp: OperatorGuideShellApp = {
-  title: "O3DE Agent Control App",
-  subtitle: "Windows-style control-plane workspace for O3DE operators",
+  title: "Asset Forge",
+  subtitle: "O3DE-native creation workbench with engine services, evidence, and gated tool workflows",
 };
 
 const quickStats: OperatorGuideShellQuickStat[] = [

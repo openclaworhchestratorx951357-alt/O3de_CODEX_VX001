@@ -19,6 +19,7 @@ export type {
 export default function DesktopShell({
   appTitle,
   appSubtitle,
+  startBadgeLabel = "AF",
   workspaceTitle,
   workspaceSubtitle,
   activeWorkspaceId,
@@ -55,7 +56,7 @@ export default function DesktopShell({
       <div style={wallpaperGlowBottomStyle} />
       <div style={taskbarStyle}>
         <div style={taskbarBrandGroupStyle}>
-          <div style={startBadgeStyle}>CP</div>
+          <div style={startBadgeStyle}>{startBadgeLabel}</div>
           <div style={{ display: "grid", gap: 2 }}>
             <strong style={taskbarTitleStyle}>{appTitle}</strong>
             <span style={taskbarSubtitleStyle}>{appSubtitle}</span>

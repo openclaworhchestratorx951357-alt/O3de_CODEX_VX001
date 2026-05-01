@@ -9267,6 +9267,7 @@ export default function App() {
       <DesktopShell
         appTitle={operatorGuideShellApp.title}
         appSubtitle={operatorGuideShellApp.subtitle}
+        startBadgeLabel="AF"
         workspaceTitle={activeWorkspaceMeta.title}
         workspaceSubtitle={activeWorkspaceMeta.subtitle}
         activeWorkspaceId={activeWorkspaceId}
