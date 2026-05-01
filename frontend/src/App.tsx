@@ -5212,19 +5212,6 @@ export default function App() {
     setActiveRuntimeSurface("workspaces");
   }
 
-  function openPromptStudio(options?: {
-    preservePromptEvidenceContext?: boolean;
-    preservePromptTemplateChooserContext?: boolean;
-  }): void {
-    if (!options?.preservePromptEvidenceContext) {
-      setPromptEvidenceContext(null);
-    }
-    if (!options?.preservePromptTemplateChooserContext) {
-      setPromptTemplateChooserContext(null);
-    }
-    setActiveWorkspaceId("prompt");
-  }
-
   function openPromptSessionFromTruthRail(promptId: string): void {
     const trimmedPromptId = promptId.trim();
     if (!trimmedPromptId) {

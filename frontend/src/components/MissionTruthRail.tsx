@@ -130,6 +130,7 @@ export default function MissionTruthRail({
         <TruthRow label="Execution mode" value={executionMode} />
         <TruthRow label="Mutation admitted" value={mutationAdmitted} />
         <TruthRow label="Placement write admitted" value={placementAdmitted} />
+        <TruthRow label="Mutation occurred" value={mutationResult} />
         <TruthRow label="Latest run" value={latestRunId ?? "no latest run selected"} />
         <TruthRow label="Latest execution" value={latestExecutionId ?? "no latest execution selected"} />
         <TruthRow label="Latest artifact" value={latestArtifactId ?? "no latest artifact selected"} />
