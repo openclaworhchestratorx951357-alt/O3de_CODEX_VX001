@@ -179,6 +179,45 @@ describe("DesktopShell", () => {
     expect(screen.queryByRole("region", { name: "Agent chat dock" })).not.toBeInTheDocument();
   });
 
+  it("hides the workspace tree when a standalone cockpit shell is active", () => {
+    render(
+      <DesktopShell
+        appTitle="O3DE Agent Control App"
+        appSubtitle="Desktop operator shell"
+        workspaceTitle="Create Game"
+        workspaceSubtitle="Standalone cockpit shell"
+        activeWorkspaceId="create-game"
+        hideWorkspaceTree
+        navSections={[
+          {
+            id: "create",
+            label: "Create",
+            detail: "Dedicated cockpit shells",
+            items: [
+              {
+                id: "create-game",
+                label: "Create Game",
+                subtitle: "Standalone cockpit shell",
+              },
+              {
+                id: "create-movie",
+                label: "Create Movie",
+                subtitle: "Standalone cockpit shell",
+              },
+            ],
+          },
+        ]}
+        onSelectWorkspace={vi.fn()}
+      >
+        <div>Standalone workspace body</div>
+      </DesktopShell>,
+    );
+
+    expect(screen.queryByText("Control surface")).toBeNull();
+    expect(screen.getByText("Standalone workspace body")).toBeInTheDocument();
+    expect(screen.getByText("Active workspace")).toBeInTheDocument();
+  });
+
   it("consumes saved shell settings for dark compact desktop layout", () => {
     window.localStorage.setItem(
       SETTINGS_PROFILE_STORAGE_KEY,

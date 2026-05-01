@@ -23,6 +23,7 @@ export default function DesktopShell({
   workspaceSubtitle,
   activeWorkspaceId,
   activeNavItemId,
+  hideWorkspaceTree = false,
   navSections,
   quickStats = [],
   utilityLabel,
@@ -94,13 +95,15 @@ export default function DesktopShell({
           boxSizing: "border-box",
         }}
       >
-        <WorkspaceTree
-          activeWorkspaceId={activeWorkspaceId}
-          activeNavItemId={currentNavItemId}
-          navSections={navSections}
-          workspaceTitle={workspaceTitle}
-          onSelectWorkspace={onSelectWorkspace}
-        />
+        {hideWorkspaceTree ? null : (
+          <WorkspaceTree
+            activeWorkspaceId={activeWorkspaceId}
+            activeNavItemId={currentNavItemId}
+            navSections={navSections}
+            workspaceTitle={workspaceTitle}
+            onSelectWorkspace={onSelectWorkspace}
+          />
+        )}
 
         <section style={workspaceShellStyle}>
           <WorkspaceHeader

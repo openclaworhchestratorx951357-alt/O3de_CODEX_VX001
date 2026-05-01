@@ -369,7 +369,7 @@ describe("App desktop smoke", () => {
 
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
     expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
-    expect(screen.getByText("Now open")).toBeInTheDocument();
+    expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
@@ -434,7 +434,7 @@ describe("App desktop smoke", () => {
         name: "Open Asset Forge",
       })[0],
     );
-    expect(await screen.findByText("Now open")).toBeInTheDocument();
+    expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect((await screen.findAllByText("Asset Forge")).length).toBeGreaterThan(0);
     expect(
       await screen.findByPlaceholderText("Go to Asset Forge or type a command..."),
@@ -710,7 +710,7 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "View latest run" }));
     await waitFor(() => expect(apiMocks.fetchRun).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Run Detail")).toBeInTheDocument();
+    expect(await screen.findByText("Run Detail", {}, { timeout: LAZY_SURFACE_TIMEOUT_MS })).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
@@ -718,7 +718,7 @@ describe("App desktop smoke", () => {
     apiMocks.fetchExecution.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "View execution" }));
     await waitFor(() => expect(apiMocks.fetchExecution).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Execution Detail")).toBeInTheDocument();
+    expect(await screen.findByText("Execution Detail", {}, { timeout: LAZY_SURFACE_TIMEOUT_MS })).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
@@ -726,7 +726,7 @@ describe("App desktop smoke", () => {
     apiMocks.fetchArtifact.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "View artifact" }));
     await waitFor(() => expect(apiMocks.fetchArtifact).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Artifact Detail")).toBeInTheDocument();
+    expect(await screen.findByText("Artifact Detail", {}, { timeout: LAZY_SURFACE_TIMEOUT_MS })).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
@@ -783,7 +783,7 @@ describe("App desktop smoke", () => {
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
-    expect(screen.getByText("Control surface")).toBeInTheDocument();
+    expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.getAllByText(/Asset Forge/i).length).toBeGreaterThan(0);
     expect(screen.queryByText("Home start here")).toBeNull();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
@@ -816,7 +816,7 @@ describe("App desktop smoke", () => {
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
-    expect(screen.getByText("Control surface")).toBeInTheDocument();
+    expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     expect(screen.queryByText("Home start here")).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();

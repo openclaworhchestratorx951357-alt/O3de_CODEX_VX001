@@ -12,30 +12,55 @@ export function setPendingAppApiMocks(apiMocks: Record<string, Mock>) {
 }
 
 export function getDesktopNavButton(name: RegExp): HTMLButtonElement {
-  const navRail = screen.getByText("Control surface").closest("aside");
+  const navRailTitle = screen.queryByText("Control surface");
+  if (navRailTitle) {
+    const navRail = navRailTitle.closest("aside");
+    expect(navRail).not.toBeNull();
 
-  expect(navRail).not.toBeNull();
-
-  const navScope = within(navRail as HTMLElement);
-  const visibleButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
-  if (visibleButton) {
-    return visibleButton;
-  }
-
-  for (const button of navScope.getAllByRole("button").filter((candidate) => (
-    candidate.hasAttribute("aria-expanded")
-  ))) {
-    if (button.getAttribute("aria-expanded") === "false") {
-      fireEvent.click(button);
+    const navScope = within(navRail as HTMLElement);
+    const visibleButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+    if (visibleButton) {
+      return visibleButton;
     }
 
-    const expandedButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
-    if (expandedButton) {
-      return expandedButton;
+    for (const button of navScope.getAllByRole("button").filter((candidate) => (
+      candidate.hasAttribute("aria-expanded")
+    ))) {
+      if (button.getAttribute("aria-expanded") === "false") {
+        fireEvent.click(button);
+      }
+
+      const expandedButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+      if (expandedButton) {
+        return expandedButton;
+      }
+    }
+
+    return navScope.getByRole("button", { name }) as HTMLButtonElement;
+  }
+
+  const workspaceSections = screen.queryByLabelText(/workspace sections/i);
+  if (workspaceSections) {
+    const sectionScope = within(workspaceSections as HTMLElement);
+    const sectionButton = sectionScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+    if (sectionButton) {
+      return sectionButton;
     }
   }
 
-  return navScope.getByRole("button", { name }) as HTMLButtonElement;
+  const quickAccessInput = screen.queryByRole("combobox", { name: "Quick access app explorer" });
+  if (quickAccessInput) {
+    const matcherSource = name.source.replace(/[^a-z0-9]+/gi, " ").trim();
+    const query = matcherSource.split(/\s+/)[0] ?? "home";
+    fireEvent.focus(quickAccessInput);
+    fireEvent.change(quickAccessInput, { target: { value: query } });
+    const resultsList = screen.getByRole("listbox", { name: "Quick access results" });
+    const option = within(resultsList).getByRole("option", { name });
+    fireEvent.click(option);
+    return option as HTMLButtonElement;
+  }
+
+  return screen.getByRole("button", { name }) as HTMLButtonElement;
 }
 
 export function getLaunchpadButton(detail: string): HTMLButtonElement {

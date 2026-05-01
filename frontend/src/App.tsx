@@ -274,6 +274,10 @@ const WIRED_WORKSPACE_IDS = new Set<DesktopWorkspaceId>([
   "records",
 ]);
 
+const STANDALONE_COCKPIT_SHELL_IDS = new Set<DesktopWorkspaceId>(
+  [...WIRED_WORKSPACE_IDS].filter((workspaceId) => workspaceId !== "home"),
+);
+
 function resolveRegisteredWorkspaceId(
   candidateWorkspaceId: string | null | undefined,
 ): DesktopWorkspaceId {
@@ -9189,6 +9193,7 @@ export default function App() {
         workspaceSubtitle={activeWorkspaceMeta.subtitle}
         activeWorkspaceId={activeWorkspaceId}
         activeNavItemId={activeDesktopNavItemId}
+        hideWorkspaceTree={STANDALONE_COCKPIT_SHELL_IDS.has(activeWorkspaceId)}
         navSections={desktopNavSections}
         quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
         agentCallItems={agentsForDisplay.slice(0, 5).map((agent) => ({

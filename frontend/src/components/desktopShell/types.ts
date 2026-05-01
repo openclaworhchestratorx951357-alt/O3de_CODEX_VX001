@@ -41,6 +41,7 @@ export type DesktopShellProps = {
   workspaceSubtitle: string;
   activeWorkspaceId: string;
   activeNavItemId?: string;
+  hideWorkspaceTree?: boolean;
   navSections: readonly DesktopShellNavSection[];
   quickStats?: readonly DesktopShellQuickStat[];
   utilityLabel?: string | null;
