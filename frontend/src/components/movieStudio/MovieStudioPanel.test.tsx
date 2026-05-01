@@ -25,6 +25,10 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByText((content) => content.includes("Freshness:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("Consecutive failures:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Recent checks:"))).toBeInTheDocument();
+    const liveRegions = document.querySelectorAll('[aria-live="polite"]');
+    expect(liveRegions.length).toBeGreaterThanOrEqual(2);
+    expect(liveRegions[0]).toHaveTextContent(/Target:|Checking O3DE bridge/);
+    expect(liveRegions[1]).toHaveTextContent("Ready");
     expect(screen.getByText("Schema: movie_studio.handoff.v1")).toBeInTheDocument();
     expect(screen.getByText("Ripple Trim")).toBeInTheDocument();
     expect(screen.getAllByText("Scene 01 Wide").length).toBeGreaterThan(0);

@@ -615,7 +615,9 @@ export default function MovieStudioPanel() {
           <p style={o3deHealth === "healthy" ? s.o3deHealthGood : o3deHealth === "degraded" ? s.o3deHealthWarn : s.o3deHealthBad}>
             O3DE Health: {o3deHealth === "healthy" ? "Healthy" : o3deHealth === "degraded" ? "Degraded" : "Unavailable"}
           </p>
-          <p style={s.o3deStripText}>{o3deStatus}</p>
+          <p style={s.o3deStripText} aria-live="polite">
+            {o3deStatus}
+          </p>
           <p style={s.o3deStripMeta}>
             Last check: {o3deLastCheck} | Freshness: {o3deFreshness} | Consecutive failures: {o3deFailureCount}
           </p>
@@ -971,7 +973,9 @@ export default function MovieStudioPanel() {
                 >
                   Download .json
                 </button>
-                <span style={s.handoffStatus}>{handoffStatus}</span>
+                <span style={s.handoffStatus} aria-live="polite">
+                  {handoffStatus}
+                </span>
               </div>
               <textarea
                 aria-label="Handoff summary"
