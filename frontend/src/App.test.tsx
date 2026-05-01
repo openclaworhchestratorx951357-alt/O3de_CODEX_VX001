@@ -672,7 +672,7 @@ describe("App desktop smoke", () => {
     expect(promptEvidenceFromRecords).toHaveTextContent("Source surface: Records mission truth rail");
   });
 
-  it("opens Asset Forge as its own workspace and shows the Packet 01 studio shell", async () => {
+  it("opens Asset Forge as its own workspace and shows the editor cockpit shell", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
@@ -685,22 +685,23 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.queryByText("Create Game")).toBeNull();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
-    expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Generate, prepare, and stage O3DE-ready 3D assets.")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge generation workspace")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge candidate gallery")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge selected candidate inspector")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge Blender Prep panel")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge O3DE ingest review panel")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge evidence timeline")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge settings status panel")).toBeInTheDocument();
-    expect(within(forgePanel).getAllByText("Demo candidate - no real generation performed.")).toHaveLength(4);
-    expect(within(forgePanel).getByRole("button", { name: "Plan preview candidates (demo)" })).toBeDisabled();
-    expect(within(forgePanel).getByRole("button", { name: "Run Blender prep script (blocked)" })).toBeDisabled();
-    expect(within(forgePanel).getByRole("button", { name: "Stage into O3DE project (blocked)" })).toBeDisabled();
-
-    fireEvent.click(within(forgePanel).getByRole("button", { name: "Select Broken Keystone Span" }));
-    expect(within(forgePanel).getByText("Name: Broken Keystone Span")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge workflow stages")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge left tool and outliner area")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge center viewport area")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge right inspector area")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge bottom evidence prompt and log drawer")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Asset Forge Studio")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("3D Viewport")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Tool Shelf")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Asset Outliner")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Inspector")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("non-mutating / fail-closed / real placement not admitted")).toBeInTheDocument();
+    expect(
+      within(forgePanel).getByText(
+        "Demo viewport — no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("opens the full Asset Forge workspace from Create Game cockpit", async () => {
@@ -719,8 +720,9 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.queryByText("Create Game")).toBeNull();
-    expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge candidate gallery")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge left tool and outliner area")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge center viewport area")).toBeInTheDocument();
   });
 
   it("loads cockpit templates into Prompt Studio as prefilled mission drafts", async () => {

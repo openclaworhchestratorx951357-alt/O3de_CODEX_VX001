@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AIAssetForgePanel from "./AIAssetForgePanel";
@@ -11,21 +11,17 @@ vi.mock("../lib/api", () => ({
 }));
 
 describe("AIAssetForgePanel", () => {
-  it("renders Asset Forge inside DockableCockpitLayout and supports menu zone moves", () => {
+  it("renders Asset Forge as a Blender-style editor cockpit", () => {
     render(<AIAssetForgePanel />);
 
     expect(screen.getByLabelText("AI Asset Forge")).toBeInTheDocument();
-    expect(screen.getByTestId("dockable-layout-asset-forge")).toBeInTheDocument();
-    expect(screen.getByLabelText("Asset Forge studio header")).toBeInTheDocument();
-
-    const leftZone = screen.getByTestId("asset-forge-left-zone");
-    const pipelinePanel = within(leftZone).getByLabelText("Asset Forge guided pipeline panel");
-    expect(pipelinePanel).toBeInTheDocument();
-
-    fireEvent.click(within(pipelinePanel).getByText("Move"));
-    fireEvent.click(within(pipelinePanel).getByRole("button", { name: "Move Asset Forge guided pipeline panel to right" }));
-
-    const rightZone = screen.getByTestId("asset-forge-right-zone");
-    expect(within(rightZone).getByLabelText("Asset Forge guided pipeline panel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge workflow stages")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge left tool and outliner area")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge center viewport area")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge right inspector area")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge bottom evidence prompt and log drawer")).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge Studio")).toBeInTheDocument();
+    expect(screen.getByText("3D Viewport")).toBeInTheDocument();
   });
 });
