@@ -191,6 +191,13 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByText("Recent checks: none yet")).toBeInTheDocument();
   });
 
+  it("supports Shift+X shortcut for clearing O3DE log", async () => {
+    render(<MovieStudioPanel />);
+    fireEvent.keyDown(window, { key: "X", shiftKey: true });
+    await screen.findByText("Cleared O3DE log");
+    expect(screen.getByText("Recent checks: none yet")).toBeInTheDocument();
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
