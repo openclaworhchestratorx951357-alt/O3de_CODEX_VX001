@@ -44,7 +44,7 @@ type Axis = "x" | "y" | "z";
 type TransformGroup = "location" | "rotation" | "scale" | "dimensions";
 type PropertiesTab = "Transform" | "Object" | "Material" | "Proof" | "Safety";
 type BottomTab = string;
-type MaterialSubTab = "Surface" | "Wire" | "Volume" | "Halo";
+type MaterialSubTab = string;
 
 type EditorTool = {
   id: string;
@@ -168,6 +168,9 @@ const fallbackStatusStripTabs = [
   ["logs", "Logs", "read-only", "logs", "Blocked operations explain next unlock before any execution exists."],
   ["latest-artifacts", "Latest Artifacts", "read-only", "latest-artifacts", "Latest run/execution/artifact ids are read-only references."],
 ] as const;
+
+const fallbackPropertyTabs = ["Transform", "Object", "Material", "Proof", "Safety"] as const;
+const fallbackMaterialTabs = ["Surface", "Wire", "Volume", "Halo"] as const;
 
 const defaultTransformDraft: TransformDraft = {
   location: { x: "0", y: "0", z: "0" },
@@ -373,6 +376,20 @@ function getStatusStripTabs(model?: AssetForgeEditorModelRecord | null): StatusS
   });
 
   return tabs.length > 0 ? tabs : getStatusStripTabs();
+}
+
+function isPropertiesTab(tab: string): tab is PropertiesTab {
+  return fallbackPropertyTabs.some((fallbackTab) => fallbackTab === tab);
+}
+
+function getPropertyTabs(model?: AssetForgeEditorModelRecord | null): PropertiesTab[] {
+  const backendTabs = model?.properties?.sections?.filter(isPropertiesTab) ?? [];
+  return backendTabs.length > 0 ? backendTabs : [...fallbackPropertyTabs];
+}
+
+function getMaterialTabs(model?: AssetForgeEditorModelRecord | null): MaterialSubTab[] {
+  const backendTabs = model?.material_preview?.tabs?.filter((tab) => tab.trim().length > 0) ?? [];
+  return backendTabs.length > 0 ? backendTabs : [...fallbackMaterialTabs];
 }
 
 const toolSafetyDetails: Record<string, Pick<EditorTool, "description" | "blockedReason" | "nextUnlock" | "enabled" | "promptTemplateId">> = {
@@ -712,6 +729,8 @@ export default function AssetForgeBlenderCockpit({
   const editorMenuGroups = useMemo(() => getMenuGroups(editorModel), [editorModel]);
   const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
+  const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
+  const materialTabs = useMemo(() => getMaterialTabs(editorModel), [editorModel]);
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -747,9 +766,10 @@ export default function AssetForgeBlenderCockpit({
     ["dimensions", "Dimensions"],
   ] as const satisfies readonly [TransformGroup, string][];
   const axisList = ["x", "y", "z"] as const;
-  const propertyTabs = ["Transform", "Object", "Material", "Proof", "Safety"] as const;
   const viewportModes = editorModel?.viewport?.shading_modes ?? ["Solid", "Wireframe", "Material Preview", "O3DE Preview"];
   const selectedStatusStripTab = statusStripTabs.find((tab) => tab.label === selectedBottomTab);
+  const activePropertiesTab = propertyTabs.includes(selectedPropertiesTab) ? selectedPropertiesTab : (propertyTabs[0] ?? "Transform");
+  const activeMaterialSubTab = materialTabs.includes(selectedMaterialSubTab) ? selectedMaterialSubTab : (materialTabs[0] ?? "Surface");
 
   function resetTransformDraft() {
     setTransformDraft(defaultTransformDraft);
@@ -960,7 +980,7 @@ export default function AssetForgeBlenderCockpit({
     return (
       <>
         <div style={styles.materialSubTabs}>
-          {(["Surface", "Wire", "Volume", "Halo"] as const).map((tab) => (
+          {materialTabs.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -970,7 +990,7 @@ export default function AssetForgeBlenderCockpit({
               }}
               style={{
                 ...styles.materialSubTab,
-                ...(selectedMaterialSubTab === tab ? styles.selectedSubTab : {}),
+                ...(activeMaterialSubTab === tab ? styles.selectedSubTab : {}),
               }}
             >
               {tab}
@@ -978,7 +998,7 @@ export default function AssetForgeBlenderCockpit({
           ))}
         </div>
         {[
-          ["Preview", `${selectedMaterialSubTab} preview sphere/checker`],
+          ["Preview", `${activeMaterialSubTab} preview sphere/checker`],
           ["Diffuse", "material mutation blocked"],
           ["Specular", "material mutation blocked"],
           ["Shading", "read-only preview metadata"],
@@ -1061,11 +1081,11 @@ export default function AssetForgeBlenderCockpit({
     return (
       <>
         <div role="status" style={styles.statusNotice}>{statusMessage}</div>
-        {selectedPropertiesTab === "Transform" ? renderTransformTab() : null}
-        {selectedPropertiesTab === "Object" ? renderObjectTab() : null}
-        {selectedPropertiesTab === "Material" ? renderMaterialTab() : null}
-        {selectedPropertiesTab === "Proof" ? renderProofTab() : null}
-        {selectedPropertiesTab === "Safety" ? renderSafetyTab() : null}
+        {activePropertiesTab === "Transform" ? renderTransformTab() : null}
+        {activePropertiesTab === "Object" ? renderObjectTab() : null}
+        {activePropertiesTab === "Material" ? renderMaterialTab() : null}
+        {activePropertiesTab === "Proof" ? renderProofTab() : null}
+        {activePropertiesTab === "Safety" ? renderSafetyTab() : null}
       </>
     );
   }
@@ -1374,9 +1394,9 @@ export default function AssetForgeBlenderCockpit({
                   }}
                   style={{
                     ...styles.propertiesTabButton,
-                    ...(selectedPropertiesTab === tab ? styles.selectedPropertiesTabButton : {}),
+                    ...(activePropertiesTab === tab ? styles.selectedPropertiesTabButton : {}),
                   }}
-                  aria-pressed={selectedPropertiesTab === tab}
+                  aria-pressed={activePropertiesTab === tab}
                 >
                   {tab}
                 </button>
@@ -1386,7 +1406,7 @@ export default function AssetForgeBlenderCockpit({
               <div style={styles.previewSphere} />
             </div>
             <div style={styles.propertiesRows}>
-              {selectedPropertiesTab === "Transform" && propertyRows.length > 0 ? propertyRows.slice(0, 1).map((row) => (
+              {activePropertiesTab === "Transform" && propertyRows.length > 0 ? propertyRows.slice(0, 1).map((row) => (
                 <div key={`${row.label}-${row.value}`} style={styles.propertyRow}>
                   <span style={styles.propertyLabel}>{row.label}</span>
                   <span style={styles.propertyValue}>{row.value}</span>

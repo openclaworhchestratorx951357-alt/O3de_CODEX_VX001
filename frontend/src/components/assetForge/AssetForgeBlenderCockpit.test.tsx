@@ -217,6 +217,21 @@ function buildEditorModelWithBackendWorkflowStatus(): AssetForgeEditorModelRecor
   return model;
 }
 
+function buildEditorModelWithBackendPropertyTabs(): AssetForgeEditorModelRecord {
+  return {
+    ...buildEditorModelFixture(),
+    properties: {
+      ...buildEditorModelFixture().properties,
+      sections: ["Material", "Safety"],
+    },
+    material_preview: {
+      ...buildEditorModelFixture().material_preview,
+      tabs: ["Backend Surface", "Backend Wire"],
+      active_tab: "Backend Surface",
+    },
+  };
+}
+
 describe("AssetForgeBlenderCockpit", () => {
   it("renders strict Blender-like shell zones and fallback safety text", () => {
     render(<AssetForgeBlenderCockpit editorModelError="editor model backend unavailable" />);
@@ -498,5 +513,20 @@ describe("AssetForgeBlenderCockpit", () => {
 
     expect(within(bottomStrip).getByText(/Backend supplied status tab/i)).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(/Backend Status bottom strip selected/i);
+  });
+
+  it("renders properties and material tabs from the backend editor model", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithBackendPropertyTabs()} />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+
+    expect(within(properties).queryByRole("button", { name: "Transform" })).not.toBeInTheDocument();
+    expect(within(properties).getByRole("button", { name: "Material" })).toBeInTheDocument();
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Material" }));
+
+    expect(within(properties).getByRole("button", { name: "Backend Surface" })).toBeInTheDocument();
+    expect(within(properties).getByRole("button", { name: "Backend Wire" })).toBeInTheDocument();
+    expect(within(properties).queryByRole("button", { name: "Volume" })).not.toBeInTheDocument();
   });
 });
