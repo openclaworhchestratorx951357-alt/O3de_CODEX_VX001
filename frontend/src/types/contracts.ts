@@ -1478,6 +1478,55 @@ export interface AssetForgeO3DEReviewPacketRecord {
   source: string;
 }
 
+export interface AssetForgeO3DEAssignmentDesignRequest {
+  candidate_id: string;
+  candidate_label: string;
+  source_asset_relative_path: string;
+  provenance_metadata_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  selected_platform: string;
+  operator_decision_reference: AssetForgeO3DEReviewOperatorDecision;
+  review_packet_reference: string;
+  stage_write_evidence_reference: string;
+  stage_write_readback_reference: string;
+  stage_write_readback_status: "not_run" | "blocked" | "failed" | "succeeded";
+}
+
+export interface AssetForgeO3DEAssignmentDesignRecord {
+  capability_name: string;
+  maturity: "plan-only";
+  assignment_design_status: "blocked" | "ready-for-approval";
+  candidate_id: string;
+  candidate_label: string;
+  source_asset_relative_path: string;
+  provenance_metadata_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  selected_platform: string;
+  review_packet_reference: string;
+  review_packet_status: string;
+  operator_decision_reference: AssetForgeO3DEReviewOperatorDecision;
+  stage_write_evidence_reference: string;
+  stage_write_readback_reference: string;
+  stage_write_readback_status: "not_run" | "blocked" | "failed" | "succeeded";
+  stage_write_evidence_ready: boolean;
+  stage_write_readback_ready: boolean;
+  assignment_execution_status: "blocked";
+  assignment_write_admitted: boolean;
+  read_only: boolean;
+  mutation_occurred: boolean;
+  assignment_design_policy: Record<string, unknown>;
+  requirement_checklist: string[];
+  fail_closed_reasons: string[];
+  blocked_reason: string | null;
+  warnings: string[];
+  next_safest_step: string;
+  source: string;
+}
+
 export interface AssetForgeO3DEPlacementPlanRequest {
   candidate_id: string;
   candidate_label: string;

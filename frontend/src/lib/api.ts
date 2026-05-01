@@ -28,6 +28,8 @@ import type {
   AssetForgeO3DEReadbackRecord,
   AssetForgeO3DEReviewPacketRequest,
   AssetForgeO3DEReviewPacketRecord,
+  AssetForgeO3DEAssignmentDesignRequest,
+  AssetForgeO3DEAssignmentDesignRecord,
   AssetForgeO3DEPlacementPlanRequest,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementEvidenceRequest,
@@ -1090,6 +1092,16 @@ export async function createAssetForgeO3DEOperatorReviewPacket(
     "/asset-forge/o3de/review-packet",
     request,
     "Asset Forge O3DE operator review packet",
+  );
+}
+
+export async function createAssetForgeO3DEAssignmentDesign(
+  request: AssetForgeO3DEAssignmentDesignRequest,
+): Promise<AssetForgeO3DEAssignmentDesignRecord> {
+  return postJson<AssetForgeO3DEAssignmentDesignRequest, AssetForgeO3DEAssignmentDesignRecord>(
+    "/asset-forge/o3de/assignment-design",
+    request,
+    "Asset Forge O3DE assignment design",
   );
 }
 

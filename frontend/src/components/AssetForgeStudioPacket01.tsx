@@ -4,6 +4,7 @@ import { assetForgeStudioDemoState } from "../fixtures/assetForgeStudioDemoState
 import {
   createAssetForgeO3DEStagePlan,
   createAssetForgeO3DEOperatorReviewPacket,
+  createAssetForgeO3DEAssignmentDesign,
   createAssetForgeO3DEPlacementPlan,
   executeAssetForgeO3DEPlacementProof,
   readAssetForgeO3DEPlacementEvidence,
@@ -30,6 +31,8 @@ import type {
   AssetForgeO3DEReadbackRecord,
   AssetForgeO3DEReviewPacketRecord,
   AssetForgeO3DEReviewPacketRequest,
+  AssetForgeO3DEAssignmentDesignRecord,
+  AssetForgeO3DEAssignmentDesignRequest,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementEvidenceRecord,
   AssetForgeO3DEPlacementHarnessRecord,
@@ -452,6 +455,34 @@ const REVIEW_PACKET_OPERATOR_DECISION_OPTIONS: ReadonlyArray<{
   { value: "reject", label: "Reject candidate" },
 ];
 
+function assignmentDesignStatusToTruth(
+  status: AssetForgeO3DEAssignmentDesignRecord["assignment_design_status"],
+): AssetForgeTruthState {
+  if (status === "ready-for-approval") {
+    return "plan-only";
+  }
+  return "blocked";
+}
+
+function assignmentDesignStatusErrorMessage(
+  status: AssetForgeO3DEAssignmentDesignRecord["assignment_design_status"],
+): string | null {
+  if (status === "blocked") {
+    return "Assignment design remains blocked. Resolve fail-closed reasons and rerun.";
+  }
+  return null;
+}
+
+const ASSIGNMENT_DESIGN_STAGE_READBACK_STATUS_OPTIONS: ReadonlyArray<{
+  value: AssetForgeO3DEAssignmentDesignRequest["stage_write_readback_status"];
+  label: string;
+}> = [
+  { value: "succeeded", label: "Succeeded" },
+  { value: "not_run", label: "Not run" },
+  { value: "blocked", label: "Blocked" },
+  { value: "failed", label: "Failed" },
+];
+
 function evidenceItemStatusToTruth(status: string | null | undefined): AssetForgeTruthState {
   const normalized = (status ?? "").trim().toLowerCase();
   if (normalized === "succeeded") {
@@ -792,6 +823,24 @@ export default function AssetForgeStudioPacket01({
   const [reviewPacketReport, setReviewPacketReport] = useState<AssetForgeO3DEReviewPacketRecord | null>(null);
   const [reviewPacketError, setReviewPacketError] = useState<string | null>(null);
   const [reviewPacketBusy, setReviewPacketBusy] = useState(false);
+  const [assignmentDesignReviewPacketReference, setAssignmentDesignReviewPacketReference] = useState(
+    "review-packet://candidate-a/latest",
+  );
+  const [assignmentDesignOperatorDecisionReference, setAssignmentDesignOperatorDecisionReference] =
+    useState<AssetForgeO3DEAssignmentDesignRequest["operator_decision_reference"]>("approve_assignment_design_only");
+  const [assignmentDesignStageWriteEvidenceReference, setAssignmentDesignStageWriteEvidenceReference] = useState(
+    "stage-write://candidate-a/latest",
+  );
+  const [assignmentDesignStageWriteReadbackReference, setAssignmentDesignStageWriteReadbackReference] = useState(
+    "stage-readback://candidate-a/latest",
+  );
+  const [assignmentDesignStageWriteReadbackStatus, setAssignmentDesignStageWriteReadbackStatus] =
+    useState<AssetForgeO3DEAssignmentDesignRequest["stage_write_readback_status"]>("succeeded");
+  const [assignmentDesignReport, setAssignmentDesignReport] = useState<AssetForgeO3DEAssignmentDesignRecord | null>(
+    null,
+  );
+  const [assignmentDesignError, setAssignmentDesignError] = useState<string | null>(null);
+  const [assignmentDesignBusy, setAssignmentDesignBusy] = useState(false);
   const [placementLevelPath, setPlacementLevelPath] = useState("Levels/BridgeLevel01/BridgeLevel01.prefab");
   const [placementEntityName, setPlacementEntityName] = useState("AssetForgeCandidateA");
   const [placementComponent, setPlacementComponent] = useState("Mesh");
@@ -924,6 +973,9 @@ export default function AssetForgeStudioPacket01({
     : "plan-only";
   const reviewPacketTruth = reviewPacketReport
     ? reviewPacketStatusToTruth(reviewPacketReport.review_status)
+    : "plan-only";
+  const assignmentDesignTruth = assignmentDesignReport
+    ? assignmentDesignStatusToTruth(assignmentDesignReport.assignment_design_status)
     : "plan-only";
   const placementPlanTruth = placementPlanReport
     ? stagePlanStatusToTruth(placementPlanReport.plan_status)
@@ -1262,6 +1314,8 @@ export default function AssetForgeStudioPacket01({
       setReadbackError(null);
       setReviewPacketReport(null);
       setReviewPacketError(null);
+      setAssignmentDesignReport(null);
+      setAssignmentDesignError(null);
       if (report.write_status !== "succeeded") {
         setStageWriteError(
           report.write_status === "approval-required"
@@ -1304,6 +1358,8 @@ export default function AssetForgeStudioPacket01({
     setReadbackError(null);
     setReviewPacketReport(null);
     setReviewPacketError(null);
+    setAssignmentDesignReport(null);
+    setAssignmentDesignError(null);
     try {
       const report = await readAssetForgeO3DEIngestEvidence({
         candidate_id: selectedCandidate.id,
@@ -1355,6 +1411,8 @@ export default function AssetForgeStudioPacket01({
 
     setReviewPacketBusy(true);
     setReviewPacketError(null);
+    setAssignmentDesignReport(null);
+    setAssignmentDesignError(null);
     try {
       const report = await createAssetForgeO3DEOperatorReviewPacket({
         candidate_id: selectedCandidate.id,
@@ -1372,6 +1430,94 @@ export default function AssetForgeStudioPacket01({
       setReviewPacketError(message);
     } finally {
       setReviewPacketBusy(false);
+    }
+  }
+
+  async function createAssignmentDesignPlan() {
+    if (packet01DemoLock) {
+      setAssignmentDesignReport(null);
+      setAssignmentDesignError("Packet 01 demo shell: assignment design runtime calls are blocked.");
+      return;
+    }
+    if (!selectedCandidate) {
+      setAssignmentDesignError("Select a candidate before creating an assignment design packet.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!readbackSourceRelativePath.trim()) {
+      setAssignmentDesignError("Enter a staged source relative path before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!reviewPacketProvenanceRelativePath.trim()) {
+      setAssignmentDesignError("Enter a provenance metadata relative path before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!placementLevelPath.trim()) {
+      setAssignmentDesignError("Enter a target level path before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!placementEntityName.trim()) {
+      setAssignmentDesignError("Enter a target entity name before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!placementComponent.trim()) {
+      setAssignmentDesignError("Enter a target component before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!assignmentDesignReviewPacketReference.trim()) {
+      setAssignmentDesignError("Enter a review packet reference before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!assignmentDesignStageWriteEvidenceReference.trim()) {
+      setAssignmentDesignError("Enter a stage-write evidence reference before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!assignmentDesignStageWriteReadbackReference.trim()) {
+      setAssignmentDesignError("Enter a stage-write readback reference before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+    if (!readbackPlatform.trim()) {
+      setAssignmentDesignError("Enter a target platform (for example: pc) before creating assignment design.");
+      setAssignmentDesignReport(null);
+      return;
+    }
+
+    setAssignmentDesignBusy(true);
+    setAssignmentDesignError(null);
+    try {
+      const report = await createAssetForgeO3DEAssignmentDesign({
+        candidate_id: selectedCandidate.id,
+        candidate_label: selectedCandidate.name,
+        source_asset_relative_path: readbackSourceRelativePath.trim(),
+        provenance_metadata_relative_path: reviewPacketProvenanceRelativePath.trim(),
+        target_level_relative_path: placementLevelPath.trim(),
+        target_entity_name: placementEntityName.trim(),
+        target_component: placementComponent.trim(),
+        selected_platform: readbackPlatform.trim(),
+        operator_decision_reference: assignmentDesignOperatorDecisionReference,
+        review_packet_reference: assignmentDesignReviewPacketReference.trim(),
+        stage_write_evidence_reference: assignmentDesignStageWriteEvidenceReference.trim(),
+        stage_write_readback_reference: assignmentDesignStageWriteReadbackReference.trim(),
+        stage_write_readback_status: assignmentDesignStageWriteReadbackStatus,
+      });
+      setAssignmentDesignReport(report);
+      setAssignmentDesignError(
+        assignmentDesignStatusErrorMessage(report.assignment_design_status),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown assignment design failure.";
+      setAssignmentDesignReport(null);
+      setAssignmentDesignError(message);
+    } finally {
+      setAssignmentDesignBusy(false);
     }
   }
 
@@ -2602,6 +2748,124 @@ export default function AssetForgeStudioPacket01({
                   <ul style={s.list}>
                     {reviewPacketReport.warnings.map((warning) => (
                       <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+        <div style={s.inspectCard}>
+          <div style={s.panelHeader}>
+            <h4 style={s.subheading}>Assignment design packet (Packet 10.5)</h4>
+            <TruthBadge truth={assignmentDesignTruth} />
+          </div>
+          <p style={s.panelDetail}>
+            Packet 10.5 creates a plan-only assignment design contract and keeps assignment execution blocked.
+          </p>
+          <label style={s.labelBlock}>
+            Assignment design operator decision reference
+            <select
+              value={assignmentDesignOperatorDecisionReference}
+              onChange={(event) => {
+                setAssignmentDesignOperatorDecisionReference(
+                  event.target.value as AssetForgeO3DEAssignmentDesignRequest["operator_decision_reference"],
+                );
+              }}
+              style={s.input}
+            >
+              {REVIEW_PACKET_OPERATOR_DECISION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label style={s.labelBlock}>
+            Assignment design review packet reference
+            <input
+              type="text"
+              value={assignmentDesignReviewPacketReference}
+              onChange={(event) => setAssignmentDesignReviewPacketReference(event.target.value)}
+              placeholder="review-packet://candidate-a/latest"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Assignment design stage-write evidence reference
+            <input
+              type="text"
+              value={assignmentDesignStageWriteEvidenceReference}
+              onChange={(event) => setAssignmentDesignStageWriteEvidenceReference(event.target.value)}
+              placeholder="stage-write://candidate-a/latest"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Assignment design stage-write readback reference
+            <input
+              type="text"
+              value={assignmentDesignStageWriteReadbackReference}
+              onChange={(event) => setAssignmentDesignStageWriteReadbackReference(event.target.value)}
+              placeholder="stage-readback://candidate-a/latest"
+              style={s.input}
+            />
+          </label>
+          <label style={s.labelBlock}>
+            Assignment design stage-write readback status
+            <select
+              value={assignmentDesignStageWriteReadbackStatus}
+              onChange={(event) => {
+                setAssignmentDesignStageWriteReadbackStatus(
+                  event.target.value as AssetForgeO3DEAssignmentDesignRequest["stage_write_readback_status"],
+                );
+              }}
+              style={s.input}
+            >
+              {ASSIGNMENT_DESIGN_STAGE_READBACK_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p style={s.panelDetail}>
+            Uses current target fields: `{placementLevelPath}`, `{placementEntityName}`, `{placementComponent}`.
+          </p>
+          <div style={s.actionWrap}>
+            <button
+              type="button"
+              onClick={createAssignmentDesignPlan}
+              disabled={assignmentDesignBusy}
+              style={s.secondaryButton}
+            >
+              {assignmentDesignBusy ? "Planning..." : "Create assignment design packet (Packet 10.5)"}
+            </button>
+          </div>
+          {assignmentDesignError ? (
+            <p style={s.errorText}>{assignmentDesignError}</p>
+          ) : null}
+          {assignmentDesignReport ? (
+            <>
+              <ul style={s.list}>
+                <li>Assignment design status: {assignmentDesignReport.assignment_design_status}</li>
+                <li>Review packet status: {assignmentDesignReport.review_packet_status}</li>
+                <li>Operator decision reference: {assignmentDesignReport.operator_decision_reference}</li>
+                <li>Stage-write evidence ready: {assignmentDesignReport.stage_write_evidence_ready ? "yes" : "no"}</li>
+                <li>Stage-write readback ready: {assignmentDesignReport.stage_write_readback_ready ? "yes" : "no"}</li>
+                <li>Assignment execution status: {assignmentDesignReport.assignment_execution_status}</li>
+                <li>Assignment writes admitted: {assignmentDesignReport.assignment_write_admitted ? "yes" : "no"}</li>
+                <li>Read-only: {assignmentDesignReport.read_only ? "yes" : "no"}</li>
+                <li>Mutation occurred: {assignmentDesignReport.mutation_occurred ? "yes" : "no"}</li>
+                <li>Blocked reason: {assignmentDesignReport.blocked_reason ?? "none"}</li>
+                <li>Next safest step: {assignmentDesignReport.next_safest_step}</li>
+              </ul>
+              {assignmentDesignReport.fail_closed_reasons.length ? (
+                <>
+                  <h4 style={s.subheading}>Assignment design fail-closed reasons</h4>
+                  <ul style={s.list}>
+                    {assignmentDesignReport.fail_closed_reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
                     ))}
                   </ul>
                 </>

@@ -71,6 +71,7 @@ const apiMocks = vi.hoisted(() => ({
   getAssetForgeO3DEPlacementLiveProofEvidenceIndex: vi.fn(),
   readAssetForgeO3DEIngestEvidence: vi.fn(),
   createAssetForgeO3DEOperatorReviewPacket: vi.fn(),
+  createAssetForgeO3DEAssignmentDesign: vi.fn(),
   executeAssetForgeO3DEStageWrite: vi.fn(),
   inspectAssetForgeBlenderArtifact: vi.fn(),
   fetchRun: vi.fn(),

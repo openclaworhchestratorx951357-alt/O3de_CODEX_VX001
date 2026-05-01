@@ -6,6 +6,7 @@ import type {
   AssetForgeBlenderInspectReport,
   AssetForgeO3DEReadbackRecord,
   AssetForgeO3DEReviewPacketRecord,
+  AssetForgeO3DEAssignmentDesignRecord,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementProofRecord,
   AssetForgeBlenderStatusRecord,
@@ -28,6 +29,7 @@ const apiMocks = vi.hoisted(() => ({
   getAssetForgeO3DEPlacementLiveProofEvidenceIndex: vi.fn(),
   readAssetForgeO3DEIngestEvidence: vi.fn(),
   createAssetForgeO3DEOperatorReviewPacket: vi.fn(),
+  createAssetForgeO3DEAssignmentDesign: vi.fn(),
   executeAssetForgeO3DEStageWrite: vi.fn(),
   inspectAssetForgeBlenderArtifact: vi.fn(),
   fetchAssetForgeTask: vi.fn(),
@@ -47,6 +49,7 @@ vi.mock("../lib/api", () => ({
   getAssetForgeO3DEPlacementLiveProofEvidenceIndex: apiMocks.getAssetForgeO3DEPlacementLiveProofEvidenceIndex,
   readAssetForgeO3DEIngestEvidence: apiMocks.readAssetForgeO3DEIngestEvidence,
   createAssetForgeO3DEOperatorReviewPacket: apiMocks.createAssetForgeO3DEOperatorReviewPacket,
+  createAssetForgeO3DEAssignmentDesign: apiMocks.createAssetForgeO3DEAssignmentDesign,
   executeAssetForgeO3DEStageWrite: apiMocks.executeAssetForgeO3DEStageWrite,
   inspectAssetForgeBlenderArtifact: apiMocks.inspectAssetForgeBlenderArtifact,
   fetchAssetForgeTask: apiMocks.fetchAssetForgeTask,
@@ -314,6 +317,54 @@ function makeReviewPacketReport(
     },
     warnings: ["Packet remains read-only and non-authorizing."],
     source: "asset-forge-o3de-operator-review-packet",
+    ...overrides,
+  };
+}
+
+function makeAssignmentDesignReport(
+  overrides: Partial<AssetForgeO3DEAssignmentDesignRecord> = {},
+): AssetForgeO3DEAssignmentDesignRecord {
+  return {
+    capability_name: "asset_forge.o3de.assignment.design",
+    maturity: "plan-only",
+    assignment_design_status: "ready-for-approval",
+    candidate_id: "candidate-a",
+    candidate_label: "Weathered Ivy Arch",
+    source_asset_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+    provenance_metadata_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+    target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    target_entity_name: "AssetForgeCandidateA",
+    target_component: "Mesh",
+    selected_platform: "pc",
+    review_packet_reference: "review-packet://candidate-a/latest",
+    review_packet_status: "operator_approved_assignment_design",
+    operator_decision_reference: "approve_assignment_design_only",
+    stage_write_evidence_reference: "stage-write://candidate-a/latest",
+    stage_write_readback_reference: "stage-readback://candidate-a/latest",
+    stage_write_readback_status: "succeeded",
+    stage_write_evidence_ready: true,
+    stage_write_readback_ready: true,
+    assignment_execution_status: "blocked",
+    assignment_write_admitted: false,
+    read_only: true,
+    mutation_occurred: false,
+    assignment_design_policy: {
+      allowed_stage_prefix: "Assets/Generated/asset_forge/",
+      allowed_level_prefix: "Levels/",
+      assignment_execution_admitted: false,
+      placement_execution_admitted: false,
+    },
+    requirement_checklist: [
+      "Review packet remains read-only and non-authorizing.",
+    ],
+    fail_closed_reasons: [],
+    blocked_reason: null,
+    warnings: [
+      "Assignment design corridor is plan-only and non-authorizing in this packet.",
+    ],
+    next_safest_step:
+      "Keep plan-only posture and proceed to a long-hold checkpoint packet before any execution-admission discussion.",
+    source: "asset-forge-o3de-assignment-design",
     ...overrides,
   };
 }
@@ -1199,6 +1250,76 @@ describe("AssetForgeStudioPacket01", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/Blocked reason: Provenance metadata is missing or invalid/i)).toBeInTheDocument();
+  });
+
+  it("creates Packet 10.5 assignment design packet and renders plan-only readiness details", async () => {
+    apiMocks.createAssetForgeO3DEAssignmentDesign.mockResolvedValueOnce(
+      makeAssignmentDesignReport(),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.change(screen.getByLabelText("Assignment design review packet reference"), {
+      target: { value: "review-packet://candidate-a/v2" },
+    });
+    fireEvent.change(screen.getByLabelText("Assignment design stage-write evidence reference"), {
+      target: { value: "stage-write://candidate-a/v2" },
+    });
+    fireEvent.change(screen.getByLabelText("Assignment design stage-write readback reference"), {
+      target: { value: "stage-readback://candidate-a/v2" },
+    });
+    fireEvent.change(screen.getByLabelText("Assignment design stage-write readback status"), {
+      target: { value: "succeeded" },
+    });
+    fireEvent.change(screen.getByLabelText("Assignment design operator decision reference"), {
+      target: { value: "approve_assignment_design_only" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create assignment design packet (Packet 10.5)" }));
+
+    await waitFor(() => {
+      expect(apiMocks.createAssetForgeO3DEAssignmentDesign).toHaveBeenCalledWith({
+        candidate_id: "candidate-a",
+        candidate_label: "Weathered Ivy Arch",
+        source_asset_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+        provenance_metadata_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+        target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        target_entity_name: "AssetForgeCandidateA",
+        target_component: "Mesh",
+        selected_platform: "pc",
+        operator_decision_reference: "approve_assignment_design_only",
+        review_packet_reference: "review-packet://candidate-a/v2",
+        stage_write_evidence_reference: "stage-write://candidate-a/v2",
+        stage_write_readback_reference: "stage-readback://candidate-a/v2",
+        stage_write_readback_status: "succeeded",
+      });
+    });
+
+    expect(await screen.findByText(/Assignment design status: ready-for-approval/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review packet status: operator_approved_assignment_design/i)).toBeInTheDocument();
+    expect(screen.getByText(/Assignment execution status: blocked/i)).toBeInTheDocument();
+    expect(screen.getByText(/Assignment writes admitted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Read-only: yes/i)).toBeInTheDocument();
+  });
+
+  it("surfaces assignment-design blocked status with fail-closed reasons", async () => {
+    apiMocks.createAssetForgeO3DEAssignmentDesign.mockResolvedValueOnce(
+      makeAssignmentDesignReport({
+        assignment_design_status: "blocked",
+        fail_closed_reasons: ["review_packet_not_assignment_design_approved"],
+        blocked_reason: "Assignment design remains blocked until review, readback, and path gates succeed.",
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create assignment design packet (Packet 10.5)" }));
+
+    expect(
+      await screen.findByText(/Assignment design remains blocked\. Resolve fail-closed reasons and rerun\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Assignment design fail-closed reasons/i)).toBeInTheDocument();
+    expect(screen.getByText(/review_packet_not_assignment_design_approved/i)).toBeInTheDocument();
+    expect(screen.getByText(/Blocked reason: Assignment design remains blocked/i)).toBeInTheDocument();
   });
 
   it("creates Packet 10 placement plan and renders plan-only placement details", async () => {
