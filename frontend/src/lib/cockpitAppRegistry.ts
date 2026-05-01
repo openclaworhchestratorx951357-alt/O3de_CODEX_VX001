@@ -1,18 +1,14 @@
-export type CockpitWorkspaceId =
-  | "create-game"
-  | "create-movie"
-  | "load-project"
-  | "asset-forge";
+import type {
+  CockpitAppRegistrationRecord,
+  CockpitAppRegistryRecord,
+  CockpitShellMode as ContractCockpitShellMode,
+  CockpitTone as ContractCockpitTone,
+  CockpitWorkspaceId as ContractCockpitWorkspaceId,
+} from "../types/contracts";
 
-export type CockpitShellMode =
-  | "dockable-cockpit"
-  | "full-screen-editor";
-
-export type CockpitAppTone =
-  | "neutral"
-  | "info"
-  | "success"
-  | "warning";
+export type CockpitWorkspaceId = ContractCockpitWorkspaceId;
+export type CockpitShellMode = ContractCockpitShellMode;
+export type CockpitAppTone = ContractCockpitTone;
 
 export type CockpitAppRegistration = {
   workspaceId: CockpitWorkspaceId;
@@ -148,4 +144,74 @@ export function isCockpitWorkspaceId(value: unknown): value is CockpitWorkspaceI
 
 export function getCockpitAppRegistration(workspaceId: CockpitWorkspaceId): CockpitAppRegistration {
   return cockpitAppRegistryByWorkspaceId[workspaceId];
+}
+
+export function resolveCockpitAppRegistry(
+  record?: CockpitAppRegistryRecord | null,
+): readonly CockpitAppRegistration[] {
+  if (!record?.registrations?.length) {
+    return cockpitAppRegistry;
+  }
+
+  const normalizedByWorkspaceId = new Map<CockpitWorkspaceId, CockpitAppRegistration>();
+  for (const registration of record.registrations) {
+    if (!isCockpitWorkspaceId(registration.workspace_id)) {
+      continue;
+    }
+
+    normalizedByWorkspaceId.set(
+      registration.workspace_id,
+      mapCockpitAppRegistrationFromRecord(registration),
+    );
+  }
+
+  if (normalizedByWorkspaceId.size === 0) {
+    return cockpitAppRegistry;
+  }
+
+  return cockpitWorkspaceIds.map((workspaceId) => (
+    normalizedByWorkspaceId.get(workspaceId) ?? cockpitAppRegistryByWorkspaceId[workspaceId]
+  ));
+}
+
+export function buildCockpitAppRegistryByWorkspaceId(
+  registrations: readonly CockpitAppRegistration[],
+): Record<CockpitWorkspaceId, CockpitAppRegistration> {
+  const registrationsByWorkspaceId = new Map<CockpitWorkspaceId, CockpitAppRegistration>(
+    registrations.map((registration) => [registration.workspaceId, registration]),
+  );
+
+  return Object.fromEntries(
+    cockpitWorkspaceIds.map((workspaceId) => [
+      workspaceId,
+      registrationsByWorkspaceId.get(workspaceId) ?? cockpitAppRegistryByWorkspaceId[workspaceId],
+    ]),
+  ) as Record<CockpitWorkspaceId, CockpitAppRegistration>;
+}
+
+function mapCockpitAppRegistrationFromRecord(
+  registration: CockpitAppRegistrationRecord,
+): CockpitAppRegistration {
+  return {
+    workspaceId: registration.workspace_id,
+    navLabel: registration.nav_label,
+    navSubtitle: registration.nav_subtitle,
+    workspaceTitle: registration.workspace_title,
+    workspaceSubtitle: registration.workspace_subtitle,
+    launchTitle: registration.launch_title,
+    detail: registration.detail,
+    truthState: registration.truth_state,
+    blocked: registration.blocked,
+    nextSafeAction: registration.next_safe_action,
+    actionLabel: registration.action_label,
+    shellMode: registration.shell_mode,
+    tone: registration.tone,
+    helpTooltip: registration.help_tooltip,
+    executionAdmitted: false,
+    mutationAdmitted: false,
+    providerGenerationAdmitted: false,
+    blenderExecutionAdmitted: false,
+    assetProcessorExecutionAdmitted: false,
+    placementWriteAdmitted: false,
+  };
 }

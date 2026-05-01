@@ -8,6 +8,7 @@ import {
 } from "../lib/cockpitAppRegistry";
 
 type HomeCockpitLaunchPanelProps = {
+  registry?: readonly CockpitAppRegistration[];
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
   onOpenLoadProject?: () => void;
@@ -18,6 +19,7 @@ type HomeCockpitLaunchPanelProps = {
 };
 
 export default function HomeCockpitLaunchPanel({
+  registry,
   onOpenCreateGame,
   onOpenCreateMovie,
   onOpenLoadProject,
@@ -26,6 +28,7 @@ export default function HomeCockpitLaunchPanel({
   onOpenRuntimeOverview,
   onOpenRecords,
 }: HomeCockpitLaunchPanelProps) {
+  const launchCards = registry ?? cockpitAppRegistry;
   const cardActions: Record<CockpitWorkspaceId, (() => void) | undefined> = {
     "create-game": onOpenCreateGame,
     "create-movie": onOpenCreateMovie,
@@ -43,7 +46,7 @@ export default function HomeCockpitLaunchPanel({
       </header>
 
       <div style={styles.grid}>
-        {cockpitAppRegistry.map((card) => (
+        {launchCards.map((card) => (
           <article key={card.workspaceId} data-testid={`cockpit-launch-${card.workspaceId}`} style={styles.card}>
             <div style={styles.cardHeader}>
               <strong>{card.launchTitle}</strong>

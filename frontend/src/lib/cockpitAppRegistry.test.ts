@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildCockpitAppRegistryByWorkspaceId,
   cockpitAppRegistry,
   cockpitWorkspaceIds,
   getCockpitAppRegistration,
   isCockpitWorkspaceId,
+  resolveCockpitAppRegistry,
 } from "./cockpitAppRegistry";
 
 describe("cockpitAppRegistry", () => {
@@ -45,5 +47,59 @@ describe("cockpitAppRegistry", () => {
     expect(isCockpitWorkspaceId("asset-forge")).toBe(true);
     expect(isCockpitWorkspaceId("prompt")).toBe(false);
     expect(isCockpitWorkspaceId(null)).toBe(false);
+  });
+
+  it("normalizes backend registry records and keeps fallback cards for missing entries", () => {
+    const resolved = resolveCockpitAppRegistry({
+      source: "cockpit-app-registry",
+      inspection_surface: "read_only",
+      registry_status: "available",
+      execution_admitted: false,
+      mutation_admitted: false,
+      provider_generation_admitted: false,
+      blender_execution_admitted: false,
+      asset_processor_execution_admitted: false,
+      placement_write_admitted: false,
+      registrations: [
+        {
+          workspace_id: "asset-forge",
+          nav_label: "Forge",
+          nav_subtitle: "Backend subtitle",
+          workspace_title: "Forge Title",
+          workspace_subtitle: "Backend workspace subtitle",
+          launch_title: "Forge Launch",
+          detail: "Backend detail",
+          truth_state: "read-only",
+          blocked: "Blocked in backend",
+          next_safe_action: "Backend next step",
+          action_label: "Open Forge",
+          shell_mode: "full-screen-editor",
+          tone: "info",
+          help_tooltip: "Backend tooltip",
+          execution_admitted: false,
+          mutation_admitted: false,
+          provider_generation_admitted: false,
+          blender_execution_admitted: false,
+          asset_processor_execution_admitted: false,
+          placement_write_admitted: false,
+        },
+      ],
+      blocked_capabilities: [],
+      next_safe_action: "Open a cockpit safely.",
+    });
+
+    expect(resolved).toHaveLength(4);
+    expect(resolved[3]?.workspaceId).toBe("asset-forge");
+    expect(resolved[3]?.navLabel).toBe("Forge");
+    expect(resolved[0]?.workspaceId).toBe("create-game");
+    expect(resolved[0]?.navLabel).toBe("Create Game");
+    expect(resolved[0]?.executionAdmitted).toBe(false);
+  });
+
+  it("builds workspace lookup from a resolved registry", () => {
+    const byWorkspaceId = buildCockpitAppRegistryByWorkspaceId(cockpitAppRegistry);
+
+    expect(byWorkspaceId["create-game"].navLabel).toBe("Create Game");
+    expect(byWorkspaceId["asset-forge"].shellMode).toBe("full-screen-editor");
   });
 });

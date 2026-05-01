@@ -40,6 +40,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchCodexControlNotifications: vi.fn(),
   fetchCodexControlStatus: vi.fn(),
   fetchControlPlaneSummary: vi.fn(),
+  fetchCockpitAppRegistry: vi.fn(),
   fetchExecutor: vi.fn(),
   fetchExecutors: vi.fn(),
   fetchExecution: vi.fn(),
@@ -456,6 +457,52 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
   }, 12000);
+
+  it("consumes backend cockpit registry labels with fallback safety", async () => {
+    apiMocks.fetchCockpitAppRegistry.mockResolvedValueOnce({
+      source: "cockpit-app-registry",
+      inspection_surface: "read_only",
+      registry_status: "available",
+      execution_admitted: false,
+      mutation_admitted: false,
+      provider_generation_admitted: false,
+      blender_execution_admitted: false,
+      asset_processor_execution_admitted: false,
+      placement_write_admitted: false,
+      registrations: [
+        {
+          workspace_id: "asset-forge",
+          nav_label: "Forge Backend",
+          nav_subtitle: "Backend supplied subtitle",
+          workspace_title: "Asset Forge",
+          workspace_subtitle: "Backend full-screen editor subtitle",
+          launch_title: "Backend Asset Forge",
+          detail: "Backend detail",
+          truth_state: "read-only / preflight-only / proof-only",
+          blocked: "Blocked safely.",
+          next_safe_action: "Open safely.",
+          action_label: "Open Asset Forge",
+          shell_mode: "full-screen-editor",
+          tone: "info",
+          help_tooltip: "Backend tooltip",
+          execution_admitted: false,
+          mutation_admitted: false,
+          provider_generation_admitted: false,
+          blender_execution_admitted: false,
+          asset_processor_execution_admitted: false,
+          placement_write_admitted: false,
+        },
+      ],
+      blocked_capabilities: [],
+      next_safe_action: "Open a cockpit safely.",
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(apiMocks.fetchCockpitAppRegistry).toHaveBeenCalledTimes(1));
+    expect(getDesktopNavButton(/Forge Backend/i)).toBeInTheDocument();
+    expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
+  });
 
   it("opens Runtime and Asset Forge from Create Game cockpit actions", async () => {
     render(<App />);

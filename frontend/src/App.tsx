@@ -26,6 +26,7 @@ import {
   fetchArtifactCardsForTruthFilter,
   cleanupO3deBridgeResults,
   fetchControlPlaneSummary,
+  fetchCockpitAppRegistry,
   fetchO3deBridge,
   fetchExecutor,
   fetchExecutors,
@@ -71,8 +72,10 @@ import {
 } from "./lib/laneController";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import {
+  buildCockpitAppRegistryByWorkspaceId,
   cockpitAppRegistry,
-  cockpitAppRegistryByWorkspaceId,
+  resolveCockpitAppRegistry,
+  type CockpitAppRegistration,
   type CockpitWorkspaceId,
 } from "./lib/cockpitAppRegistry";
 import {
@@ -606,6 +609,9 @@ export default function App() {
   const { settings, saveSettings } = useSettings();
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
+  const [cockpitRegistrations, setCockpitRegistrations] = useState<readonly CockpitAppRegistration[]>(
+    cockpitAppRegistry,
+  );
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
@@ -2690,6 +2696,15 @@ export default function App() {
     }
   }
 
+  async function loadCockpitRegistry() {
+    try {
+      const registryRecord = await fetchCockpitAppRegistry();
+      setCockpitRegistrations(resolveCockpitAppRegistry(registryRecord));
+    } catch {
+      setCockpitRegistrations(cockpitAppRegistry);
+    }
+  }
+
   function getPreferredExecutionForRun(
     runId: string,
     executionItems: ExecutionListItem[] = executions,
@@ -3251,6 +3266,7 @@ export default function App() {
 
   useEffect(() => {
     async function loadInitialData() {
+      await loadCockpitRegistry();
       await loadCatalog();
 
       await loadApprovals();
@@ -4879,6 +4895,7 @@ export default function App() {
   const warningExecutionCount = executions.filter((execution) => execution.warning_count > 0).length;
   const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
   const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
+  const cockpitRegistryByWorkspaceId = buildCockpitAppRegistryByWorkspaceId(cockpitRegistrations);
   const homeWorkspaceGuide = getShellWorkspaceGuide("home");
   const promptWorkspaceGuide = getShellWorkspaceGuide("prompt");
   const builderWorkspaceGuide = getShellWorkspaceGuide("builder");
@@ -4895,20 +4912,20 @@ export default function App() {
       subtitle: homeWorkspaceGuide.workspaceSubtitle,
     },
     "create-game": {
-      title: cockpitAppRegistryByWorkspaceId["create-game"].workspaceTitle,
-      subtitle: cockpitAppRegistryByWorkspaceId["create-game"].workspaceSubtitle,
+      title: cockpitRegistryByWorkspaceId["create-game"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["create-game"].workspaceSubtitle,
     },
     "create-movie": {
-      title: cockpitAppRegistryByWorkspaceId["create-movie"].workspaceTitle,
-      subtitle: cockpitAppRegistryByWorkspaceId["create-movie"].workspaceSubtitle,
+      title: cockpitRegistryByWorkspaceId["create-movie"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["create-movie"].workspaceSubtitle,
     },
     "load-project": {
-      title: cockpitAppRegistryByWorkspaceId["load-project"].workspaceTitle,
-      subtitle: cockpitAppRegistryByWorkspaceId["load-project"].workspaceSubtitle,
+      title: cockpitRegistryByWorkspaceId["load-project"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["load-project"].workspaceSubtitle,
     },
     "asset-forge": {
-      title: cockpitAppRegistryByWorkspaceId["asset-forge"].workspaceTitle,
-      subtitle: cockpitAppRegistryByWorkspaceId["asset-forge"].workspaceSubtitle,
+      title: cockpitRegistryByWorkspaceId["asset-forge"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["asset-forge"].workspaceSubtitle,
     },
     prompt: {
       title: promptWorkspaceGuide.workspaceTitle,
@@ -4971,7 +4988,7 @@ export default function App() {
       label: "Create",
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
       items: [
-        ...cockpitAppRegistry.map((registration) => ({
+        ...cockpitRegistrations.map((registration) => ({
           id: registration.workspaceId,
           label: registration.navLabel,
           subtitle: registration.navSubtitle,
@@ -9259,6 +9276,7 @@ export default function App() {
               launchpadContent={homeLaunchpadContent}
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
+              cockpitRegistry={cockpitRegistrations}
               onOpenPromptStudio={openPromptStudioFromHomeCockpit}
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}

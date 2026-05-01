@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import HomeCockpitLaunchPanel from "./HomeCockpitLaunchPanel";
+import { cockpitAppRegistry } from "../lib/cockpitAppRegistry";
 
 describe("HomeCockpitLaunchPanel", () => {
   it("renders cockpit launch cards from the shared registry including full-screen Asset Forge", () => {
@@ -31,5 +32,34 @@ describe("HomeCockpitLaunchPanel", () => {
 
     fireEvent.click(within(assetForgeCard).getByRole("button", { name: "Open Asset Forge" }));
     expect(openAssetForge).toHaveBeenCalledTimes(1);
+  });
+
+  it("prefers backend-provided registry cards when supplied", () => {
+    const registry = cockpitAppRegistry.map((registration) => (
+      registration.workspaceId === "create-game"
+        ? {
+            ...registration,
+            launchTitle: "Backend Create Game Cockpit",
+            detail: "Backend supplied cockpit detail.",
+          }
+        : registration
+    ));
+
+    render(
+      <HomeCockpitLaunchPanel
+        registry={registry}
+        onOpenCreateGame={vi.fn()}
+        onOpenCreateMovie={vi.fn()}
+        onOpenLoadProject={vi.fn()}
+        onOpenAssetForge={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("cockpit-launch-create-game")).toHaveTextContent(
+      "Backend Create Game Cockpit",
+    );
+    expect(screen.getByTestId("cockpit-launch-create-game")).toHaveTextContent(
+      "Backend supplied cockpit detail.",
+    );
   });
 });
