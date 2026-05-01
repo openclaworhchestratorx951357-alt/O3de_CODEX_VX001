@@ -3120,6 +3120,10 @@ export default function AssetForgeStudioPacket01({
                 <li>Server approval policy decision: {contractSummaryString(placementProofReport.server_approval_evaluation, "policy_decision")}</li>
                 <li>Server approval status: {contractSummaryString(placementProofReport.server_approval_evaluation, "status")}</li>
                 <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementProofReport.server_approval_evaluation, "authorization_granted")}</li>
+                <li>Admission packet reference: {placementProofReport.admission_packet_reference ?? "none"}</li>
+                <li>Admission operator id: {placementProofReport.admission_operator_id ?? "none"}</li>
+                <li>Evidence bundle reference: {placementProofReport.evidence_bundle_reference ?? "none"}</li>
+                <li>Readback plan reference: {placementProofReport.readback_plan_reference ?? "none"}</li>
                 <li>Proof approval required: {placementProofReport.placement_proof_policy["approval_required"] ? "yes" : "no"}</li>
                 <li>Proof runtime gate env: {String(placementProofReport.placement_proof_policy["runtime_gate_env"] ?? "ASSET_FORGE_ENABLE_PLACEMENT_PROOF")}</li>
                 <li>Proof mutation scope: {String(placementProofReport.placement_proof_policy["mutation_scope"] ?? "proof-only-no-scene-mutation")}</li>

@@ -442,10 +442,10 @@ function makePlacementProofReport(
     stage_write_readback_status: "succeeded",
     stage_write_evidence_ready: true,
     stage_write_readback_ready: true,
-    admission_packet_reference: null,
-    admission_operator_id: null,
-    evidence_bundle_reference: null,
-    readback_plan_reference: null,
+    admission_packet_reference: "packet://placement-proof/candidate-a",
+    admission_operator_id: "operator-123",
+    evidence_bundle_reference: "evidence://placement-proof/candidate-a",
+    readback_plan_reference: "readback-plan://placement-proof/candidate-a",
     revert_statement_contract_key: null,
     revert_statement_contract_match: false,
     operator_note_present: true,
@@ -1600,6 +1600,10 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Admission packet reference: packet:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Admission operator id: operator-123/i)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence bundle reference: evidence:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Readback plan reference: readback-plan:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Placement proof fail-closed reasons/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime proof gate enabled: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Proof runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_PROOF/i)).toBeInTheDocument();
