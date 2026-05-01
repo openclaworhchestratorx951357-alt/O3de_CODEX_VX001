@@ -36,6 +36,10 @@ type AssetForgeBlenderCockpitProps = {
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  onPrefillPromptTemplate?: (
+    template: AssetForgePromptTemplateRecord,
+    sourceToolId?: string | null,
+  ) => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
   onViewLatestRun?: () => void;
@@ -667,6 +671,7 @@ export default function AssetForgeBlenderCockpit({
   onOpenPromptStudio,
   onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
+  onPrefillPromptTemplate,
   onOpenRuntimeOverview,
   onOpenRecords,
   onViewLatestRun,
@@ -689,6 +694,19 @@ export default function AssetForgeBlenderCockpit({
   useEffect(() => {
     setActiveToolId(editorModel?.active_tool_id ?? "transform");
   }, [editorModel]);
+
+  const activeTool = useMemo(
+    () => tools.find((tool) => tool.tool_id === activeToolId) ?? tools[0] ?? null,
+    [activeToolId, tools],
+  );
+
+  const activeToolPromptTemplate = useMemo(() => {
+    const templateId = activeTool?.prompt_template_id;
+    if (!templateId) {
+      return null;
+    }
+    return promptTemplates.find((template) => template.template_id === templateId) ?? null;
+  }, [activeTool, promptTemplates]);
 
   const effectiveViewport = editorModel?.viewport ?? {
     label: "Front Ortho",
@@ -868,13 +886,11 @@ export default function AssetForgeBlenderCockpit({
                       ...(isSelected ? styles.toolButtonSelected : null),
                       ...(!tool.enabled ? styles.toolButtonDisabled : null),
                     }}
-                    onClick={() => {
-                      if (tool.enabled) {
-                        setActiveToolId(tool.tool_id);
-                      }
-                    }}
-                    disabled={!tool.enabled}
+                    onClick={() => setActiveToolId(tool.tool_id)}
+                    aria-disabled={!tool.enabled}
                     aria-label={`Tool ${tool.label}`}
+                    aria-pressed={isSelected}
+                    title={tool.blocked_reason ?? tool.description}
                   >
                     <span style={styles.toolText}>
                       <strong>{tool.label}</strong>
@@ -885,6 +901,45 @@ export default function AssetForgeBlenderCockpit({
                 );
               })}
             </div>
+          </EditorRegion>
+
+          <EditorRegion title="Tool Detail" subtitle="Selection-only state and safety truth" label="LEFT" compact>
+            {activeTool ? (
+              <article style={styles.toolDetailCard}>
+                <div style={styles.cardHeader}>
+                  <strong>{activeTool.label}</strong>
+                  <TruthBadge truth={toTruthTone(activeTool.truth_state)} />
+                </div>
+                <p style={styles.compactText}>{activeTool.description}</p>
+                <p style={styles.metaLine}>
+                  execution_admitted=false / mutation_admitted=false / backend dispatch disabled from tool click
+                </p>
+                {activeTool.blocked_reason ? (
+                  <p style={styles.compactText}><strong>Blocked reason:</strong> {activeTool.blocked_reason}</p>
+                ) : null}
+                {activeTool.next_unlock ? (
+                  <p style={styles.compactText}><strong>Next unlock:</strong> {activeTool.next_unlock}</p>
+                ) : null}
+                {activeToolPromptTemplate ? (
+                  <div style={styles.toolDetailActions}>
+                    <p style={styles.compactText}>
+                      Linked prompt template: <strong>{activeToolPromptTemplate.label}</strong> (auto_execute=false)
+                    </p>
+                    <button
+                      type="button"
+                      style={styles.commandButton}
+                      onClick={() => onPrefillPromptTemplate?.(activeToolPromptTemplate, activeTool.tool_id)}
+                    >
+                      Prefill linked template in Prompt Studio (no auto-execute)
+                    </button>
+                  </div>
+                ) : (
+                  <p style={styles.compactText}>No linked prompt template for this tool.</p>
+                )}
+              </article>
+            ) : (
+              <p style={styles.compactText}>No tool selected.</p>
+            )}
           </EditorRegion>
 
           <EditorRegion title="Candidate Browser" subtitle="Selected variant" label="LEFT" compact>
@@ -1066,7 +1121,15 @@ export default function AssetForgeBlenderCockpit({
                     </div>
                     <p style={styles.compactText}>{template.description}</p>
                     <p style={styles.compactText}>{template.text}</p>
+                    <p style={styles.compactText}>Safety labels: {template.safety_labels.join(", ")}</p>
                     <p style={styles.metaLine}>auto_execute=false / non-mutating</p>
+                    <button
+                      type="button"
+                      style={styles.commandButton}
+                      onClick={() => onPrefillPromptTemplate?.(template, null)}
+                    >
+                      Prefill in Prompt Studio (no auto-execute)
+                    </button>
                   </article>
                 ))}
               </div>
@@ -1325,7 +1388,7 @@ const styles = {
     textAlign: "left",
   },
   toolButtonSelected: {
-    borderColor: "var(--app-accent)",
+    border: "1px solid var(--app-accent)",
     background: "color-mix(in srgb, var(--app-accent) 12%, var(--app-panel-bg-alt))",
   },
   toolButtonDisabled: {
@@ -1337,6 +1400,18 @@ const styles = {
     alignItems: "center",
     gap: 8,
     minWidth: 0,
+  },
+  toolDetailCard: {
+    display: "grid",
+    gap: 8,
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 10,
+    padding: 10,
+    background: "var(--app-panel-bg-alt)",
+  },
+  toolDetailActions: {
+    display: "grid",
+    gap: 6,
   },
   candidateCard: {
     display: "grid",

@@ -105,6 +105,7 @@ import type {
   RunListItem,
   ResponseEnvelope,
   RunRecord,
+  AssetForgePromptTemplateRecord,
   SettingsPatchAuditSummary,
   ToolPolicy,
   WorkspaceRecord,
@@ -5226,6 +5227,49 @@ export default function App() {
     setActiveWorkspaceId("prompt");
   }
 
+  function buildAssetForgePromptDraftFromEditorTemplate(
+    template: AssetForgePromptTemplateRecord,
+    sourceToolId?: string | null,
+  ): MissionPromptDraft {
+    const truthLabels = Array.from(
+      new Set([
+        template.truth_state,
+        ...template.safety_labels,
+        "auto_execute=false",
+        "prefill-only",
+        "non-mutating",
+      ]),
+    );
+    const preferredDomainsText = template.truth_state === "proof-only" ? "editor-control" : "project-build";
+    const sourceToolNote = sourceToolId ? ` Source tool: ${sourceToolId}.` : "";
+    return {
+      id: `asset-forge-editor-template-${template.template_id}`,
+      label: `${template.label} (Asset Forge editor template)`,
+      promptText: template.text,
+      preferredDomainsText,
+      operatorNote:
+        `Asset Forge backend template prefill only.${sourceToolNote} ` +
+        "No auto-execution; review draft and keep admitted flags explicit before any run.",
+      dryRun: true,
+      truthLabels,
+      guidance:
+        `Loaded from /asset-forge/editor-model template "${template.template_id}" ` +
+        `(${template.truth_state}). This handoff only prefills Prompt Studio and does not execute automatically.`,
+    };
+  }
+
+  function openPromptStudioWithAssetForgeEditorTemplate(
+    template: AssetForgePromptTemplateRecord,
+    sourceToolId?: string | null,
+  ): void {
+    const sourceSuffix = sourceToolId ? ` / tool ${sourceToolId}` : "";
+    openPromptStudioWithMissionDraft(
+      buildAssetForgePromptDraftFromEditorTemplate(template, sourceToolId),
+      `Asset Forge editor model / template ${template.template_id}${sourceSuffix}`,
+      "asset-forge",
+    );
+  }
+
   function openPromptStudioWithTemplateChooserContext(
     sourceWorkspaceId: DesktopWorkspaceId,
     sourceSurfaceLabel: string,
@@ -9151,6 +9195,7 @@ export default function App() {
                 onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
+                onPrefillPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}

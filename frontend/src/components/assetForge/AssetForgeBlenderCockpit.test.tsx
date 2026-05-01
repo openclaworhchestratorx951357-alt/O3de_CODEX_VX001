@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AssetForgeBlenderCockpit from "./AssetForgeBlenderCockpit";
@@ -282,13 +282,13 @@ describe("AssetForgeBlenderCockpit", () => {
     );
 
     expect(screen.getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
-    expect(screen.getByText("Transform")).toBeInTheDocument();
-    expect(screen.getByText("Translate")).toBeInTheDocument();
-    expect(screen.getByText("Rotate")).toBeInTheDocument();
-    expect(screen.getByText("Scale")).toBeInTheDocument();
-    expect(screen.getByText("Duplicate")).toBeInTheDocument();
-    expect(screen.getByText("Delete")).toBeInTheDocument();
-    expect(screen.getByText("Grease Pencil")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Transform" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Translate" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Rotate" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Scale" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Duplicate" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Delete" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tool Grease Pencil" })).toBeInTheDocument();
 
     expect(screen.getByText("Location X/Y/Z")).toBeInTheDocument();
     expect(screen.getByText("Rotation X/Y/Z")).toBeInTheDocument();
@@ -315,5 +315,36 @@ describe("AssetForgeBlenderCockpit", () => {
     );
 
     expect(screen.getByText("Editor model backend unavailable; using frontend fallback. No execution admitted.")).toBeInTheDocument();
+  });
+
+  it("allows blocked tools to be selected for safety guidance without backend execution", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelFixture()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tool Duplicate" }));
+
+    expect(screen.getByText(/would mutate scene/i)).toBeInTheDocument();
+    expect(screen.getByText(/add bounded corridor/i)).toBeInTheDocument();
+    expect(screen.getByText(/backend dispatch disabled from tool click/i)).toBeInTheDocument();
+  });
+
+  it("emits prefill-only callback for backend prompt template cards", () => {
+    const onPrefillPromptTemplate = vi.fn();
+    render(
+      <AssetForgeBlenderCockpit
+        editorModel={buildEditorModelFixture()}
+        onPrefillPromptTemplate={onPrefillPromptTemplate}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Prefill in Prompt Studio (no auto-execute)" })[0]);
+
+    expect(onPrefillPromptTemplate).toHaveBeenCalledTimes(1);
+    expect(onPrefillPromptTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        template_id: "inspect-candidate",
+        auto_execute: false,
+      }),
+      null,
+    );
   });
 });
